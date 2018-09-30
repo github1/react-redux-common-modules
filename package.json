@@ -1,0 +1,29 @@
+{
+  "name": "@common/react-redux-common-modules",
+  "private": "true",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "NO_SERVER=true build-tools test --coverage",
+    "test:watch": "NO_SERVER=true build-tools test --watch --coverage"
+  },
+  "keywords": [],
+  "author": "John Collier <john.collier4@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@common/build-tools": "0.0.0",
+    "enzyme": "^3.3.0",
+    "enzyme-adapter-react-16": "^1.1.1"
+  },
+  "dependencies": {
+    "@common/redux-modules": "0.0.0",
+    "history": "^4.7.2",
+    "react-redux": "^5.0.7",
+    "redux": "^4.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/github1/react-redux-common-modules"
+  }
+}
