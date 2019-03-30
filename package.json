@@ -5,6 +5,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "NO_SERVER=true build-tools devserver",
     "test": "NO_SERVER=true build-tools test --coverage",
     "test:watch": "NO_SERVER=true build-tools test --watch --coverage"
   },
@@ -13,12 +14,14 @@
   "license": "MIT",
   "devDependencies": {
     "@common/build-tools": "0.0.0",
+    "bootstrap": "4.3.1",
     "enzyme": "^3.3.0",
     "enzyme-adapter-react-16": "^1.1.1"
   },
   "dependencies": {
     "@common/redux-modules": "0.0.0",
     "history": "^4.7.2",
+    "react-bootstrap": "0.32.4",
     "react-redux": "^5.0.7",
     "redux": "^4.0.0"
   },
