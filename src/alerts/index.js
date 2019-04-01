@@ -1,4 +1,4 @@
-import { Module } from '@common/redux-modules';
+import { Module } from '@github1/redux-modules';
 
 export const DISPLAY_ALERT = '@ALERT/DISPLAY';
 export const HIDE_ALERT = '@ALERT/HIDE';

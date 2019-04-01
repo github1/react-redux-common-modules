@@ -1,4 +1,4 @@
-import { Module } from '@common/redux-modules';
+import { Module } from '@github1/redux-modules';
 import api, { DATA_FETCH_SUCCESS } from './index';
 import { ajaxModuleTestHelper, createFakeAjaxModule } from '../ajax/test-helper';
 import ajax, { success, failed } from '../ajax';

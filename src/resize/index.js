@@ -1,4 +1,4 @@
-import { Module } from '@common/redux-modules';
+import { Module } from '@github1/redux-modules';
 
 const REGISTER_RESIZE_LISTENER = '@resize/register-resize-listener';
 export const RESIZED = '@resize/resized';
