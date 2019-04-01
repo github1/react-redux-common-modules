@@ -1,4 +1,4 @@
-import { Module } from '@common/redux-modules';
+import { Module } from '@github1/redux-modules';
 
 export const START_TIMER = '@timer/start';
 export const DEBOUNCE_ACTION = '@timer/debounce';

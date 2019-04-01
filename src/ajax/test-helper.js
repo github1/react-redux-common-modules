@@ -1,4 +1,4 @@
-import { Module } from '@common/redux-modules';
+import { Module } from '@github1/redux-modules';
 import ajax, { success, failed } from './index';
 
 const createDeferredPromise = () => DeferredPromise({

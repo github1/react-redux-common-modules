@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Alerts, {displayAlert} from './alerts';
 import {Alerts as AlertsContainer} from './alerts/components/alert';
-import {Module} from '@common/redux-modules';
+import {Module} from '@github1/redux-modules';
 import {Provider} from 'react-redux'
 import 'bootstrap/scss/bootstrap.scss';
 
