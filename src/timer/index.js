@@ -1,7 +1,6 @@
 import { Module } from '@github1/redux-modules';
 
 export const START_TIMER = '@timer/start';
-export const DEBOUNCE_ACTION = '@timer/debounce';
 export const TIMER_STARTED = '@timer/started';
 export const TIMER_TICK = '@timer/tick';
 export const STOP_TIMER = '@timer/stop';
@@ -10,9 +9,14 @@ export const TIMER_STOPPED = '@timer/stopped';
 const timers = {};
 
 const clearTimerInterval = id => {
-    if (timers[id]) {
+    if (typeof timers[id] !== 'undefined') {
         clearInterval(timers[id]);
     }
+};
+
+const storeTimerInterval = (id, func, interval) => {
+    clearTimerInterval(id);
+    timers[id] = setInterval(func, interval);
 };
 
 export const startTimer = (id, { action, interval, dispatchOnTick, stopOnDispatch }) => {
@@ -78,7 +82,7 @@ export default Module.create({
             clearTimerInterval(action.id);
             if (action.interval > 0) {
                 store.dispatch({type: TIMER_STARTED, id: action.id});
-                timers[action.id] = setInterval(() => {
+                storeTimerInterval(action.id, () => {
                     store.dispatch({type: TIMER_TICK, id: action.id});
                     if (action.action && (typeof action.dispatchOnTick === 'undefined' || (action.dispatchOnTick + 1) === store.getState().timer[action.id].tick)) {
                         if (action.stopOnDispatch) {

@@ -42,7 +42,7 @@ export const del = buildMethod('delete');
 
 const sent = opts => ({type: AJAX_CALL_SENT, payload: opts});
 
-const complete = (id) => ({type: AJAX_CALL_COMPLETE, payload: {id}});
+const complete = (id, request, status) => ({type: AJAX_CALL_COMPLETE, payload: {id, request, status}});
 
 export const success = (id, response) => ({
     type: AJAX_CALL_SUCCESS,
@@ -77,11 +77,11 @@ export default ajaxService => Module.fromMiddleware(store => next => action => {
         ajaxService
             .send(action.payload)
             .then(resp => {
-                store.dispatch(complete(action.payload.id));
+                store.dispatch(complete(action.payload.id, action.payload, resp.status));
                 store.dispatch(success(action.payload.id, resp));
             })
             .catch(err => {
-                store.dispatch(complete(action.payload.id));
+                store.dispatch(complete(action.payload.id, action.payload, err.status));
                 store.dispatch(failed(action.payload.id, err));
             });
     } else if (action.type === AJAX_CALL_SUCCESS) {

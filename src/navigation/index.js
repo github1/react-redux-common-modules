@@ -1,5 +1,6 @@
 import { Module } from '@github1/redux-modules';
 
+export const NAVIGATION_SECTIONS_CONFIGURE = '@NAVIGATION/SECTIONS_CONFIGURE';
 export const NAVIGATION_PRE_REQUEST = '@NAVIGATION/PRE_REQUEST';
 export const NAVIGATION_REQUESTED = '@NAVIGATION/REQUESTED';
 export const NAVIGATION_DENIED = '@NAVIGATION/DENIED';
@@ -23,15 +24,11 @@ export const section = (title, icon, path, visibility = VISIBLE) => ({
     visibility
 });
 
-const createInitialState = sections => ({
-    phase: 'idle',
-    pathParams: {},
-    sections: sections
-        .map((section, index) => {
-            section.index = index;
-            return section;
-        }).filter(section => section.visibility === VISIBLE)
-});
+const prepareSections = sections => sections
+    .map((section, index) => {
+        section.index = index;
+        return section;
+    }).filter(section => section.visibility === VISIBLE);
 
 export const extractQueryParams = value => {
     const queryParams = /\?(.*)$/.exec(value);
@@ -91,11 +88,15 @@ const complete = section => {
     };
 };
 
-export default ({history, onBeforeNavigate, pathState = {}, sections}) => {
+export default ({history, onBeforeNavigate, sections}) => {
     onBeforeNavigate = onBeforeNavigate || ((section, cb) => cb.allow());
     return Module.create({
         name: 'navigation',
-        reducer: (state = {...createInitialState(sections), ...pathState}, action) => {
+        preloadedState: {
+            sections: prepareSections(sections),
+            phase: 'idle'
+        },
+        reducer: (state = {}, action) => {
             switch (action.type) {
                 case NAVIGATION_REQUESTED:
                     return {
