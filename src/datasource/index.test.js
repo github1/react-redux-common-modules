@@ -211,12 +211,56 @@ describe('datasource', () => {
             expect(store.getState().datasource.someDataSource.data[0].search_value).toBe('charlie');
         });
     });
-    describe('updating data', () => {
+    describe('updateDataSource', () => {
+        let store;
+        beforeEach(() => {
+            store = datasource.inStore();
+            store.dispatch(initDataSource({
+                id: 'someDataSource',
+                source: [{value: 1, id: 'a'}, {value: 2, id: 'b'}, {value: 3, id: 'c'}]
+            }));
+        });
+        it('can update the data source without sorting', () => {
+            store.dispatch(sortDataSource({
+                id: 'someDataSource',
+                sortField: 'value',
+                sortDirection: 'asc'
+            }));
+            store.dispatch(updateDataSource({
+                id: 'someDataSource',
+                source: [{value: 999, id: 'a'}, {value: 2, id: 'b'}, {value: 3, id: 'c'}],
+                sort: false
+            }));
+            expect(store.getState().datasource.someDataSource.data[0].value).toBe(999);
+        });
+        it('can update the data source without filter', () => {
+            store.dispatch(filterDataSource({
+                id: 'someDataSource',
+                field: 'id',
+                textFilter: 'a'
+            }));
+            expect(store.getState().datasource.someDataSource.data[0].id).toBe('a');
+            store.dispatch(updateDataSource({
+                id: 'someDataSource',
+                source: [{value: 1, id: 'b'}],
+                filter: false
+            }));
+            expect(store.getState().datasource.someDataSource.data[0].id).toBe('b');
+        });
+        it('can update the source and data', () => {
+            store.dispatch(updateDataSource({
+                id: 'someDataSource',
+                data: [{value: 1, id: 'a'}]
+            }));
+            expect(store.getState().datasource.someDataSource.data[0].id).toBe('a');
+        });
+    });
+    describe('mapDataSource', () => {
         let store;
         let sourceData;
         beforeEach(() => {
-            store = datasource.inRecordedStore(fakeDataModule);
-            sourceData = [{value: 1}, {value: 2}, {value: 3}];
+            store = datasource.inStore();
+            sourceData = [{value: 1, id: 'a'}, {value: 2, id: 'b', prop: 'keep'}, {value: 3, id: 'c', prop: 'keep'}];
             store.dispatch(initDataSource({
                 id: 'someDataSource',
                 source: sourceData
@@ -228,6 +272,29 @@ describe('datasource', () => {
                 return record;
             }));
             expect(store.getState().datasource.someDataSource.data[0].value).toBe(2);
+        });
+        it('can map over data without re-sorting', () => {
+            store.dispatch(sortDataSource({
+                id: 'someDataSource',
+                sortField: 'value',
+                sortDirection: 'desc'
+            }));
+            store.dispatch(filterDataSource({
+                id: 'someDataSource',
+                textFilter: 'keep',
+                field: 'prop'
+            }));
+            expect(store.getState().datasource.someDataSource.data[0].id).toBe('c');
+            store.dispatch(mapDataSource('someDataSource', (record) => {
+                if (record.value === 3) {
+                    record.value = -1;
+                }
+                return record;
+            }, {
+                sort: false,
+                filter: true
+            }));
+            expect(store.getState().datasource.someDataSource.data[0].id).toBe('c');
         });
     });
     describe('sortFunc', () => {

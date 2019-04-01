@@ -77,12 +77,13 @@ export const dataFetchSuccess = ({ queryName, queryResultName, data }) => ({
     data
 });
 
-export const executeCommand = (name, payload, responseHandler) => {
+export const executeCommand = (name, payload, responseHandler, errorHandler) => {
   return {
       type: COMMAND_REQUESTED,
       name,
       payload,
       responseHandler,
+      errorHandler,
       callCountName: name
   }
 };
@@ -98,19 +99,19 @@ const getCallName = (action) => {
 
 export default Module.create({
     name: 'api',
-    reducer: (state = {
+    preloadedState: {
         numCallsInProgress: 0,
         callsInProgress: [],
         callCount: {},
         fetching: {}
-    }, action) => {
+    },
+    reducer: (state, action) => {
         if (/@API.*_REQUESTED$/.test(action.type)) {
             const fetching = {
                 fetching: {
                     ...state.fetching
                 }
             };
-            const numCallsInProgress = state.numCallsInProgress + 1;
             const callName = getCallName(action);
             const callCount = {
               callCount: {
@@ -118,19 +119,22 @@ export default Module.create({
                   [callName]: !state.callCount[callName] ? 1 : state.callCount[callName] + 1
               }
             };
+
             if (DATA_FETCH_REQUESTED === action.type) {
                 fetching.fetching[action.queryName] = true;
             }
+
             const callsInProgress = (state.callsInProgress || []).splice();
             if (callsInProgress.indexOf(callName) < 0) {
                 callsInProgress.push(callName);
             }
+            const numCallsInProgress = callsInProgress.length;
             return {
                 ...state,
                 ...fetching,
                 ...callCount,
                 numCallsInProgress,
-                callInProgress: true,
+                callInProgress: numCallsInProgress > 0,
                 callsInProgress
             }
         } else if (/@API.*_(SUCCESS|FAILED)$/.test(action.type)) {
@@ -139,12 +143,12 @@ export default Module.create({
                     ...state.fetching
                 }
             };
-            const numCallsInProgress = Math.max(0, state.numCallsInProgress - 1);
             if (action.queryName) {
                 fetching.fetching[action.queryName] = false;
             }
             const callName = getCallName(action);
-            const callsInProgress = (state.callsInProgress || []).filter(call => call === callName);
+            const callsInProgress = (state.callsInProgress || []).filter(call => call !== callName);
+            const numCallsInProgress = callsInProgress.length;
             return {
                 ...state,
                 ...fetching,
@@ -167,9 +171,6 @@ export default Module.create({
                 headers
             }, (err, response) => {
                 if (err) {
-                    if ([401, 403].indexOf(err.status) > -1) {
-                        return authorizationFailed();
-                    }
                     return authenticationFailed();
                 } else {
                     return authenticationSuccess(response.data);
@@ -199,10 +200,10 @@ export default Module.create({
                     }
                 }));
             } else {
-                store.dispatch(doGraphQuery(action.queryName, action.graphQuery, (err, response) => {
+                store.dispatch(doGraphQuery(action.queryName, action.graphQuery, store.getState(), (err, response) => {
                     try {
                         if (err) {
-                            return {type: DATA_FETCH_FAILED, queryName: action.queryName, error: err};
+                            return {...action, type: DATA_FETCH_FAILED, error: err};
                         } else {
                             const data = action.postProcessor ? action.postProcessor(response.data['graph'][action.queryResultName], store.getState()) : response.data['graph'][action.queryResultName];
                             return dataFetchSuccess({
@@ -212,7 +213,7 @@ export default Module.create({
                             });
                         }
                     } catch (err) {
-                        return {type: DATA_FETCH_FAILED, queryName: action.queryName, error: err};
+                        return {...action, type: DATA_FETCH_FAILED, error: err};
                     }
                 }));
             }
@@ -223,21 +224,25 @@ export default Module.create({
                 accept: APPLICATION_AMF,
                 contentType: APPLICATION_AMF
             }, (err, response) => {
+                const callbackActions = [];
                 if (err) {
-                    return {type: COMMAND_FAILED, name: action.name, error: err};
+                    callbackActions.push({...action, type: COMMAND_FAILED, error: err});
+                    if (action.errorHandler) {
+                        callbackActions.push(action.errorHandler(err));
+                    }
                 } else {
-                    const callbackActions = [{
+                    callbackActions.push({
                         type: COMMAND_SUCCESS,
                         name: action.name,
                         payload: action.payload,
                         response: response,
                         callCountName: action.callCountName
-                    }];
+                    });
                     if(action.responseHandler) {
                         callbackActions.push(commandResponseHandler(action.responseHandler, console.log.bind(console))(response));
                     }
-                    return callbackActions;
                 }
+                return callbackActions;
             }));
         } else if (SIGNOUT_REQUESTED === action.type) {
             next(del('service/identity', {}, () => {
@@ -249,9 +254,21 @@ export default Module.create({
     }
 });
 
-const doGraphQuery = (queryName, query, responseHandler) => {
+const doGraphQuery = (queryName, query, storeState, responseHandler) => {
+    const renderedQuery = createGraphQuery(query);
+    const prefetchedResponse = (storeState.api.prefetched || {})[renderedQuery];
+    if (prefetchedResponse) {
+        if (typeof window === 'undefined' || storeState.api.usePrefetchedAlways || prefetchedResponse.cache) {
+            if (prefetchedResponse.statusCode >= 200 && prefetchedResponse.statusCode < 300 && prefetchedResponse.data) {
+                return responseHandler(null, {data: prefetchedResponse.data});
+            }
+            const error = new Error(`Data fetch for ${queryName} returned ${prefetchedResponse.statusCode}`);
+            error.status = prefetchedResponse.statusCode;
+            return responseHandler(error, null);
+        }
+    }
     return post(`graph?name=${queryName}`, {
-        data: "\"" + createGraphQuery(query) + "\"",
+        data: "\"" + renderedQuery + "\"",
         accept: APPLICATION_AMF,
         contentType: TEXT_PLAIN
     }, responseHandler);

@@ -7,11 +7,11 @@ export const REMOVE_ALERT = '@ALERT/REMOVE';
 export const TRIGGER_ALERT_ACTION = '@ALERT/TRIGGER_ALERT_ACTION';
 const CONFIRMATION_ALERT_TYPE = 'confirmation';
 
-export const displayAlert = ({title, message, type = 'success', timeout = 3000, componentProps}) => {
-    const id = guid();
+export const displayAlert = ({title, message, type = 'success', timeout = 3000, id}) => {
+    id = id || guid();
     return {
         type: DISPLAY_ALERT,
-        payload: {title, message, type, timeout, id, componentProps}
+        payload: {title, message, type, timeout, id}
     };
 };
 
@@ -52,9 +52,12 @@ const reducer = (state = {alerts: []}, action) => {
     switch (action.type) {
         case DISPLAY_ALERT:
         {
-            return {
-                alerts: state.alerts.concat([action.payload])
-            };
+            if (state.alerts.filter(alert => alert.id === action.payload.id).length === 0) {
+                return {
+                    alerts: state.alerts.concat([action.payload])
+                };
+            }
+            break;
         }
         case HIDE_ALERT:
         {
@@ -80,10 +83,17 @@ const reducer = (state = {alerts: []}, action) => {
     return state;
 };
 
+const timeouts = {
+    hide: {},
+    remove: {}
+};
+
 const middleware = store => next => action => {
     if (action.type === DISPLAY_ALERT) {
+        clearTimeout(timeouts.hide[action.payload.id]);
+        clearTimeout(timeouts.remove[action.payload.id]);
         if (action.payload.timeout > -1) {
-            setTimeout(() => {
+            timeouts.hide[action.payload.id] = setTimeout(() => {
                 store.dispatch(hideAlert(action.payload.id));
             }, action.payload.timeout);
         }
@@ -91,7 +101,7 @@ const middleware = store => next => action => {
     if (action.type === HIDE_ALERT) {
         const foundAlert = store.getState().alerts.alerts.filter(alert => alert.id === action.payload.id)[0];
         if (foundAlert) {
-            setTimeout(() => {
+            timeouts.remove[action.payload.id] = setTimeout(() => {
                 store.dispatch(removeAlert(action.payload.id));
             }, foundAlert.type === CONFIRMATION_ALERT_TYPE ? 500 : 1000);
         }

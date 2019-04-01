@@ -29,23 +29,28 @@ export const destroyDataSource = () => {
     }
 };
 
-export const updateDataSource = ({id, source, baseSortField, sortField, sortDirection, textFilters}) => {
+export const updateDataSource = ({id, source, data, baseSortField, sortField, sortDirection, textFilters, sort, filter}) => {
     return {
         type: DATASOURCE_UPDATE,
         id,
         source,
+        data,
         baseSortField: baseSortField || 'id',
         sortField,
         sortDirection,
-        textFilters
+        textFilters,
+        sort,
+        filter
     }
 };
 
-export const mapDataSource = (id, func) => {
+export const mapDataSource = (id, func, { sort, filter } = {}) => {
     return {
         type: DATASOURCE_MAP,
         id,
-        func
+        func,
+        sort,
+        filter
     }
 };
 
@@ -93,10 +98,17 @@ export default Module.create({
         const storeState = store.getState();
         const existingDataSource = storeState.datasource[action.id];
         if (DATASOURCE_INIT === action.type || DATASOURCE_UPDATE === action.type) {
-            if (Array.isArray(action.source)) {
-                action.data = action.source;
-            } else {
-                action.data = resolveDataFromKey(store.getState(), action.source);
+
+            if (action.source) {
+                if (Array.isArray(action.source)) {
+                    action.master = action.source;
+                } else {
+                    action.master = resolveDataFromKey(store.getState(), action.source);
+                }
+            }
+
+            if (!action.data) {
+                action.data = action.master;
             }
 
             if (DATASOURCE_UPDATE === action.type && existingDataSource) {
@@ -116,7 +128,9 @@ export default Module.create({
             if (existingDataSource) {
                 store.dispatch(updateDataSource({
                     id: action.id,
-                    source: JSON.parse(JSON.stringify(existingDataSource.master)).map(action.func)
+                    source: JSON.parse(JSON.stringify(existingDataSource.master)).map(action.func),
+                    sort: action.sort,
+                    filter: action.filter
                 }));
             }
         } else {
@@ -132,13 +146,13 @@ export default Module.create({
                     [action.id]: {
                         baseSortField: action.baseSortField,
                         data: action.data,
-                        master: action.data,
+                        master: action.master || state[action.id].master,
                         sortField: action.sortField,
                         sortDirection: action.sortDirection,
                         textFilters: action.textFilters
                     }
                 };
-                updateSortFilter(initData, action.id);
+                updateSortFilter(initData, action.id, action.sort, action.filter);
                 return {
                     ...state,
                     ...initData
@@ -177,7 +191,7 @@ export default Module.create({
                     ...state,
                     ...filterInfo
                 };
-                updateSortFilter(updatedState, action.id);
+                updateSortFilter(updatedState, action.id, false, true);
                 return updatedState;
             }
             case DATASOURCE_DESTROY:
@@ -189,33 +203,36 @@ export default Module.create({
     }
 });
 
-const updateSortFilter = (state, id) => {
-    let updatedData = clone(state[id].master);
-    if (state[id].textFilters) {
-        updatedData = Object.keys(state[id].textFilters)
-            .reduce((filtered, key) => {
-                const filterRawValue = state[id].textFilters[key].value;
-                if (typeof filterRawValue === 'function') {
-                    return filtered.filter(filterRawValue);
-                } else {
-                    const filterValue = filterRawValue + '';
-                    const operator = state[id].textFilters[key].operator;
-                    return filtered.filter(item => {
-                        const propValue = (propByString.get(key, item) || '') + '';
-                        if (operator === 'equals') {
-                            return propValue.toLowerCase() === filterValue.toLowerCase() || filterValue === '0';
-                        }
-                        return propValue.toLowerCase().indexOf(filterValue.toLowerCase()) > -1;
-                    });
-                }
-            }, updatedData);
+const updateSortFilter = (state, id, doSort = true, doFilter = true) => {
+    if (doSort || doFilter) {
+        let updatedData = clone(state[id].master);
+        if (state[id].sortField && doSort) {
+            updatedData.sort(sortFunc(state[id].sortField,
+                state[id].baseSortField,
+                state[id].sortDirection));
+            state[id].master = clone(updatedData);
+        }
+        if (state[id].textFilters && doFilter) {
+            updatedData = Object.keys(state[id].textFilters)
+                .reduce((filtered, key) => {
+                    const filterRawValue = state[id].textFilters[key].value;
+                    if (typeof filterRawValue === 'function') {
+                        return filtered.filter(filterRawValue);
+                    } else {
+                        const filterValue = filterRawValue + '';
+                        const operator = state[id].textFilters[key].operator;
+                        return filtered.filter(item => {
+                            const propValue = (propByString.get(key, item) || '') + '';
+                            if (operator === 'equals') {
+                                return propValue.toLowerCase() === filterValue.toLowerCase() || filterValue === '0';
+                            }
+                            return propValue.toLowerCase().indexOf(filterValue.toLowerCase()) > -1;
+                        });
+                    }
+                }, updatedData);
+        }
+        state[id].data = updatedData;
     }
-    if (state[id].sortField) {
-        updatedData.sort(sortFunc(state[id].sortField,
-            state[id].baseSortField,
-            state[id].sortDirection));
-    }
-    state[id].data = updatedData;
 };
 
 const resolveDataFromKey = (state, key) => propByString.get(key, state);

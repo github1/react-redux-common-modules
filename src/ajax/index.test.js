@@ -28,6 +28,8 @@ describe('when calling send', () => {
                 expect(store.getState().recording.actions[1].type).toBe(AJAX_CALL_REQUESTED);
                 expect(store.getState().recording.actions[2].type).toBe(AJAX_CALL_SENT);
                 expect(store.getState().recording.actions[3].type).toBe(AJAX_CALL_COMPLETE);
+                expect(store.getState().recording.actions[3].payload.status).toBe(200);
+                expect(store.getState().recording.actions[3].payload.request.url).toBe('http://test.com');
                 expect(store.getState().recording.actions[4].type).toBe(AJAX_CALL_SUCCESS);
                 expect(store.getState().recording.actions[4].payload.response.status).toBe(200);
                 resolve();
