@@ -1,10 +1,11 @@
 {
-  "name": "@common/react-redux-common-modules",
-  "private": true,
-  "version": "0.0.5",
+  "name": "@github1/react-redux-common-modules",
+  "private": false,
+  "version": "0.0.6",
   "description": "",
-  "main": "index.js",
+  "main": "dist/main.js",
   "scripts": {
+    "build": "rm -rf ./dist && babel src --out-dir dist --ignore \"src/**/*.test.js\"",
     "start": "NO_SERVER=true build-tools devserver",
     "test": "NO_SERVER=true build-tools test --coverage",
     "test:watch": "NO_SERVER=true build-tools test --watch --coverage"
@@ -19,7 +20,7 @@
     "enzyme-adapter-react-16": "^1.1.1"
   },
   "dependencies": {
-    "@github1/redux-modules": "0.0.5",
+    "@github1/redux-modules": "0.0.6",
     "history": "^4.7.2",
     "react-bootstrap": "0.32.4",
     "react-redux": "^5.0.7",
