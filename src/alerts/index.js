@@ -36,7 +36,7 @@ export const requestConfirmation = ({title, message, actions}) => {
 
 export const hideAlert = id => ({type: HIDE_ALERT, payload: {id}});
 
-export const hideAllAlerts = id => ({type: HIDE_ALL_ALERTS});
+export const hideAllAlerts = () => ({type: HIDE_ALL_ALERTS});
 
 const removeAlert = id => ({type: REMOVE_ALERT, payload: {id}});
 
@@ -103,7 +103,7 @@ const middleware = store => next => action => {
         if (foundAlert) {
             timeouts.remove[action.payload.id] = setTimeout(() => {
                 store.dispatch(removeAlert(action.payload.id));
-            }, foundAlert.type === CONFIRMATION_ALERT_TYPE ? 500 : 1000);
+            }, foundAlert.type === CONFIRMATION_ALERT_TYPE ? 500 : 0);
         }
     }
     if (action.type === TRIGGER_ALERT_ACTION) {

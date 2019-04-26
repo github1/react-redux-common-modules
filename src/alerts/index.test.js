@@ -1,5 +1,5 @@
 import alert, {
-    displayAlert, requestConfirmation, hideAlert
+    displayAlert, requestConfirmation, hideAlert, hideAllAlerts
 } from './index';
 
 
@@ -13,6 +13,12 @@ describe('when an alert is displayed', () => {
     it('adds the alert to state', () => {
         store.dispatch(displayAlert({ title: 'SomeTitle', message: 'SomeMessage', timeout: 1 }));
         expect(store.getState().alerts.alerts[0].title).toBe('SomeTitle');
+    });
+    it('hides all alerts', () => {
+        store.dispatch(displayAlert({ title: 'SomeTitle', message: 'SomeMessage', timeout: 1 }));
+        expect(store.getState().alerts.alerts[0].title).toBe('SomeTitle');
+        store.dispatch(hideAllAlerts());
+        expect(store.getState().alerts.alerts.length).toBe(0);
     });
     it('eventually hides the alert', () => {
         store.dispatch(displayAlert({ title: 'SomeTitle', message: 'SomeMessage', timeout: 1 }));
