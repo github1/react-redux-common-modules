@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Alerts, {displayAlert, hideAllAlerts, requestConfirmation} from './../dist/alerts';
-import {Alerts as AlertsContainer} from './../dist/alerts/components/alert';
+import Alerts, {displayAlert, hideAllAlerts, requestConfirmation} from './alerts';
+import {Alerts as AlertsContainer} from './alerts/components/alert';
 import {Module} from '@github1/redux-modules';
 import {Provider} from 'react-redux'
 import './index.scss';
