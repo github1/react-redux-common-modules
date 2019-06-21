@@ -26,19 +26,13 @@ const send = (method, url, opts, callback) => {
     }
 };
 
-const buildMethod = method => {
-    return function() {
-        const args = Array.prototype.slice.call(arguments);
-        args.unshift(method);
-        return send.apply(null, args);
-    }
-};
+const sendMethod = (method) => (url, opts, callback) => send(method, url, opts, callback);
 
-export const get = buildMethod('get');
+export const get = sendMethod('get');
 
-export const post = buildMethod('post');
+export const post = sendMethod('post');
 
-export const del = buildMethod('delete');
+export const del = sendMethod('delete');
 
 const sent = opts => ({type: AJAX_CALL_SENT, payload: opts});
 
