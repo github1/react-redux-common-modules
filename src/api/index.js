@@ -280,13 +280,16 @@ export const createGraphQuery = query => {
     const print = (obj) => {
         if (obj.constructor === Array) {
             query += '(';
-            Object.keys(obj[0]).forEach((key) => {
-                let value = obj[0][key];
+            query += Object.keys(obj[0])
+                .map((key) => [key, obj[0][key]])
+                .filter((pair) => pair[1])
+                .map((pair) => {
+                let value = pair[1];
                 if (typeof value === 'string') {
                     value = "\\\"" + value + "\\\"";
                 }
-                query += key + ': ' + value;
-            });
+                return pair[0] + ': ' + value;
+            }).join(', ');
             query += ') ';
             print(obj[1]);
         } else if (typeof obj === 'object') {
@@ -330,7 +333,7 @@ export const commandResponseHandler = (handlerOrFunc, logger) => {
                                 results.push(m.apply(null, item.args));
                             }
                         } else {
-                            handlerOrFunc[item.name] = item.args.length == 1 ? item.args[0] : item.args;
+                            handlerOrFunc[item.name] = item.args.length === 1 ? item.args[0] : item.args;
                         }
                     });
                     if (typeof results[0] === 'undefined') {

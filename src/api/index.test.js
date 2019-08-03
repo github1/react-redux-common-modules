@@ -97,6 +97,25 @@ describe('api', () => {
             });
             expect(query).toBe('{ graph { graphObjects (criteria: 1) { name } } }');
         });
+        it('creates graph queries with multiple criteria', () => {
+            const query = createGraphQuery({
+                graphObjects: [{
+                    c1: 1,
+                    c2: true
+                }, {name: ''}]
+            });
+            expect(query).toBe('{ graph { graphObjects (c1: 1, c2: true) { name } } }');
+        });
+        it('excludes null or undefined arguments', () => {
+            const query = createGraphQuery({
+                graphObjects: [{
+                    c1: null,
+                    c2: undefined,
+                    c3: 1
+                }, {name: ''}]
+            });
+            expect(query).toBe('{ graph { graphObjects (c3: 1) { name } } }');
+        });
         describe('prefetchedResponses', () => {
             it('returns prefetched data', () => {
                 store = apiModuleTestHelper.createStore({
