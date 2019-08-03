@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Button } from 'react-bootstrap';
+import { Modal, Button } from 'react-bootstrap/es';
 import alerts from '../../alerts';
 
 export const Alert = ({title, message, type, isShowing, dismiss}) => {

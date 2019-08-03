@@ -5,7 +5,7 @@
   "description": "",
   "main": "dist/main.js",
   "scripts": {
-    "build": "rm -rf ./dist && babel src --out-dir dist --ignore \"src/**/*.test.js\"",
+    "build": "build-tools-build-lib",
     "start": "NO_SERVER=true build-tools devserver",
     "test": "NO_SERVER=true build-tools test --coverage",
     "test:watch": "NO_SERVER=true build-tools test --watch --coverage",
