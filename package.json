@@ -1,10 +1,11 @@
 {
-  "name": "@common/react-redux-common-modules",
-  "private": true,
+  "name": "@github1/react-redux-common-modules",
+  "private": false,
   "version": "0.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/main.js",
   "scripts": {
+    "build": "rm -rf ./dist && babel src --out-dir dist --ignore \"src/**/*.test.js\"",
     "start": "NO_SERVER=true build-tools devserver",
     "test": "NO_SERVER=true build-tools test --coverage",
     "test:watch": "NO_SERVER=true build-tools test --watch --coverage"
