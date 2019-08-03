@@ -14,7 +14,7 @@
   "license": "",
   "devDependencies": {
     "@common/build-tools": "0.0.0",
-    "bootstrap": "4.3.1",
+    "bootstrap-sass": "3.4.1",
     "enzyme": "^3.3.0",
     "enzyme-adapter-react-16": "^1.1.1"
   },
