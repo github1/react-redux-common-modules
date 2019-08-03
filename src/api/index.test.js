@@ -2,6 +2,7 @@ import api, {
     authenticate,
     signout,
     createGraphQuery,
+    graphQuery,
     executeCommand,
     commandResponseHandler
 } from './index';
@@ -38,7 +39,7 @@ describe('api', () => {
                 const err = new Error('failed');
                 err.status = status;
                 store.dispatch(failed(store.getState().recording.actions[2].payload.id, err));
-                expect(store.getState().recording.actions[5].type).toBe('@API/AUTHENTICATE_AUTHORIZATION_FAILED');
+                expect(store.getState().recording.actions[5].type).toBe('@API/AUTHENTICATE_FAILED');
             });
         });
         it('can fail to authenticate with an error', () => {
@@ -96,11 +97,56 @@ describe('api', () => {
             });
             expect(query).toBe('{ graph { graphObjects (criteria: 1) { name } } }');
         });
+        describe('prefetchedResponses', () => {
+            it('returns prefetched data', () => {
+                store = apiModuleTestHelper.createStore({
+                    preloadedState: {
+                        api: {
+                            usePrefetchedAlways: true,
+                            prefetched: {
+                                "{ graph { graphObjects (criteria: 1) { name } } }": {
+                                    data: {graph: {graphObjects: [{name: 'hi'}]}},
+                                    statusCode: 200
+                                }
+                            }
+                        }
+                    }
+                });
+                store.dispatch(graphQuery({
+                    graphObjects: [{
+                        criteria: 1
+                    }, {name: ''}]
+                }, 'graphObjects'));
+                expect(store.getState().recording.findType('@API/DATA_FETCH_SUCCESS')[0].queryName).toBe('graphObjects');
+            });
+            it('dispatches @API/DATA_FETCH_FAILED on non 200 status', () => {
+                store = apiModuleTestHelper.createStore({
+                    preloadedState: {
+                        api: {
+                            usePrefetchedAlways: true,
+                            prefetched: {
+                                "{ graph { graphObjects (criteria: 1) { name } } }": {
+                                    statusCode: 404
+                                }
+                            }
+                        }
+                    }
+                });
+                store.dispatch(graphQuery({
+                    graphObjects: [{
+                        criteria: 1
+                    }, {name: ''}]
+                }, 'graphObjects'));
+                const dataFetchFailedAction = store.getState().recording.findType('@API/DATA_FETCH_FAILED')[0];
+                expect(dataFetchFailedAction.queryName).toBe('graphObjects');
+                expect(dataFetchFailedAction.error.status).toBe(404);
+            });
+        });
     });
     describe('executeCommand', () => {
         it('dispatches an authorizationFailed action for 401 status', () => {
             apiModuleTestHelper.ajaxResponse = DeferredPromise();
-            store.dispatch(executeCommand('test/command', {}, {}));
+            store.dispatch(executeCommand('test/command', {}, {}, (err) => ({type: `SOME_ERROR_${err.status}`})));
             const err = new Error('401');
             err.status = 401;
             return apiModuleTestHelper.ajaxResponse
@@ -108,6 +154,7 @@ describe('api', () => {
                 .catch(() => '').then(() => {
                     expect(store.getState().recording.containsType('@API/COMMAND_FAILED')).toBe(true);
                     expect(store.getState().recording.findType('@API/COMMAND_FAILED')[0].error.status).toBe(401);
+                    expect(store.getState().recording.containsType('SOME_ERROR_401')).toBe(true);
                 });
         });
     });

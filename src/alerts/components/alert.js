@@ -3,11 +3,13 @@ import { Modal, Button } from 'react-bootstrap';
 import alerts from '../../alerts';
 
 export const Alert = ({title, message, type, isShowing, dismiss}) => {
-    const classNames = ['alert', 'alert-dismissible', 'alert-floating', `alert-${type}`, 'animated'];
-    if (isShowing) {
-        classNames.push('fadeIn');
-    } else {
-        classNames.push('fadeOut');
+    const classNames = ['alert', 'alert-dismissible', 'alert-floating', `alert-${type}`, 'animated', 'faster'];
+    if (typeof isShowing !== 'undefined') {
+        if (isShowing) {
+            classNames.push('fadeIn');
+        } else {
+            classNames.push('fadeOut');
+        }
     }
     const alertMessage = title ?
         <div className="alert-message"><strong
@@ -16,11 +18,11 @@ export const Alert = ({title, message, type, isShowing, dismiss}) => {
     return (
         <div
             className={ classNames.join(' ') }>
-            <a href="javascript:void(0);"
-               className="close"
-               data-dismiss="alert"
-               aria-label="close"
-               onClick={ dismiss }>&times;</a>
+            { dismiss ? <a href="javascript:void(0);"
+                           className="close"
+                           data-dismiss="alert"
+                           aria-label="close"
+                           onClick={ dismiss }>&times;</a> : null }
             { alertMessage }
         </div>
     );
@@ -50,20 +52,28 @@ export const ConfirmAlert = ({title, message, isShowing, dismiss, triggerAlertAc
 
 export const Alerts = alerts._(({ alerts, dismissAlert, triggerAlertAction }) => {
     return <div>
+        <div className="alert-container">
+            {
+                alerts.alerts
+                    .filter((alert) => alert.type !== 'confirmation')
+                    .map((alert, index) => (
+                        <Alert key={index} {...alert}
+                               isShowing={ !alert.hide }
+                               dismiss={ () => dismissAlert(alert.id) }
+                        />
+                    ))
+            }
+        </div>
         {
-            alerts.alerts.map((alert, index) => (
-                alert.type === 'confirmation' ? (
+            alerts.alerts
+                .reverse()
+                .filter((alert) => alert.type === 'confirmation')
+                .map((alert, index) => (
                     <ConfirmAlert key={index} {...alert}
                                   isShowing={ !alert.hide }
                                   dismiss={ () => dismissAlert(alert.id) }
                                   triggerAlertAction={ (action) => triggerAlertAction(alert.id, action) }/>
-                ) : (
-                    <Alert key={index} {...alert}
-                           isShowing={ !alert.hide }
-                           dismiss={ () => dismissAlert(alert.id) }
-                    />
-                )
-            ))
+                ))
         }
     </div>;
 });

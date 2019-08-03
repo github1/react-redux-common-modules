@@ -9,8 +9,6 @@ export const resized = (height, width) => {
     return {type: RESIZED, height, width};
 };
 
-let listenerRegistered = false;
-
 export default (window) => Module.create({
     name: 'resize',
     reducer: (state = {}, action) => {
@@ -24,10 +22,6 @@ export default (window) => Module.create({
         return state;
     },
     middleware: store => next => action => {
-        if (!listenerRegistered) {
-            listenerRegistered = true;
-            store.dispatch(registerResizeListener());
-        }
         if (action.type === REGISTER_RESIZE_LISTENER) {
             if (typeof window === 'undefined') {
                 store.dispatch(resized(0, 0));
