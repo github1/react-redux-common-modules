@@ -26,5 +26,8 @@
     "react-bootstrap": "0.32.4",
     "react-redux": "^5.0.7",
     "redux": "^4.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
