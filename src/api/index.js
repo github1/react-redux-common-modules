@@ -1,4 +1,4 @@
-import { Module } from '@common/redux-modules';
+import { Module } from '@github1/redux-modules';
 import { get, del, post, APPLICATION_AMF, APPLICATION_JSON, TEXT_PLAIN } from '../ajax';
 
 export const AUTHENTICATE_REQUESTED = '@API/AUTHENTICATE_REQUESTED';

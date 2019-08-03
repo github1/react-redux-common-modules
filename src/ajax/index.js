@@ -1,4 +1,4 @@
-import { Module } from '@common/redux-modules';
+import { Module } from '@github1/redux-modules';
 
 export const AJAX_CALL_REQUESTED = '@AJAX/CALL_REQUESTED';
 export const AJAX_CALL_SENT = '@AJAX/CALL_SENT';

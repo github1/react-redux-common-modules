@@ -1,4 +1,4 @@
-import { Module } from '@common/redux-modules';
+import { Module } from '@github1/redux-modules';
 
 export const NAVIGATION_PRE_REQUEST = '@NAVIGATION/PRE_REQUEST';
 export const NAVIGATION_REQUESTED = '@NAVIGATION/REQUESTED';

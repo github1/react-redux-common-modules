@@ -1,4 +1,4 @@
-import { Module } from '@common/redux-modules';
+import { Module } from '@github1/redux-modules';
 import propByString from 'prop-by-string';
 
 export const DATASOURCE_INIT = '@DATASOURCE/INIT';
