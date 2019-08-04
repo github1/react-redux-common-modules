@@ -1,4 +1,4 @@
-# @github1/redux-modules
+# @github1/react-redux-common-modules
 
 Useful redux modules built with [redux-modules](https://github.com/github1/redux-modules)
 
@@ -8,7 +8,7 @@ Useful redux modules built with [redux-modules](https://github.com/github1/redux
 
 ## Install
 ```shell
-npm install @github1/redux-modules --save-dev
+npm install @github1/react-redux-common-modules --save-dev
 ```
 
 ## Usage
