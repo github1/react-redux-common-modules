@@ -18,7 +18,8 @@
     "@github1/build-tools": "0.3.5",
     "bootstrap-sass": "3.4.1",
     "enzyme": "^3.3.0",
-    "enzyme-adapter-react-16": "^1.1.1"
+    "enzyme-adapter-react-16": "^1.1.1",
+    "redux-immutable-state-invariant": "2.1.0"
   },
   "dependencies": {
     "@github1/redux-modules": "0.3.5",
