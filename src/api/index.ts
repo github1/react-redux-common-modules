@@ -17,7 +17,12 @@ export const COMMAND_FAILED = '@API/COMMAND_FAILED';
 export const SIGNOUT_REQUESTED = '@API/SIGNOUT_REQUESTED';
 export const SIGNOUT_SUCCESS = '@API/SIGNOUT_SUCCESS';
 
-export const authenticate = ({username, password} = {}) => {
+export interface AuthenticateOptions {
+  username?: string;
+  password?: string;
+}
+
+export const authenticate = ({username, password} : AuthenticateOptions = {}) => {
     return {type: AUTHENTICATE_REQUESTED, username, password}
 };
 
@@ -70,7 +75,13 @@ export const staticResponse = (queryName, staticData) => {
   }
 };
 
-export const dataFetchSuccess = ({ queryName, queryResultName, data }) => ({
+export interface DataFetchSuccess {
+  queryName : string;
+  queryResultName? : string;
+  data : any;
+}
+
+export const dataFetchSuccess = ({ queryName, queryResultName, data } : DataFetchSuccess) => ({
     type: DATA_FETCH_SUCCESS,
     queryName,
     queryResultName,
@@ -162,7 +173,7 @@ export default Module.create({
     middleware: store => next => action => {
         if (AUTHENTICATE_REQUESTED === action.type) {
             next(action);
-            const headers = {};
+            const headers : { [key: string]: string } = {};
             if (action.username && action.password) {
                 headers.Authorization = `Basic ${btoa([action.username.toLowerCase(), action.password].join(':'))}`
             }
@@ -263,7 +274,7 @@ const doGraphQuery = (queryName, query, storeState, responseHandler) => {
                 return responseHandler(null, {data: prefetchedResponse.data});
             }
             const error = new Error(`Data fetch for ${queryName} returned ${prefetchedResponse.statusCode}`);
-            error.status = prefetchedResponse.statusCode;
+            (error as any).status = prefetchedResponse.statusCode;
             return responseHandler(error, null);
         }
     }

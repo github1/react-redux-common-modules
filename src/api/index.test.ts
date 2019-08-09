@@ -1,13 +1,17 @@
-import api, {
-    authenticate,
-    signout,
-    createGraphQuery,
-    graphQuery,
-    executeCommand,
-    commandResponseHandler
+import {
+  authenticate,
+  commandResponseHandler,
+  createGraphQuery,
+  executeCommand,
+  graphQuery,
+  signout
 } from './index';
-import { apiModuleTestHelper } from './test-helper.js';
-import { success, failed } from '../ajax';
+import {apiModuleTestHelper} from './test-helper';
+import {
+  failed,
+  success
+} from '../ajax';
+import {DeferredPromise} from '@github1/build-tools';
 
 describe('api', () => {
     let store;
@@ -37,7 +41,7 @@ describe('api', () => {
                     password: 'bar'
                 }));
                 const err = new Error('failed');
-                err.status = status;
+                (err as any).status = status;
                 store.dispatch(failed(store.getState().recording.actions[2].payload.id, err));
                 expect(store.getState().recording.actions[5].type).toBe('@API/AUTHENTICATE_FAILED');
             });
@@ -164,10 +168,10 @@ describe('api', () => {
     });
     describe('executeCommand', () => {
         it('dispatches an authorizationFailed action for 401 status', () => {
-            apiModuleTestHelper.ajaxResponse = DeferredPromise();
+            apiModuleTestHelper.ajaxResponse = DeferredPromise.create();
             store.dispatch(executeCommand('test/command', {}, {}, (err) => ({type: `SOME_ERROR_${err.status}`})));
             const err = new Error('401');
-            err.status = 401;
+            (err as any).status = 401;
             return apiModuleTestHelper.ajaxResponse
                 .forceReject(err)
                 .catch(() => '').then(() => {
@@ -224,7 +228,7 @@ describe('api', () => {
             });
             it('can set args on a property', () => {
                 const logger = jest.fn();
-                const handler = {};
+                const handler : any = {};
                 commandResponseHandler(handler, logger)({
                     data: [
                         {

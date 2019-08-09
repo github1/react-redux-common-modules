@@ -1,12 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { Store } from 'redux';
 import Alerts, {displayAlert, hideAllAlerts, requestConfirmation} from './alerts';
 import {Alerts as AlertsContainer} from './alerts/components/alert';
 import {Module} from '@github1/redux-modules';
 import {Provider} from 'react-redux'
 import './index.scss';
 
-const store = Module.createStore(Alerts);
+const store : Store = Module.createStore(Alerts);
 
 store.dispatch(displayAlert({
     title: 'hi',
@@ -19,7 +20,7 @@ store.dispatch(requestConfirmation({
     message: 'Test message'
 }));
 
-const root = document.createElement('div');
+const root : HTMLDivElement = document.createElement('div');
 document.body.appendChild(root);
 
 ReactDOM.render(<Provider store={store}>
