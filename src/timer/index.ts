@@ -1,4 +1,5 @@
 import { Module } from '@github1/redux-modules';
+import { Action } from 'redux';
 
 export const START_TIMER = '@timer/start';
 export const TIMER_STARTED = '@timer/started';
@@ -7,6 +8,13 @@ export const STOP_TIMER = '@timer/stop';
 export const TIMER_STOPPED = '@timer/stopped';
 
 const timers = {};
+
+export interface TimerDefinition {
+  action? : Action;
+  interval? : number;
+  dispatchOnTick? : number;
+  stopOnDispatch? : boolean;
+}
 
 const clearTimerInterval = id => {
     if (typeof timers[id] !== 'undefined') {
@@ -19,25 +27,12 @@ const storeTimerInterval = (id, func, interval) => {
     timers[id] = setInterval(func, interval);
 };
 
-export const startTimer = (id, { action, interval, dispatchOnTick, stopOnDispatch }) => {
+export const startTimer = (id : string, definition : TimerDefinition) : Action => {
     return {
         type: START_TIMER,
         id,
-        action,
-        interval,
-        dispatchOnTick,
-        stopOnDispatch
-    }
-};
-
-export const debounce = (id, { action, interval }) => {
-    return {
-        type: START_TIMER,
-        id,
-        action,
-        interval,
-        stopOnDispatch: true
-    }
+        ...definition
+    } as Action;
 };
 
 export const stopTimer = (id) => ({type: STOP_TIMER, id});

@@ -9,7 +9,7 @@ export const resized = (height, width) => {
     return {type: RESIZED, height, width};
 };
 
-export default (window) => Module.create({
+export default (window? : Window) => Module.create({
     name: 'resize',
     reducer: (state = {}, action) => {
         if (action.type === RESIZED) {

@@ -10,7 +10,7 @@ import { createMemoryHistory } from 'history';
 describe('navigation', () => {
     let store;
     let history = createMemoryHistory();
-    let onBeforeNavigate = () => {
+    let onBeforeNavigate = (section?, cb?) => void {
     };
     const getNavSections = () => store.getState().navigation.sections;
     const getNavSection = index => getNavSections()[index];
@@ -100,7 +100,7 @@ describe('navigation', () => {
         });
         describe('when the navigation request is denied', () => {
             beforeEach(() => {
-                onBeforeNavigate = (section, cb) => {
+                onBeforeNavigate = (section, cb) : void => {
                     cb.deny();
                 };
             });
@@ -227,5 +227,3 @@ describe('navigation', () => {
         });
     });
 });
-
-const delay = ms => new Promise(resolve => setTimeout(() => resolve(), ms));

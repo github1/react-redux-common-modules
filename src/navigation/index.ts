@@ -1,6 +1,5 @@
 import { Module } from '@github1/redux-modules';
 
-export const NAVIGATION_SECTIONS_CONFIGURE = '@NAVIGATION/SECTIONS_CONFIGURE';
 export const NAVIGATION_PRE_REQUEST = '@NAVIGATION/PRE_REQUEST';
 export const NAVIGATION_REQUESTED = '@NAVIGATION/REQUESTED';
 export const NAVIGATION_DENIED = '@NAVIGATION/DENIED';
@@ -36,7 +35,7 @@ export const extractQueryParams = value => {
         return {};
     }
     return queryParams[1].split(/&/).reduce((res, cur) => {
-        const parts = cur.split(/=/);
+        const parts = cur.split(/=/) as Array<any>;
         if (parts.length === 1) {
             parts.push(true);
         }
@@ -104,7 +103,7 @@ export default ({history, onBeforeNavigate, sections}) => {
                         phase: 'navigation-requested'
                     };
                 case NAVIGATION_COMPLETE:
-                    const newState = {
+                    return {
                         ...state,
                         phase: 'idle',
                         path: action.section.path,
@@ -120,7 +119,6 @@ export default ({history, onBeforeNavigate, sections}) => {
                             };
                         })
                     };
-                    return newState;
                 case NAVIGATION_DENIED:
                     return {
                         ...state,
