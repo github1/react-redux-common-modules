@@ -10,7 +10,7 @@ export const TIMER_STOPPED = '@timer/stopped';
 const timers = {};
 
 export interface TimerDefinition {
-  action? : Action;
+  action? : Action | Array<Action>;
   interval? : number;
   dispatchOnTick? : number;
   stopOnDispatch? : boolean;
@@ -33,6 +33,15 @@ export const startTimer = (id : string, definition : TimerDefinition) : Action =
         id,
         ...definition
     } as Action;
+};
+
+export interface DebounceDefinition {
+  action? : Action;
+  interval? : number;
+}
+
+export const debounce = (id, { action, interval } : DebounceDefinition) => {
+  return startTimer(id, { action, interval, stopOnDispatch: true});
 };
 
 export const stopTimer = (id) => ({type: STOP_TIMER, id});
@@ -79,8 +88,10 @@ export default Module.create({
                 store.dispatch({type: TIMER_STARTED, id: action.id});
                 storeTimerInterval(action.id, () => {
                     store.dispatch({type: TIMER_TICK, id: action.id});
-                    if (action.action && (typeof action.dispatchOnTick === 'undefined' || (action.dispatchOnTick + 1) === store.getState().timer[action.id].tick)) {
+                    if (action.action && (typeof action.dispatchOnTick === 'undefined'
+                      || (action.dispatchOnTick + 1) === store.getState().timer[action.id].tick)) {
                         if (action.stopOnDispatch) {
+                            store.dispatch(stopTimer(action.id));
                             clearTimerInterval(action.id);
                         }
                         (Array.isArray(action.action) ?
