@@ -28,11 +28,10 @@ describe('Alerts', () => {
   });
   it('displays alerts', () => {
     const alerts = renderToJson(<Alerts store={store}/>);
-    const alert = findJson(alerts, child => child.name === 'Alert')[0];
+    const alert = findJson(alerts, withAttribute('name', 'Alert'))[0];
     expect(alert).toBeDefined();
     expect(alert.attributes.title).toBe('someTitle');
     expect(findJson(alert, child => /fadeIn/.test(child.attributes.className)).length).toBe(1);
-
   });
   it('hides the alert when the close button is clicked', () => {
     const alerts = renderToJson(<Alerts store={store}/>);
@@ -46,7 +45,7 @@ describe('Alerts', () => {
   it('hides alerts', () => {
     store.dispatch(hideAlert(alertID));
     const alerts = renderToJson(<Alerts store={store}/>);
-    const alert = findJson(alerts, child => child.name === 'Alert')[0];
+    const alert = findJson(alerts, withAttribute('name', 'Alert'))[0];
     expect(findJson(alert, child => /fadeOut/.test(child.attributes.className)).length).toBe(1);
   });
   it('displays confirmation dialogs', () => {
@@ -55,7 +54,7 @@ describe('Alerts', () => {
       message: 'Confirm?'
     }));
     const alerts = renderToJson(<Alerts store={store}/>);
-    const alert = findJson(alerts, child => child.name === 'ConfirmAlert')[0];
+    const alert = findJson(alerts, withAttribute('name', 'ConfirmAlert'))[0];
     expect(alert.attributes.title).toBe('Confirmation');
   });
 });

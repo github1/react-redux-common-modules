@@ -77,7 +77,7 @@ export const Alerts = alerts._(({alerts, dismissAlert, triggerAlertAction}) => {
         alerts.alerts
           .filter((alert) => alert.type !== 'confirmation')
           .map((alert, index) => (
-            <Alert key={index} {...alert}
+            <Alert key={index} name='Alert' {...alert}
                    isShowing={!alert.hide}
                    dismiss={() => dismissAlert(alert.id)}
             />
@@ -89,7 +89,7 @@ export const Alerts = alerts._(({alerts, dismissAlert, triggerAlertAction}) => {
         .reverse()
         .filter((alert) => alert.type === 'confirmation')
         .map((alert, index) => (
-          <ConfirmAlert key={index} {...alert}
+          <ConfirmAlert key={index} name='ConfirmAlert' {...alert}
                         isShowing={!alert.hide}
                         dismiss={() => dismissAlert(alert.id)}
                         triggerAlertAction={(action) => triggerAlertAction(alert.id, action)}/>
