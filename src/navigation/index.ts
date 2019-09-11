@@ -29,7 +29,7 @@ const prepareSections = sections => sections
         return section;
     }).filter(section => section.visibility === VISIBLE);
 
-export const extractQueryParams = value => {
+export const extractQueryParams : (value: any) => { [s: string]: any } = value => {
     const queryParams = /\?(.*)$/.exec(value);
     if (queryParams === null) {
         return {};
@@ -51,7 +51,7 @@ export const extractQueryParams = value => {
     }, {});
 };
 
-export const navigate = (search, delay) => {
+export const navigate = (search, delay?) => {
     return {
         type: NAVIGATION_PRE_REQUEST,
         search,
