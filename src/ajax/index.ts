@@ -10,6 +10,7 @@ export const AJAX_CALL_SENT = '@AJAX/CALL_SENT';
 export const AJAX_CALL_COMPLETE = '@AJAX/CALL_COMPLETE';
 export const AJAX_CALL_SUCCESS = '@AJAX/CALL_SUCCESS';
 export const AJAX_CALL_FAILED = '@AJAX/CALL_FAILED';
+export const AJAX_CALL_RETRIED = '@AJAX/CALL_RETRIED';
 
 export const APPLICATION_JSON = 'application/json';
 export const APPLICATION_AMF = 'application/x-amf';
@@ -18,6 +19,7 @@ export const TEXT_PLAIN = 'text/plain';
 export type AjaxCallback = (err? : Error, resp? : any) => Action | Array<Action> | void;
 
 const callbacks : { [key : string] : AjaxCallback } = {};
+const callStoreRefs : { [key : string] : Store } = {};
 
 export interface AjaxCallRequestedAction extends Action<typeof AJAX_CALL_REQUESTED> {
   payload : {
@@ -39,6 +41,16 @@ export interface AjaxCallFailedAction extends Action<typeof AJAX_CALL_FAILED> {
   }
 }
 
+export interface AjaxCallRetriedAction extends Action<typeof AJAX_CALL_RETRIED> {
+  payload : {
+    id : string,
+    opts: any,
+    attemptNumber: number,
+    numOfAttempts: number,
+    error : any
+  }
+}
+
 export type AjaxCallAction =
   AjaxCallRequestedAction
   | AjaxCallSuccessAction
@@ -51,6 +63,15 @@ const send = (method : string, url : string, opts : any, callback? : AjaxCallbac
   }
   opts.method = method.toUpperCase();
   opts.id = `call-${generateCallID()}`;
+  opts.interceptors = opts.interceptors || [];
+  opts.interceptors.push({
+    onRetry: (err, attemptNumber, numOfAttempts, fetchOpts) => {
+      const store = callStoreRefs[opts.id];
+      if (store) {
+        store.dispatch(retried(opts.id, fetchOpts, attemptNumber, numOfAttempts, err));
+      }
+    }
+  });
   callbacks[opts.id] = callback;
   return {
     type: AJAX_CALL_REQUESTED,
@@ -83,8 +104,20 @@ export const failed = (id, error) => ({
   payload: {id, error}
 });
 
+export const retried = (id : string, opts, attemptNumber, numOfAttempts, error) : AjaxCallRetriedAction => ({
+  type: AJAX_CALL_RETRIED,
+  payload: {
+    id,
+    opts,
+    attemptNumber,
+    numOfAttempts,
+    error
+  }
+});
+
 const invokeCallback = (id : string, dispatch : Dispatch, err : Error, resp? : any) => {
   const callback : AjaxCallback = callbacks[id];
+  delete callStoreRefs[id];
   if (callback) {
     delete callbacks[id];
     const action = callback(err, resp);
@@ -104,6 +137,7 @@ const invokeCallback = (id : string, dispatch : Dispatch, err : Error, resp? : a
 
 export default ajaxService => Module.fromMiddleware((store : Store) => (next : Dispatch) => (action : AjaxCallAction) => {
   if (action.type === AJAX_CALL_REQUESTED) {
+    callStoreRefs[action.payload.id] = store;
     next(action);
     next(sent(action.payload));
     ajaxService
