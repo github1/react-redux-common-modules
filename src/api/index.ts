@@ -88,7 +88,7 @@ export const dataFetchSuccess = ({ queryName, queryResultName, data } : DataFetc
     data
 });
 
-export const executeCommand = (name, payload, responseHandler, errorHandler) => {
+export const executeCommand = (name, payload, responseHandler?, errorHandler?) => {
   return {
       type: COMMAND_REQUESTED,
       name,
