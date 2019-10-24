@@ -5,7 +5,7 @@
     "moduleResolution": "node",
     "lib": ["es6", "dom"],
     "jsx": "react",
-    "allowSyntheticDefaultImports": false,
+    "allowSyntheticDefaultImports": true,
     "allowJs": false,
     "importHelpers": true,
     "alwaysStrict": true,

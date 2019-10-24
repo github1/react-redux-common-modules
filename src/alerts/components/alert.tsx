@@ -6,7 +6,7 @@ import {
 import alerts, {ConfirmAlertAction} from '../../alerts';
 
 export interface HtmlAlertMessage {
-  __html?: string;
+  __html: string;
 }
 
 export interface AlertPropTypes {
@@ -50,7 +50,7 @@ export interface ConfirmAlertPropTypes extends AlertPropTypes {
 
 export const ConfirmAlert = ({title, message, isShowing, dismiss, triggerAlertAction, actions} : ConfirmAlertPropTypes) => {
   const messageBody = (message as HtmlAlertMessage).__html ?
-    <div dangerouslySetInnerHTML={message}></div> : <div>{message}</div>;
+    <div dangerouslySetInnerHTML={message as HtmlAlertMessage}></div> : <div>{message}</div>;
   return <Modal show={isShowing} onHide={dismiss}>
     <Modal.Header closeButton>
       <Modal.Title>{title}</Modal.Title>

@@ -55,6 +55,7 @@ describe('Alerts', () => {
     }));
     const alerts = renderToJson(<Alerts store={store}/>);
     const alert = findJson(alerts, withAttribute('name', 'ConfirmAlert'))[0];
+    console.log(alert);
     expect(alert.attributes.title).toBe('Confirmation');
   });
 });
