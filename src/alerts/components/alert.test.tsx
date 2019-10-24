@@ -35,7 +35,11 @@ describe('Alerts', () => {
   });
   it('hides the alert when the close button is clicked', () => {
     const alerts = renderToJson(<Alerts store={store}/>);
-    findJson(alerts, withAttribute('className', 'close'))[0].attributes.onClick();
+    const evt = {
+      preventDefault: jest.fn()
+    };
+    findJson(alerts, withAttribute('className', 'close'))[0].attributes.onClick(evt);
+    expect(evt.preventDefault).toHaveBeenCalled();
     expect(store.getState().recording.findType('@ALERT/HIDE')[0].payload.id).toBe(alertID);
   });
   it('displays alerts without a title', () => {
@@ -55,7 +59,6 @@ describe('Alerts', () => {
     }));
     const alerts = renderToJson(<Alerts store={store}/>);
     const alert = findJson(alerts, withAttribute('name', 'ConfirmAlert'))[0];
-    console.log(alert);
     expect(alert.attributes.title).toBe('Confirmation');
   });
 });

@@ -33,11 +33,14 @@ export const Alert = ({title, message, type, isShowing, dismiss} : AlertPropType
   return (
     <div
       className={classNames.join(' ')}>
-      {dismiss ? <a href="javascript:void(0);"
-                    className="close"
+      {dismiss ? <a className="close"
+                    href="#"
                     data-dismiss="alert"
                     aria-label="close"
-                    onClick={dismiss}>&times;</a> : null}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      dismiss();
+                    }}>&times;</a> : null}
       {alertMessage}
     </div>
   );
@@ -63,7 +66,10 @@ export const ConfirmAlert = ({title, message, isShowing, dismiss, triggerAlertAc
         actions.map((action, index) => {
           return <Button key={index}
                          className={action.className}
-                         onClick={() => triggerAlertAction(action)}>{action.label}</Button>
+                         onClick={(e) => {
+                           e.preventDefault();
+                           triggerAlertAction(action);
+                         }}>{action.label}</Button>
         })
       }
     </Modal.Footer>
