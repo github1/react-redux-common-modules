@@ -43,7 +43,7 @@ export const signout = () => ({type: SIGNOUT_REQUESTED});
 
 export const signoutSuccess = () => ({type: SIGNOUT_SUCCESS});
 
-export const graphQuery = (graphQueryDefinition, queryName) => {
+export const graphQuery = (graphQueryDefinition, queryName?) => {
     const graphQuery = graphQueryDefinition.hasOwnProperty('schema') ? graphQueryDefinition.schema : graphQueryDefinition;
     const postProcessor = graphQueryDefinition.postProcessor;
     const queryResultName = Object.keys(graphQuery)[0];
@@ -57,7 +57,7 @@ export const graphQuery = (graphQueryDefinition, queryName) => {
     };
 };
 
-export const getRequest = (url, queryName, postProcessor) => {
+export const getRequest = (url, queryName, postProcessor?) => {
     return {
         type: DATA_FETCH_REQUESTED,
         queryName,
@@ -195,20 +195,17 @@ export default Module.create({
                     data: action.staticData
                 }));
             } else if (action.url) {
-                store.dispatch(get(action.url, {
-                    accept: APPLICATION_JSON,
-                    contentType: APPLICATION_JSON
-                }, (err, response) => {
-                    if (err) {
-                        return {type: DATA_FETCH_FAILED, queryName: action.queryName, error: err};
-                    } else {
-                        const data = action.postProcessor ? action.postProcessor(response.data, store.getState()) : response.data;
-                        return dataFetchSuccess({
-                            queryName: action.queryName,
-                            queryResultName: action.queryName,
-                            data
-                        });
-                    }
+                store.dispatch(doGetRequest(action.queryName, action.url, store.getState(), (err, response) => {
+                  if (err) {
+                    return {type: DATA_FETCH_FAILED, queryName: action.queryName, error: err};
+                  } else {
+                    const data = action.postProcessor ? action.postProcessor(response.data, store.getState()) : response.data;
+                    return dataFetchSuccess({
+                      queryName: action.queryName,
+                      queryResultName: action.queryName,
+                      data
+                    });
+                  }
                 }));
             } else {
                 store.dispatch(doGraphQuery(action.queryName, action.graphQuery, store.getState(), (err, response) => {
@@ -265,24 +262,35 @@ export default Module.create({
     }
 });
 
+const doGetRequest = (queryName, url, storeState, responseHandler) => {
+  return doWithPrefetchCheck(queryName, url, get(url, {
+    accept: APPLICATION_JSON,
+    contentType: APPLICATION_JSON
+  }, responseHandler), storeState, responseHandler);
+};
+
 const doGraphQuery = (queryName, query, storeState, responseHandler) => {
     const renderedQuery = createGraphQuery(query);
-    const prefetchedResponse = (storeState.api.prefetched || {})[renderedQuery];
-    if (prefetchedResponse) {
-        if (typeof window === 'undefined' || storeState.api.usePrefetchedAlways || prefetchedResponse.cache) {
-            if (prefetchedResponse.statusCode >= 200 && prefetchedResponse.statusCode < 300 && prefetchedResponse.data) {
-                return responseHandler(null, {data: prefetchedResponse.data});
-            }
-            const error = new Error(`Data fetch for ${queryName} returned ${prefetchedResponse.statusCode}`);
-            (error as any).status = prefetchedResponse.statusCode;
-            return responseHandler(error, null);
-        }
+    return doWithPrefetchCheck(queryName, renderedQuery, post(`graph?name=${queryName}`, {
+      data: "\"" + renderedQuery + "\"",
+      accept: APPLICATION_AMF,
+      contentType: TEXT_PLAIN
+    }, responseHandler), storeState, responseHandler);
+};
+
+const doWithPrefetchCheck = (queryName, prefetchKey, fetchAction, storeState, responseHandler) => {
+  const prefetchedResponse = (storeState.api.prefetched || {})[prefetchKey];
+  if (prefetchedResponse) {
+    if (typeof window === 'undefined' || storeState.api.usePrefetchedAlways || prefetchedResponse.cache) {
+      if (prefetchedResponse.statusCode >= 200 && prefetchedResponse.statusCode < 300 && prefetchedResponse.data) {
+        return responseHandler(null, {data: prefetchedResponse.data});
+      }
+      const error = new Error(`Data fetch for ${queryName} returned ${prefetchedResponse.statusCode}`);
+      (error as any).status = prefetchedResponse.statusCode;
+      return responseHandler(error, null);
     }
-    return post(`graph?name=${queryName}`, {
-        data: "\"" + renderedQuery + "\"",
-        accept: APPLICATION_AMF,
-        contentType: TEXT_PLAIN
-    }, responseHandler);
+  }
+  return fetchAction;
 };
 
 export const createGraphQuery = query => {
