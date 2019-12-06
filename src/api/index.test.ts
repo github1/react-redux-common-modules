@@ -5,6 +5,7 @@ import {
   AUTHENTICATE_FAILED,
   AUTHENTICATE_SUCCESS,
   authenticate,
+  authenticateWithUsernamePassword,
   commandResponseHandler,
   createGraphQuery,
   executeCommand,
@@ -26,8 +27,8 @@ describe('api', () => {
     store = apiModuleTestHelper.createStore();
   });
   describe('authenticate', () => {
-    it('can authenticate', () => {
-      store.dispatch(authenticate({
+    it('can authenticate with username and password', () => {
+      store.dispatch(authenticateWithUsernamePassword({
         username: 'foo',
         password: 'bar'
       }));
@@ -41,9 +42,22 @@ describe('api', () => {
       expect(store.getState().recording.actions[5].type).toBe(AUTHENTICATE_SUCCESS);
       expect(store.getState().recording.actions[5].claims).toBe('abc');
     });
+    it('can authenticate with a cookie', () => {
+      store.dispatch(authenticate());
+      expect(store.getState().recording.actions[2].type).toBe(AJAX_CALL_REQUESTED);
+      expect(store.getState().recording.actions[2].payload.url).toBe('service/identity');
+      expect(store.getState().recording.actions[2].payload.headers.length).toBeUndefined();
+      store.dispatch(success(store.getState().recording.actions[2].payload.id, {
+        status: 200,
+        data: 'abc'
+      }));
+      expect(store.getState().recording.actions[5].type).toBe(AUTHENTICATE_SUCCESS);
+      expect(store.getState().recording.actions[5].claims).toBe('abc');
+      expect(store.getState().recording.actions[5].mode).toBe('cookie');
+    });
     it('can fail to authenticate with 401 or 403 status', () => {
       [401, 403].forEach(status => {
-        store.dispatch(authenticate({
+        store.dispatch(authenticateWithUsernamePassword({
           username: 'foo',
           password: 'bar'
         }));
@@ -56,7 +70,7 @@ describe('api', () => {
       });
     });
     it('can fail to authenticate with an error', () => {
-      store.dispatch(authenticate({
+      store.dispatch(authenticateWithUsernamePassword({
         username: 'foo',
         password: 'bar'
       }));

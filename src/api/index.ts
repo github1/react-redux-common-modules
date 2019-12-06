@@ -25,12 +25,16 @@ export const SIGNOUT_REQUESTED = '@API/SIGNOUT_REQUESTED';
 export const SIGNOUT_SUCCESS = '@API/SIGNOUT_SUCCESS';
 
 export interface AuthenticateOptions {
-  username?: string;
-  password?: string;
+  username: string;
+  password: string;
 }
 
-export const authenticate = ({username, password} : AuthenticateOptions = {}) => {
-    return {type: AUTHENTICATE_REQUESTED, username, password}
+export const authenticate = () => {
+    return {type: AUTHENTICATE_REQUESTED}
+};
+
+export const authenticateWithUsernamePassword = ({username, password} : AuthenticateOptions) => {
+  return {type: AUTHENTICATE_REQUESTED, username, password}
 };
 
 export const authenticationSuccess = (mode : string, claims : any) => ({
