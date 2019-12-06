@@ -1,5 +1,12 @@
-import { Module } from '@github1/redux-modules';
-import { get, del, post, APPLICATION_AMF, APPLICATION_JSON, TEXT_PLAIN } from '../ajax';
+import {Module} from '@github1/redux-modules';
+import {
+  APPLICATION_AMF,
+  APPLICATION_JSON,
+  del,
+  get,
+  post,
+  TEXT_PLAIN
+} from '../ajax';
 
 export const AUTHENTICATE_REQUESTED = '@API/AUTHENTICATE_REQUESTED';
 export const AUTHENTICATE_SUCCESS = '@API/AUTHENTICATE_SUCCESS';
@@ -26,13 +33,15 @@ export const authenticate = ({username, password} : AuthenticateOptions = {}) =>
     return {type: AUTHENTICATE_REQUESTED, username, password}
 };
 
-export const authenticationSuccess = (claims) => ({
+export const authenticationSuccess = (mode : string, claims : any) => ({
     type: AUTHENTICATE_SUCCESS,
+    mode,
     claims
 });
 
-export const authenticationFailed = (error : Error) => ({
+export const authenticationFailed = (mode : string, error : Error) => ({
     type: AUTHENTICATE_FAILED,
+    mode,
     error
 });
 
@@ -175,6 +184,7 @@ export default Module.create({
         if (AUTHENTICATE_REQUESTED === action.type) {
             next(action);
             const headers : { [key: string]: string } = {};
+            let mode = action.hasOwnProperty('username') && action.hasOwnProperty('password') ? 'basic-auth' : 'cookie';
             if (action.username && action.password) {
                 headers.Authorization = `Basic ${btoa([action.username.toLowerCase(), action.password].join(':'))}`
             }
@@ -184,9 +194,9 @@ export default Module.create({
                 numOfAttempts: 2
             }, (err, response) => {
                 if (err) {
-                    return authenticationFailed(err);
+                    return authenticationFailed(mode, err);
                 } else {
-                    return authenticationSuccess(response.data);
+                    return authenticationSuccess(mode, response.data);
                 }
             }));
         } else if (DATA_FETCH_REQUESTED === action.type) {

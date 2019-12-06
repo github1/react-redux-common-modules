@@ -1,4 +1,9 @@
 import {
+  COMMAND_FAILED,
+  DATA_FETCH_FAILED,
+  DATA_FETCH_SUCCESS,
+  AUTHENTICATE_FAILED,
+  AUTHENTICATE_SUCCESS,
   authenticate,
   commandResponseHandler,
   createGraphQuery,
@@ -9,6 +14,7 @@ import {
 } from './index';
 import {apiModuleTestHelper} from './test-helper';
 import {
+  AJAX_CALL_REQUESTED,
   failed,
   success
 } from '../ajax';
@@ -25,14 +31,14 @@ describe('api', () => {
         username: 'foo',
         password: 'bar'
       }));
-      expect(store.getState().recording.actions[2].type).toBe('@AJAX/CALL_REQUESTED');
+      expect(store.getState().recording.actions[2].type).toBe(AJAX_CALL_REQUESTED);
       expect(store.getState().recording.actions[2].payload.url).toBe('service/identity');
       expect(store.getState().recording.actions[2].payload.headers.Authorization).toBe('Basic Zm9vOmJhcg==');
       store.dispatch(success(store.getState().recording.actions[2].payload.id, {
         status: 200,
         data: 'abc'
       }));
-      expect(store.getState().recording.actions[5].type).toBe('@API/AUTHENTICATE_SUCCESS');
+      expect(store.getState().recording.actions[5].type).toBe(AUTHENTICATE_SUCCESS);
       expect(store.getState().recording.actions[5].claims).toBe('abc');
     });
     it('can fail to authenticate with 401 or 403 status', () => {
@@ -43,8 +49,10 @@ describe('api', () => {
         }));
         const err = new Error('failed');
         (err as any).status = status;
-        store.dispatch(failed(store.getState().recording.actions[2].payload.id, err));
-        expect(store.getState().recording.actions[5].type).toBe('@API/AUTHENTICATE_FAILED');
+        store.dispatch(failed(store.getState().recording.findType(AJAX_CALL_REQUESTED).reverse()[0].payload.id, err));
+        const authenticateFailedAction = store.getState().recording.findType(AUTHENTICATE_FAILED).reverse()[0];
+        expect(authenticateFailedAction.mode).toBe('basic-auth');
+        expect(authenticateFailedAction.error.status).toBe(status);
       });
     });
     it('can fail to authenticate with an error', () => {
@@ -53,11 +61,11 @@ describe('api', () => {
         password: 'bar'
       }));
       store.dispatch(failed(store.getState().recording.actions[2].payload.id, new Error('failed')));
-      expect(store.getState().recording.actions[5].type).toBe('@API/AUTHENTICATE_FAILED');
+      expect(store.getState().recording.actions[5].type).toBe(AUTHENTICATE_FAILED);
     });
     it('can signout', () => {
       store.dispatch(signout());
-      expect(store.getState().recording.actions[1].type).toBe('@AJAX/CALL_REQUESTED');
+      expect(store.getState().recording.actions[1].type).toBe(AJAX_CALL_REQUESTED);
       expect(store.getState().recording.actions[1].payload.method).toBe('DELETE');
     });
   });
@@ -141,7 +149,7 @@ describe('api', () => {
             criteria: 1
           }, {name: ''}]
         }, 'graphObjects'));
-        expect(store.getState().recording.findType('@API/DATA_FETCH_SUCCESS')[0].queryName).toBe('graphObjects');
+        expect(store.getState().recording.findType(DATA_FETCH_SUCCESS)[0].queryName).toBe('graphObjects');
       });
       it('dispatches @API/DATA_FETCH_FAILED on non 200 status', () => {
         store = apiModuleTestHelper.createStore({
@@ -161,7 +169,7 @@ describe('api', () => {
             criteria: 1
           }, {name: ''}]
         }, 'graphObjects'));
-        const dataFetchFailedAction = store.getState().recording.findType('@API/DATA_FETCH_FAILED')[0];
+        const dataFetchFailedAction = store.getState().recording.findType(DATA_FETCH_FAILED)[0];
         expect(dataFetchFailedAction.queryName).toBe('graphObjects');
         expect(dataFetchFailedAction.error.status).toBe(404);
       });
@@ -175,8 +183,8 @@ describe('api', () => {
       store.dispatch(action);
       apiModuleTestHelper.ajaxResponse.forceResolve({data: 'theFoos'});
       return apiModuleTestHelper.ajaxResponse.then(() => {
-        expect(store.getState().recording.findType('@API/DATA_FETCH_SUCCESS')[0].queryName).toBe('foos');
-        expect(store.getState().recording.findType('@API/DATA_FETCH_SUCCESS')[0].data).toBe('theFoos');
+        expect(store.getState().recording.findType(DATA_FETCH_SUCCESS)[0].queryName).toBe('foos');
+        expect(store.getState().recording.findType(DATA_FETCH_SUCCESS)[0].data).toBe('theFoos');
       });
     });
   });
@@ -189,8 +197,8 @@ describe('api', () => {
       return apiModuleTestHelper.ajaxResponse
         .forceReject(err)
         .catch(() => '').then(() => {
-          expect(store.getState().recording.containsType('@API/COMMAND_FAILED')).toBe(true);
-          expect(store.getState().recording.findType('@API/COMMAND_FAILED')[0].error.status).toBe(401);
+          expect(store.getState().recording.containsType(COMMAND_FAILED)).toBe(true);
+          expect(store.getState().recording.findType(COMMAND_FAILED)[0].error.status).toBe(401);
           expect(store.getState().recording.containsType('SOME_ERROR_401')).toBe(true);
         });
     });
