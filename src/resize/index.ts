@@ -3,7 +3,7 @@ import { Module } from '@github1/redux-modules';
 const REGISTER_RESIZE_LISTENER = '@resize/register-resize-listener';
 export const RESIZED = '@resize/resized';
 
-export const registerResizeListener = () => ({type: REGISTER_RESIZE_LISTENER});
+const registerResizeListener = () => ({type: REGISTER_RESIZE_LISTENER});
 
 export const resized = (height, width) => {
     return {type: RESIZED, height, width};
@@ -32,5 +32,8 @@ export default (window? : Window) => Module.create({
             }
         }
         next(action);
+    },
+    postConfigure: store => {
+      store.dispatch(registerResizeListener());
     }
 });

@@ -31,8 +31,9 @@ export const authenticationSuccess = (claims) => ({
     claims
 });
 
-export const authenticationFailed = () => ({
-    type: AUTHENTICATE_FAILED
+export const authenticationFailed = (error : Error) => ({
+    type: AUTHENTICATE_FAILED,
+    error
 });
 
 export const authorizationFailed = () => ({
@@ -179,10 +180,11 @@ export default Module.create({
             }
             store.dispatch(get('service/identity', {
                 accept: APPLICATION_AMF,
-                headers
+                headers,
+                numOfAttempts: 2
             }, (err, response) => {
                 if (err) {
-                    return authenticationFailed();
+                    return authenticationFailed(err);
                 } else {
                     return authenticationSuccess(response.data);
                 }
