@@ -11,15 +11,21 @@ export const AJAX_CALL_COMPLETE = '@AJAX/CALL_COMPLETE';
 export const AJAX_CALL_SUCCESS = '@AJAX/CALL_SUCCESS';
 export const AJAX_CALL_FAILED = '@AJAX/CALL_FAILED';
 export const AJAX_CALL_RETRIED = '@AJAX/CALL_RETRIED';
+export const AJAX_CALL_SLOW = '@AJAX/CALL_SLOW';
 
 export const APPLICATION_JSON = 'application/json';
 export const APPLICATION_AMF = 'application/x-amf';
 export const TEXT_PLAIN = 'text/plain';
 
+export interface AjaxCallOpts {
+  slowCallThreshold?: number;
+}
+
 export type AjaxCallback = (err? : Error, resp? : any) => Action | Array<Action> | void;
 
 const callbacks : { [key : string] : AjaxCallback } = {};
 const callStoreRefs : { [key : string] : Store } = {};
+const callTimeouts : { [key : string] : number } = {};
 
 export interface AjaxCallRequestedAction extends Action<typeof AJAX_CALL_REQUESTED> {
   payload : {
@@ -48,6 +54,14 @@ export interface AjaxCallRetriedAction extends Action<typeof AJAX_CALL_RETRIED> 
     attemptNumber: number,
     numOfAttempts: number,
     error : any
+  }
+}
+
+export interface AjaxCallSlowAction extends Action<typeof AJAX_CALL_SLOW> {
+  payload : {
+    id : string,
+    opts: any,
+    duration: any
   }
 }
 
@@ -115,9 +129,20 @@ export const retried = (id : string, opts, attemptNumber, numOfAttempts, error) 
   }
 });
 
+const reportSlowCall = (id : string, opts, duration : number = -1) : AjaxCallSlowAction => ({
+  type: AJAX_CALL_SLOW,
+  payload: {
+    id,
+    opts,
+    duration
+  }
+});
+
 const invokeCallback = (id : string, dispatch : Dispatch, err : Error, resp? : any) => {
   const callback : AjaxCallback = callbacks[id];
   delete callStoreRefs[id];
+  clearTimeout(callTimeouts[id]);
+  delete callTimeouts[id];
   if (callback) {
     delete callbacks[id];
     const action = callback(err, resp);
@@ -135,9 +160,13 @@ const invokeCallback = (id : string, dispatch : Dispatch, err : Error, resp? : a
   }
 };
 
-export default ajaxService => Module.fromMiddleware((store : Store) => (next : Dispatch) => (action : AjaxCallAction) => {
+export default (ajaxService, opts: AjaxCallOpts = {}) => Module.fromMiddleware((store : Store) => (next : Dispatch) => (action : AjaxCallAction) => {
+  opts.slowCallThreshold = opts.slowCallThreshold || 500;
   if (action.type === AJAX_CALL_REQUESTED) {
     callStoreRefs[action.payload.id] = store;
+    callTimeouts[action.payload.id] = window.setTimeout(() => {
+      store.dispatch(reportSlowCall(action.payload.id, action.payload, opts.slowCallThreshold));
+    }, opts.slowCallThreshold);
     next(action);
     next(sent(action.payload));
     ajaxService
