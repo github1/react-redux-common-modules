@@ -12,13 +12,14 @@ export const AJAX_CALL_SUCCESS = '@AJAX/CALL_SUCCESS';
 export const AJAX_CALL_FAILED = '@AJAX/CALL_FAILED';
 export const AJAX_CALL_RETRIED = '@AJAX/CALL_RETRIED';
 export const AJAX_CALL_SLOW = '@AJAX/CALL_SLOW';
+export const AJAX_CALL_STATS = '@AJAX/CALL_STATS';
 
 export const APPLICATION_JSON = 'application/json';
 export const APPLICATION_AMF = 'application/x-amf';
 export const TEXT_PLAIN = 'text/plain';
 
 export interface AjaxCallOpts {
-  slowCallThreshold?: number;
+  slowCallThreshold? : number;
 }
 
 export type AjaxCallback = (err? : Error, resp? : any) => Action | Array<Action> | void;
@@ -26,6 +27,8 @@ export type AjaxCallback = (err? : Error, resp? : any) => Action | Array<Action>
 const callbacks : { [key : string] : AjaxCallback } = {};
 const callStoreRefs : { [key : string] : Store } = {};
 const callTimeouts : { [key : string] : number } = {};
+const slowCalls : { [key : string] : boolean } = {};
+const retriedCalls : { [key : string] : number } = {};
 
 export interface AjaxCallRequestedAction extends Action<typeof AJAX_CALL_REQUESTED> {
   payload : {
@@ -50,9 +53,9 @@ export interface AjaxCallFailedAction extends Action<typeof AJAX_CALL_FAILED> {
 export interface AjaxCallRetriedAction extends Action<typeof AJAX_CALL_RETRIED> {
   payload : {
     id : string,
-    opts: any,
-    attemptNumber: number,
-    numOfAttempts: number,
+    opts : any,
+    attemptNumber : number,
+    numOfAttempts : number,
     error : any
   }
 }
@@ -60,8 +63,15 @@ export interface AjaxCallRetriedAction extends Action<typeof AJAX_CALL_RETRIED> 
 export interface AjaxCallSlowAction extends Action<typeof AJAX_CALL_SLOW> {
   payload : {
     id : string,
-    opts: any,
-    duration: any
+    opts : any,
+    duration : any
+  }
+}
+
+export interface AjaxCallStatsAction extends Action<typeof AJAX_CALL_STATS> {
+  payload : {
+    maxCurrentRetryAttempts : number,
+    numSlow : number
   }
 }
 
@@ -82,7 +92,9 @@ const send = (method : string, url : string, opts : any, callback? : AjaxCallbac
     onRetry: (err, attemptNumber, numOfAttempts, fetchOpts) => {
       const store = callStoreRefs[opts.id];
       if (store) {
+        retriedCalls[opts.id] = attemptNumber;
         store.dispatch(retried(opts.id, fetchOpts, attemptNumber, numOfAttempts, err));
+        store.dispatch(reportCallStats());
       }
     }
   });
@@ -138,11 +150,24 @@ const reportSlowCall = (id : string, opts, duration : number = -1) : AjaxCallSlo
   }
 });
 
+const reportCallStats = () : AjaxCallStatsAction => ({
+  type: AJAX_CALL_STATS,
+  payload: {
+    maxCurrentRetryAttempts: Object
+      .keys(retriedCalls)
+      .reduce((max, retriedCall) => Math.max(max, retriedCalls[retriedCall]), 0),
+    numSlow: Object.keys(slowCalls).length
+  }
+});
+
 const invokeCallback = (id : string, dispatch : Dispatch, err : Error, resp? : any) => {
   const callback : AjaxCallback = callbacks[id];
-  delete callStoreRefs[id];
   clearTimeout(callTimeouts[id]);
+  delete callStoreRefs[id];
   delete callTimeouts[id];
+  delete slowCalls[id];
+  delete retriedCalls[id];
+  dispatch(reportCallStats());
   if (callback) {
     delete callbacks[id];
     const action = callback(err, resp);
@@ -160,11 +185,13 @@ const invokeCallback = (id : string, dispatch : Dispatch, err : Error, resp? : a
   }
 };
 
-export default (ajaxService, opts: AjaxCallOpts = {}) => Module.fromMiddleware((store : Store) => (next : Dispatch) => (action : AjaxCallAction) => {
+export default (ajaxService, opts : AjaxCallOpts = {}) => Module.fromMiddleware((store : Store) => (next : Dispatch) => (action : AjaxCallAction) => {
   opts.slowCallThreshold = opts.slowCallThreshold || 500;
   if (action.type === AJAX_CALL_REQUESTED) {
     callStoreRefs[action.payload.id] = store;
     callTimeouts[action.payload.id] = window.setTimeout(() => {
+      slowCalls[action.payload.id] = true;
+      store.dispatch(reportCallStats());
       store.dispatch(reportSlowCall(action.payload.id, action.payload, opts.slowCallThreshold));
     }, opts.slowCallThreshold);
     next(action);

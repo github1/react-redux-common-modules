@@ -32,28 +32,32 @@ describe('api', () => {
         username: 'foo',
         password: 'bar'
       }));
-      expect(store.getState().recording.actions[2].type).toBe(AJAX_CALL_REQUESTED);
-      expect(store.getState().recording.actions[2].payload.url).toBe('service/identity');
-      expect(store.getState().recording.actions[2].payload.headers.Authorization).toBe('Basic Zm9vOmJhcg==');
-      store.dispatch(success(store.getState().recording.actions[2].payload.id, {
-        status: 200,
-        data: 'abc'
-      }));
-      expect(store.getState().recording.actions[5].type).toBe(AUTHENTICATE_SUCCESS);
-      expect(store.getState().recording.actions[5].claims).toBe('abc');
+      store.getState().recording.findType(AJAX_CALL_REQUESTED, (actions) => {
+        expect(actions[0].payload.url).toBe('service/identity');
+        expect(actions[0].payload.headers.Authorization).toBe('Basic Zm9vOmJhcg==');
+        store.dispatch(success(actions[0].payload.id, {
+          status: 200,
+          data: 'abc'
+        }));
+      });
+      store.getState().recording.findType(AUTHENTICATE_SUCCESS, (actions) => {
+        expect(actions[0].claims).toBe('abc');
+      });
     });
     it('can authenticate with a cookie', () => {
       store.dispatch(authenticate());
-      expect(store.getState().recording.actions[2].type).toBe(AJAX_CALL_REQUESTED);
-      expect(store.getState().recording.actions[2].payload.url).toBe('service/identity');
-      expect(store.getState().recording.actions[2].payload.headers.length).toBeUndefined();
-      store.dispatch(success(store.getState().recording.actions[2].payload.id, {
-        status: 200,
-        data: 'abc'
-      }));
-      expect(store.getState().recording.actions[5].type).toBe(AUTHENTICATE_SUCCESS);
-      expect(store.getState().recording.actions[5].claims).toBe('abc');
-      expect(store.getState().recording.actions[5].mode).toBe('cookie');
+      store.getState().recording.findType(AJAX_CALL_REQUESTED, (actions) => {
+        expect(actions[0].payload.url).toBe('service/identity');
+        expect(actions[0].payload.headers.length).toBeUndefined();
+        store.dispatch(success(actions[0].payload.id, {
+          status: 200,
+          data: 'abc'
+        }));
+      });
+      store.getState().recording.findType(AUTHENTICATE_SUCCESS, (actions) => {
+        expect(actions[0].claims).toBe('abc');
+        expect(actions[0].mode).toBe('cookie');
+      });
     });
     it('can fail to authenticate with 401 or 403 status', () => {
       [401, 403].forEach(status => {
@@ -74,13 +78,16 @@ describe('api', () => {
         username: 'foo',
         password: 'bar'
       }));
-      store.dispatch(failed(store.getState().recording.actions[2].payload.id, new Error('failed')));
-      expect(store.getState().recording.actions[5].type).toBe(AUTHENTICATE_FAILED);
+      store.getState().recording.findType(AJAX_CALL_REQUESTED, (actions) => {
+        store.dispatch(failed(actions[0].payload.id, new Error('failed')));
+      });
+      expect(store.getState().recording.findType(AUTHENTICATE_FAILED).length).toBe(1);
     });
     it('can signout', () => {
       store.dispatch(signout());
-      expect(store.getState().recording.actions[1].type).toBe(AJAX_CALL_REQUESTED);
-      expect(store.getState().recording.actions[1].payload.method).toBe('DELETE');
+      store.getState().recording.findType(AJAX_CALL_REQUESTED, (actions) => {
+        expect(actions[0].payload.method).toBe('DELETE');
+      });
     });
   });
   describe('when an api call is requested', () => {

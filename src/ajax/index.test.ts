@@ -5,7 +5,9 @@ import ajax, {
   AJAX_CALL_SENT,
   AJAX_CALL_COMPLETE,
   AJAX_CALL_SUCCESS,
-  AJAX_CALL_FAILED
+  AJAX_CALL_FAILED,
+  AJAX_CALL_SLOW,
+  AJAX_CALL_STATS
 } from './index';
 
 describe('when calling send', () => {
@@ -18,7 +20,7 @@ describe('when calling send', () => {
         return fake;
       }
     };
-    store = ajax(ajaxService).enforceImmutableState().inRecordedStore();
+    store = ajax(ajaxService, { slowCallThreshold: 1 }).enforceImmutableState().inRecordedStore();
   });
   it('fires actions when the call succeeds', () => {
     fake = Promise.resolve({status: 200});
@@ -68,6 +70,20 @@ describe('when calling send', () => {
         expect(store.getState().recording.actions[4].type).toBe(AJAX_CALL_FAILED);
         expect(store.getState().recording.actions[4].payload.error.status).toBe(500);
         expect(err.status).toBe(500);
+        resolve();
+      }));
+    });
+  });
+  it('reports slow calls', () => {
+    //expect.assertions(1);
+    fake = new Promise((resolve) => {
+      setTimeout(() => resolve({status: 200}), 10);
+    });
+    return new Promise(resolve => {
+      store.dispatch(post('http://test.com', () => {
+        expect(store.getState().recording.findType(AJAX_CALL_SLOW).length).toBe(1);
+        expect(store.getState().recording.findType(AJAX_CALL_STATS)[0].payload.numSlow).toBe(1);
+        expect(store.getState().recording.findType(AJAX_CALL_STATS)[1].payload.numSlow).toBe(0);
         resolve();
       }));
     });

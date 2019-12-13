@@ -23,8 +23,8 @@ describe('timer', () => {
       action: [{type: 'TestAction1'}, {type: 'TestAction2'}]
     }));
     return delay(2).then(() => {
-      expect(store.getState().recording.findType('TestAction1').length).toBe(1);
-      expect(store.getState().recording.findType('TestAction2').length).toBe(1);
+      expect(store.getState().recording.findType('TestAction1').length).toBeGreaterThanOrEqual(1);
+      expect(store.getState().recording.findType('TestAction2').length).toBeGreaterThanOrEqual(1);
     });
   });
   it('can trigger actions on tick', () => {
