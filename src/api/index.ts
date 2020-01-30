@@ -24,6 +24,8 @@ export const COMMAND_FAILED = '@API/COMMAND_FAILED';
 export const SIGNOUT_REQUESTED = '@API/SIGNOUT_REQUESTED';
 export const SIGNOUT_SUCCESS = '@API/SIGNOUT_SUCCESS';
 
+export const INVALIDATE_PREFETCH_CACHE = '@API/INVALIDATE_PREFETCH_CACHE';
+
 export interface AuthenticateOptions {
   username: string;
   password: string;
@@ -86,6 +88,13 @@ export const staticResponse = (queryName, staticData) => {
       queryName,
       queryResultName: queryName,
       staticData
+  }
+};
+
+export const invalidatePrefetchCache = (key : string = null) => {
+  return {
+    type: INVALIDATE_PREFETCH_CACHE,
+    key
   }
 };
 
@@ -181,6 +190,16 @@ export default Module.create({
                 callInProgress: numCallsInProgress > 0,
                 callsInProgress
             }
+        } else if (INVALIDATE_PREFETCH_CACHE === action.type) {
+          const newState = {
+            ...state
+          };
+          if (action.key) {
+            delete newState.prefetched[action.key];
+          } else {
+            delete newState.prefetched;
+          }
+          return newState;
         }
         return state;
     },

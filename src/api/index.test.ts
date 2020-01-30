@@ -1,16 +1,17 @@
 import {
-  COMMAND_FAILED,
-  DATA_FETCH_FAILED,
-  DATA_FETCH_SUCCESS,
+  authenticate,
   AUTHENTICATE_FAILED,
   AUTHENTICATE_SUCCESS,
-  authenticate,
   authenticateWithUsernamePassword,
+  COMMAND_FAILED,
   commandResponseHandler,
   createGraphQuery,
+  DATA_FETCH_FAILED,
+  DATA_FETCH_SUCCESS,
   executeCommand,
   getRequest,
   graphQuery,
+  invalidatePrefetchCache,
   signout
 } from './index';
 import {apiModuleTestHelper} from './test-helper';
@@ -151,7 +152,7 @@ describe('api', () => {
       expect(query).toBe('{ graph { graphObjects (c3: 1) { name } } }');
     });
     describe('prefetchedResponses', () => {
-      it('returns prefetched data', () => {
+      it('returns prefetched data', async () => {
         store = apiModuleTestHelper.createStore({
           preloadedState: {
             api: {
@@ -171,6 +172,14 @@ describe('api', () => {
           }, {name: ''}]
         }, 'graphObjects'));
         expect(store.getState().recording.findType(DATA_FETCH_SUCCESS)[0].queryName).toBe('graphObjects');
+        expect(store.getState().recording.findType(AJAX_CALL_REQUESTED).length).toBe(0);
+        store.dispatch(invalidatePrefetchCache());
+        store.dispatch(graphQuery({
+          graphObjects: [{
+            criteria: 1
+          }, {name: ''}]
+        }, 'graphObjects'));
+        expect(store.getState().recording.findType(AJAX_CALL_REQUESTED).length).toBe(1);
       });
       it('dispatches @API/DATA_FETCH_FAILED on non 200 status', () => {
         store = apiModuleTestHelper.createStore({
@@ -197,16 +206,15 @@ describe('api', () => {
     });
   });
   describe('getRequest', () => {
-    it('creates ajax GET requests', () => {
+    it('creates ajax GET requests', async () => {
       apiModuleTestHelper.ajaxResponse = DeferredPromise.create();
       const action = getRequest('/foo', 'foos');
       expect(action.url).toBe('/foo');
       store.dispatch(action);
-      apiModuleTestHelper.ajaxResponse.forceResolve({data: 'theFoos'});
-      return apiModuleTestHelper.ajaxResponse.then(() => {
-        expect(store.getState().recording.findType(DATA_FETCH_SUCCESS)[0].queryName).toBe('foos');
-        expect(store.getState().recording.findType(DATA_FETCH_SUCCESS)[0].data).toBe('theFoos');
-      });
+      await apiModuleTestHelper.ajaxResponse.forceResolve({data: 'theFoos'});
+      await apiModuleTestHelper.ajaxResponse;
+      expect(store.getState().recording.findType(DATA_FETCH_SUCCESS)[0].queryName).toBe('foos');
+      expect(store.getState().recording.findType(DATA_FETCH_SUCCESS)[0].data).toBe('theFoos');
     });
   });
   describe('executeCommand', () => {
