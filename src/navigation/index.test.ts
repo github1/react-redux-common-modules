@@ -3,8 +3,11 @@ import nav, {
   findSection,
   hiddenSection,
   navigate,
-  NAVIGATION_ALLOWED,
+  NAVIGATION_ACTION,
+  NAVIGATION_REQUESTED,
   NAVIGATION_COMPLETE,
+  NavigationPhase,
+  NavigationLifecycleStage,
   OnBeforeNavigate,
   section,
   syncNavigation
@@ -35,8 +38,8 @@ describe('navigation', () => {
       section('Print', 'PrintIcon', 'action::print'),
       section('Sign Out', 'SignOutIcon', 'action::signOut'),
       section('HasHandler', 'HandlerIcon', '/hasHandler')
-        .handle((section, action) => {
-          return {type: 'HANDLER_ACTION', fromType: action.type};
+        .handle((section, stage) => {
+          return {type: 'HANDLER_ACTION', stage};
         }),
       section('HasHandlerRedirect', 'HandlerIcon', '/hasHandlerRedirect')
         .handle(() => navigate('/tasks'))
@@ -47,7 +50,7 @@ describe('navigation', () => {
   });
   describe('when the navigation module is initialized', () => {
     it('is in idle phase', () => {
-      expect(store.getState().navigation.phase).toBe('idle');
+      expect(store.getState().navigation.phase).toBe(NavigationPhase.IDLE);
     });
     it('has navigation entries', () => {
       expect(store.getState().navigation).toBeDefined();
@@ -94,19 +97,19 @@ describe('navigation', () => {
   describe('when a navigation request action is dispatched', () => {
     it('contains the section details', () => {
       store.dispatch(navigate('tasks'));
-      expect(store.getState().recording.actions[1].type).toBe('@NAVIGATION/REQUESTED');
+      expect(store.getState().recording.actions[1].type).toBe(NAVIGATION_REQUESTED);
       expect(store.getState().recording.actions[1].section.title).toBe('Tasks');
     });
     it('is able to locate a section with query string parameters', () => {
       store.dispatch(navigate('tasks?foo=bar'));
-      expect(store.getState().recording.actions[1].type).toBe('@NAVIGATION/REQUESTED');
+      expect(store.getState().recording.actions[1].type).toBe(NAVIGATION_REQUESTED);
       expect(store.getState().recording.actions[1].section.title).toBe('Tasks');
       expect(store.getState().recording.actions[1].section.queryParams.foo).toBe('bar');
     });
     it('sets the phase to navigation-requested', () => {
       store.dispatch(navigate('tasks'));
       expect(container.onBeforeNavigate).toHaveBeenCalled();
-      expect(store.getState().navigation.phase).toBe('navigation-requested')
+      expect(store.getState().navigation.phase).toBe(NavigationPhase.REQUESTED)
     });
     describe('when the navigation request is denied', () => {
       beforeEach(() => {
@@ -117,12 +120,12 @@ describe('navigation', () => {
       it('returns the phase to idle', () => {
         store.dispatch(navigate('tasks'));
         expect(container.onBeforeNavigate).toHaveBeenCalled();
-        expect(store.getState().navigation.phase).toBe('idle');
+        expect(store.getState().navigation.phase).toBe(NavigationPhase.IDLE);
       });
       it('can navigate with the section object', () => {
         store.dispatch(navigate({path: '/foo'}));
         expect(container.onBeforeNavigate).toHaveBeenCalled();
-        expect(store.getState().navigation.phase).toBe('idle');
+        expect(store.getState().navigation.phase).toBe(NavigationPhase.IDLE);
       });
     });
     describe('when the navigation request is allowed', () => {
@@ -135,8 +138,8 @@ describe('navigation', () => {
         store.dispatch(navigate('tasks'));
         expect(container.onBeforeNavigate).toHaveBeenCalled();
         expect(store.getState().recording.actions
-          .filter(action => action.type === '@NAVIGATION/COMPLETE').length).toBe(1);
-        expect(store.getState().navigation.phase).toBe('idle');
+          .filter(action => action.type === NAVIGATION_COMPLETE).length).toBe(1);
+        expect(store.getState().navigation.phase).toBe(NavigationPhase.IDLE);
         expect(store.getState().navigation.path).toBe('/tasks');
       });
       it('sets the section to active', () => {
@@ -147,9 +150,9 @@ describe('navigation', () => {
         it('invokes the history api with the params', async () => {
           store.dispatch(navigate('tasks?foo=bar'));
           expect(container.onBeforeNavigate).toHaveBeenCalled();
-          const found = await store.getState().recording.waitForType('@NAVIGATION/COMPLETE');
+          const found = await store.getState().recording.waitForType(NAVIGATION_COMPLETE);
           expect(found.length).toBe(1);
-          expect(store.getState().navigation.phase).toBe('idle');
+          expect(store.getState().navigation.phase).toBe(NavigationPhase.IDLE);
           expect(store.getState().navigation.path).toBe('/tasks');
           expect(store.getState().navigation.queryParams.foo).toBe('bar');
         });
@@ -167,18 +170,14 @@ describe('navigation', () => {
           store.dispatch(navigate('hasHandler'));
           const found = await store.getState().recording.waitForType('HANDLER_ACTION');
           expect(found.length).toBe(2);
-          expect(found[0].fromType).toBe(NAVIGATION_ALLOWED);
-          expect(found[1].fromType).toBe(NAVIGATION_COMPLETE);
+          expect(found[0].stage).toBe(NavigationLifecycleStage.BEFORE);
+          expect(found[1].stage).toBe(NavigationLifecycleStage.AFTER);
         });
         it('aborts the navigation if a redirect happens in the handler', async () => {
           store.dispatch(navigate('hasHandlerRedirect'));
           const found = await store.getState().recording.waitForType(NAVIGATION_COMPLETE);
           expect(found.length).toBe(1);
           expect(found[0].section.path).toBe('/tasks');
-          //console.log(found);
-          // expect(found.length).toBe(2);
-          // expect(found[0].fromType).toBe(NAVIGATION_ALLOWED);
-          // expect(found[1].fromType).toBe(NAVIGATION_COMPLETE);
         });
       });
     });
@@ -186,7 +185,7 @@ describe('navigation', () => {
   describe('when a navigation with an action:: is dispatched', () => {
     it('dispatches the action parsed from the path', () => {
       store.dispatch(navigate({path: 'action::PRINT'}));
-      expect(store.getState().recording.actions[1].type).toBe('@NAVIGATION/ACTION');
+      expect(store.getState().recording.actions[1].type).toBe(NAVIGATION_ACTION);
       expect(store.getState().recording.actions[1].navigationAction).toBe('print');
     });
   });
@@ -194,10 +193,10 @@ describe('navigation', () => {
     it('dispatches a navigation complete action for the initial path', () => {
       history.push('/foo');
       store.dispatch(syncNavigation());
-      expect(store.getState().recording.actions[1].type).toBe('@NAVIGATION/COMPLETE');
+      expect(store.getState().recording.actions[1].type).toBe(NAVIGATION_COMPLETE);
       expect(store.getState().recording.actions[1].section.path).toBe('/foo');
       expect(store.getState().recording.actions[2].sync).toBeTruthy();
-      expect(store.getState().recording.actions[2].type).toBe('@NAVIGATION/REQUESTED');
+      expect(store.getState().recording.actions[2].type).toBe(NAVIGATION_REQUESTED);
       expect(store.getState().recording.actions[2].section.path).toBe('/foo');
     });
   });

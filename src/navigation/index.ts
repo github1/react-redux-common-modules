@@ -11,14 +11,28 @@ export const NAVIGATION_SYNC = '@NAVIGATION/SYNC';
 
 let navigationCounter : number = 0;
 
-export type NavigationSectionVisibility = 'visible' | 'hidden';
+export enum NavigationSectionVisibility {
+  VISIBLE = 'visible',
+  HIDDEN = 'hidden'
+}
 
 export interface NavigationPath {
   path : string;
 }
 
+export enum NavigationPhase {
+  IDLE = 'idle',
+  REQUESTED = 'navigation-requested',
+  IN_PROGRESS = 'navigation-in-progress'
+}
+
+export enum NavigationLifecycleStage {
+  BEFORE = 'before',
+  AFTER = 'after'
+}
+
 export interface NavigationSectionLifecycleHandler {
-  (section? : NavigationSectionConcrete, action? : any, state? : any) : any | PromiseLike<any>;
+  (section? : NavigationSectionConcrete, stage? : NavigationLifecycleStage, state? : any) : any | Promise<any>;
 }
 
 export interface NavigationSection extends NavigationPath {
@@ -71,7 +85,7 @@ class NavigationSectionInstance implements NavigationSection {
 export const section = (title : string,
                         icon : string,
                         path : string,
-                        visibility : NavigationSectionVisibility = 'visible') : NavigationSectionInstance =>
+                        visibility : NavigationSectionVisibility = NavigationSectionVisibility.VISIBLE) : NavigationSectionInstance =>
   new NavigationSectionInstance(title, icon, path, visibility);
 
 /**
@@ -84,7 +98,7 @@ export const section = (title : string,
 export const hiddenSection = (
   title : string,
   icon : string,
-  path : string) : NavigationSectionInstance => section(title, icon, path, 'hidden');
+  path : string) : NavigationSectionInstance => section(title, icon, path, NavigationSectionVisibility.HIDDEN);
 
 /**
  * Set section index and filter for visibility.
@@ -196,14 +210,13 @@ export interface OnBeforeNavigate {
 }
 
 const invokeNavigationSectionLifecycleHandler = async (
-  sections : Array<NavigationSection>,
-  action : any,
+  section : NavigationSectionConcrete,
+  stage : NavigationLifecycleStage,
   store : any,
   ...defaultActions : Array<any>) => {
   let handlerResult : any;
-  const section = findSection(sections, action.section);
   if (section.handler) {
-    handlerResult = section.handler(section, action, store.getState());
+    handlerResult = section.handler(section, stage, store.getState());
     if (handlerResult) {
       if (handlerResult.then) {
         handlerResult = await handlerResult;
@@ -231,19 +244,19 @@ export default ({history, onBeforeNavigate, sections} : NavigationModuleOptions)
     name: 'navigation',
     preloadedState: {
       sections: prepareSections(sections),
-      phase: 'idle'
+      phase: NavigationPhase.IDLE
     },
     reducer: (state = {}, action) => {
       switch (action.type) {
         case NAVIGATION_REQUESTED:
           return {
             ...state,
-            phase: 'navigation-requested'
+            phase: NavigationPhase.REQUESTED
           };
         case NAVIGATION_COMPLETE:
           return {
             ...state,
-            phase: 'idle',
+            phase: NavigationPhase.IDLE,
             path: action.section.path,
             fullPath: action.section.fullPath,
             pathPattern: action.section.pathPattern,
@@ -260,12 +273,12 @@ export default ({history, onBeforeNavigate, sections} : NavigationModuleOptions)
         case NAVIGATION_DENIED:
           return {
             ...state,
-            phase: 'idle'
+            phase: NavigationPhase.IDLE
           };
         case NAVIGATION_ALLOWED:
           return {
             ...state,
-            phase: 'navigation-in-progress'
+            phase: NavigationPhase.IN_PROGRESS
           };
       }
       return state;
@@ -310,17 +323,21 @@ export default ({history, onBeforeNavigate, sections} : NavigationModuleOptions)
           }
         } else if (NAVIGATION_SYNC === action.type) {
           const section = findSection(sections, {path: history.location.pathname + history.location.search});
-          store.dispatch({
-            type: NAVIGATION_REQUESTED,
+          await invokeNavigationSectionLifecycleHandler(
             section,
-            sync: true,
-            counter: ++navigationCounter
-          });
+            NavigationLifecycleStage.BEFORE,
+            store,
+            {
+              type: NAVIGATION_REQUESTED,
+              section,
+              sync: true,
+              counter: ++navigationCounter
+            });
         } else if (NAVIGATION_ALLOWED === action.type) {
           next(action);
           await invokeNavigationSectionLifecycleHandler(
-            sections,
-            action,
+            findSection(sections, action.section),
+            NavigationLifecycleStage.BEFORE,
             store,
             {...action, type: NAVIGATION_PUSH_HISTORY});
         } else if (NAVIGATION_PUSH_HISTORY === action.type) {
@@ -334,7 +351,10 @@ export default ({history, onBeforeNavigate, sections} : NavigationModuleOptions)
           }
         } else if (NAVIGATION_COMPLETE === action.type) {
           next(action);
-          await invokeNavigationSectionLifecycleHandler(sections, action, store);
+          await invokeNavigationSectionLifecycleHandler(
+            findSection(sections, action.section),
+            NavigationLifecycleStage.AFTER,
+            store);
         } else {
           next(action);
         }
