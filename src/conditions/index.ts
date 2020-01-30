@@ -1,108 +1,86 @@
-import { Module } from '@github1/redux-modules';
-import { Action } from 'redux';
+import {Module} from '@github1/redux-modules';
+import {AnyAction} from 'redux';
 
-export const START_TIMER = '@timer/start';
-export const TIMER_STARTED = '@timer/started';
-export const TIMER_TICK = '@timer/tick';
-export const STOP_TIMER = '@timer/stop';
-export const TIMER_STOPPED = '@timer/stopped';
+export const ON_CONDITION = '@conditions/on_condition';
 
-const timers = {};
-
-export interface TimerDefinition {
-  action? : Action | Array<Action>;
-  interval? : number;
-  dispatchOnTick? : number;
-  stopOnDispatch? : boolean;
+export interface ConditionActionProvider {
+  (state : any) : Array<AnyAction> | AnyAction;
 }
 
-const clearTimerInterval = id => {
-    if (typeof timers[id] !== 'undefined') {
-        clearInterval(timers[id]);
-    }
-};
+export type ConditionResult = AnyAction | ConditionActionProvider;
 
-const storeTimerInterval = (id, func, interval) => {
-    clearTimerInterval(id);
-    timers[id] = setInterval(func, interval);
-};
-
-export const startTimer = (id : string, definition : TimerDefinition) : Action => {
-    return {
-        type: START_TIMER,
-        id,
-        ...definition
-    } as Action;
-};
-
-export interface DebounceDefinition {
-  action? : Action;
-  interval? : number;
+export interface StateCondition {
+  (state : any) : boolean;
 }
 
-export const debounce = (id, { action, interval } : DebounceDefinition) => {
-  return startTimer(id, { action, interval, stopOnDispatch: true});
-};
+export class OnStateActionDefinition {
+  public timeout: number = 5000;
+  public timeoutActions : Array<ConditionResult>;
 
-export const stopTimer = (id) => ({type: STOP_TIMER, id});
+  constructor(public condition : StateCondition,
+              public actions : Array<ConditionResult>) {
+  }
+
+  public onTimeout(timeout: number, ...actions : Array<ConditionResult>) : OnStateActionDefinition {
+    this.timeout = timeout;
+    this.timeoutActions = actions;
+    return this;
+  }
+}
+
+export const stateCondition = (condition : StateCondition,
+                               ...actions : Array<ConditionResult>) : OnStateActionDefinition =>
+  new OnStateActionDefinition(condition, actions);
+
+export const waitFor = (definition : OnStateActionDefinition) : AnyAction => {
+  return {
+    type: ON_CONDITION,
+    definition
+  };
+};
 
 export default Module.create({
-    name: 'timer',
-    reducer: (state = {}, action) => {
-        if (action.type === TIMER_STARTED) {
-            return {
-                ...state,
-                [action.id]: {
-                    running: true,
-                    tick: 0
-                }
+  name: 'conditions',
+  middleware: store => next => action => {
+    if (ON_CONDITION === action.type) {
+      let timedout = false;
+      const definition : OnStateActionDefinition = action.definition;
+      const waitTimeout = setTimeout(() => {
+        processConditionActions(definition.timeoutActions);
+      }, definition.timeout);
+      const processConditionActions = (conditionResults: Array<ConditionResult>) => {
+        if (conditionResults) {
+          const conditionActions : Array<AnyAction> = [];
+          conditionResults.forEach((conditionResult : ConditionResult) => {
+            let resultingActions : AnyAction | AnyAction[];
+            if (typeof conditionResult === 'function') {
+              resultingActions = conditionResult(store.getState());
+            } else {
+              resultingActions = conditionResult;
             }
-        }
-        if (action.type === TIMER_TICK) {
-            const timerState = {
-                ...state[action.id],
-                tick: state[action.id].tick + 1
-            };
-            return {
-                ...state,
-                [action.id]: {...timerState}
+            if (Array.isArray(resultingActions)) {
+              conditionActions.push(...resultingActions);
+            } else {
+              conditionActions.push(resultingActions);
             }
+          });
+          conditionActions.forEach((conditionAction : AnyAction) => {
+            store.dispatch(conditionAction);
+          });
         }
-        if (action.type === TIMER_STOPPED) {
-            const timerState = {
-                ...state[action.id],
-                running: false
-            };
-            return {
-                ...state,
-                [action.id]: {...timerState}
-            };
+      };
+      const checkCondition = () => {
+        if (definition.condition(store.getState())) {
+          clearTimeout(waitTimeout);
+          processConditionActions(definition.actions);
+        } else {
+          if (!timedout) {
+            setTimeout(() => checkCondition(), 1);
+          }
         }
-        return state;
-    },
-    middleware: store => next => action => {
-        next(action);
-        if (START_TIMER === action.type) {
-            clearTimerInterval(action.id);
-            if (action.interval > 0) {
-                store.dispatch({type: TIMER_STARTED, id: action.id});
-                storeTimerInterval(action.id, () => {
-                    store.dispatch({type: TIMER_TICK, id: action.id});
-                    if (action.action && (typeof action.dispatchOnTick === 'undefined'
-                      || (action.dispatchOnTick + 1) === store.getState().timer[action.id].tick)) {
-                        if (action.stopOnDispatch) {
-                            store.dispatch(stopTimer(action.id));
-                            clearTimerInterval(action.id);
-                        }
-                        (Array.isArray(action.action) ?
-                            action.action :
-                            [action.action]).forEach(store.dispatch);
-                    }
-                }, action.interval);
-            }
-        } else if (STOP_TIMER === action.type) {
-            store.dispatch({type: TIMER_STOPPED, id: action.id});
-            clearTimerInterval(action.id);
-        }
+      };
+      checkCondition();
     }
+    next(action);
+  }
 });
