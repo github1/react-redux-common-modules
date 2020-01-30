@@ -7,7 +7,7 @@ export interface ConditionActionProvider {
   (state : any) : Array<AnyAction> | AnyAction;
 }
 
-export type ConditionResult = AnyAction | ConditionActionProvider;
+export type ConditionResult = AnyAction | AnyAction[] | ConditionActionProvider;
 
 export interface StateCondition {
   (state : any) : boolean;

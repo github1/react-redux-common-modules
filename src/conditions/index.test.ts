@@ -9,7 +9,7 @@ describe('conditions', () => {
     store = Conditions.enforceImmutableState().inRecordedStore(stateManipulator);
   });
   describe('stateCondition', () => {
-    it('fires actions when the state condition is met', async () => {
+    it('fires an action when the state condition is met', async () => {
       store.dispatch(waitFor(stateCondition(
         (state) => state.someData.condition_value === true,
         {type: 'CONDITION_MET'})));
@@ -22,6 +22,14 @@ describe('conditions', () => {
         (state) => ({type: 'CONDITION_MET_' + state.someData.condition_value}))));
       store.dispatch({type: 'SET_CONDITION'});
       await store.getState().recording.waitForType('CONDITION_MET_true');
+    });
+    it('fires an array of action when the state condition is met', async () => {
+      store.dispatch(waitFor(stateCondition(
+        (state) => state.someData.condition_value === true,
+        [{type: 'CONDITION_MET_1'}, {type: 'CONDITION_MET_2'}])));
+      store.dispatch({type: 'SET_CONDITION'});
+      await store.getState().recording.waitForType('CONDITION_MET_1');
+      await store.getState().recording.waitForType('CONDITION_MET_2');
     });
     it('timesout if condition not met in a period of time', async () => {
       store.dispatch(waitFor(stateCondition(() => false, {type: 'CONDITION_MET'})
