@@ -1,5 +1,7 @@
 import {Module} from '@github1/redux-modules';
+import {AnyAction} from 'redux';
 
+export const NAVIGATION_PHASE_CHANGED = '@NAVIGATION/PHASE_CHANGED';
 export const NAVIGATION_PRE_REQUEST = '@NAVIGATION/PRE_REQUEST';
 export const NAVIGATION_REQUESTED = '@NAVIGATION/REQUESTED';
 export const NAVIGATION_DENIED = '@NAVIGATION/DENIED';
@@ -34,6 +36,12 @@ export enum NavigationLifecycleStage {
 export interface NavigationSectionLifecycleHandler {
   (section? : NavigationSectionConcrete, stage? : NavigationLifecycleStage, state? : any) : any | Promise<any>;
 }
+
+export const interceptNavigation = (interceptor: (actions: Array<AnyAction>) => any | Promise<any>) => {
+  return {
+    interceptor
+  }
+};
 
 export interface NavigationSection extends NavigationPath {
   index? : number;
@@ -199,6 +207,13 @@ const complete = (section : NavigationSection) => {
   };
 };
 
+const phaseChanged = (phase: NavigationPhase) => {
+  return {
+    type: NAVIGATION_PHASE_CHANGED,
+    phase
+  }
+};
+
 export interface NavigationPermission {
   allow() : void;
 
@@ -213,18 +228,23 @@ const invokeNavigationSectionLifecycleHandler = async (
   section : NavigationSectionConcrete,
   stage : NavigationLifecycleStage,
   store : any,
-  ...defaultActions : Array<any>) => {
+  ...defaultActions : Array<AnyAction>) => {
   let handlerResult : any;
+  let wasIntercepted : boolean = false;
   if (section.handler) {
     handlerResult = section.handler(section, stage, store.getState());
     if (handlerResult) {
+      if (handlerResult.interceptor) {
+        wasIntercepted = true;
+        handlerResult = handlerResult.interceptor(defaultActions);
+      }
       if (handlerResult.then) {
         handlerResult = await handlerResult;
       }
     }
   }
   handlerResult = (Array.isArray(handlerResult) ? handlerResult : [handlerResult]).filter((action) => action);
-  if (handlerResult.filter((action) => action.type === NAVIGATION_PRE_REQUEST).length === 0) {
+  if (!wasIntercepted && handlerResult.filter((action) => action.type === NAVIGATION_PRE_REQUEST).length === 0) {
     handlerResult.push(...defaultActions);
   }
   handlerResult.forEach((action) => {
@@ -248,15 +268,9 @@ export default ({history, onBeforeNavigate, sections} : NavigationModuleOptions)
     },
     reducer: (state = {}, action) => {
       switch (action.type) {
-        case NAVIGATION_REQUESTED:
-          return {
-            ...state,
-            phase: NavigationPhase.REQUESTED
-          };
         case NAVIGATION_COMPLETE:
           return {
             ...state,
-            phase: NavigationPhase.IDLE,
             path: action.section.path,
             fullPath: action.section.fullPath,
             pathPattern: action.section.pathPattern,
@@ -270,16 +284,11 @@ export default ({history, onBeforeNavigate, sections} : NavigationModuleOptions)
               };
             })
           };
-        case NAVIGATION_DENIED:
+        case NAVIGATION_PHASE_CHANGED:
           return {
             ...state,
-            phase: NavigationPhase.IDLE
-          };
-        case NAVIGATION_ALLOWED:
-          return {
-            ...state,
-            phase: NavigationPhase.IN_PROGRESS
-          };
+            phase: action.phase
+          }
       }
       return state;
     },
@@ -311,6 +320,7 @@ export default ({history, onBeforeNavigate, sections} : NavigationModuleOptions)
           }
         } else if (NAVIGATION_REQUESTED === action.type) {
           next(action);
+          store.dispatch(phaseChanged(NavigationPhase.REQUESTED));
           if (action.counter === navigationCounter) {
             if (action.sync) {
               store.dispatch(complete(action.section))
@@ -340,6 +350,9 @@ export default ({history, onBeforeNavigate, sections} : NavigationModuleOptions)
             NavigationLifecycleStage.BEFORE,
             store,
             {...action, type: NAVIGATION_PUSH_HISTORY});
+        } else if (NAVIGATION_DENIED === action.type) {
+          next(action);
+          store.dispatch(phaseChanged(NavigationPhase.IDLE));
         } else if (NAVIGATION_PUSH_HISTORY === action.type) {
           next(action);
           if (action.delay > 0) {
@@ -351,6 +364,7 @@ export default ({history, onBeforeNavigate, sections} : NavigationModuleOptions)
           }
         } else if (NAVIGATION_COMPLETE === action.type) {
           next(action);
+          store.dispatch(phaseChanged(NavigationPhase.IDLE));
           await invokeNavigationSectionLifecycleHandler(
             findSection(sections, action.section),
             NavigationLifecycleStage.AFTER,
@@ -434,7 +448,7 @@ const matchURL = (sections : Array<NavigationSection>, searchValue : string) : N
     const patternKey = sections[i].path;
     if (searchValue === patternKey.toLowerCase()) {
       isMatch = true;
-    } else if (searchValue === ('/' + sections[i].title.toLowerCase())) {
+    } else if (searchValue.toLowerCase() === ('/' + sections[i].title.toLowerCase())) {
       isMatch = true;
       otherThanPathMatch = true;
     } else {

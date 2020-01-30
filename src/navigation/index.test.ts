@@ -2,12 +2,13 @@ import nav, {
   extractQueryParams,
   findSection,
   hiddenSection,
+  interceptNavigation,
   navigate,
   NAVIGATION_ACTION,
-  NAVIGATION_REQUESTED,
   NAVIGATION_COMPLETE,
-  NavigationPhase,
+  NAVIGATION_REQUESTED,
   NavigationLifecycleStage,
+  NavigationPhase,
   OnBeforeNavigate,
   section,
   syncNavigation
@@ -27,22 +28,20 @@ describe('navigation', () => {
       return onBeforeNavigate.apply(null, Array.prototype.slice.call(arguments));
     }),
     sections: [
-      hiddenSection('Login', '', '/'),
-      section('Tasks', 'TaskIcon', '/tasks'),
-      section('RFP Log', 'RFPLogIcon', '/rfp'),
-      section('Proposals', 'ProposalIcon', '/proposals'),
-      section('Projects', 'ProjectIcon', '/projects'),
-      section('Project Details', 'ProjectIcon', '/projects/:id'),
-      section('Purchase Orders', 'PurchaseOrderIcon', '/purchaseOrders'),
-      section('Reports', 'ReportIcon', '/reports'),
-      section('Print', 'PrintIcon', 'action::print'),
-      section('Sign Out', 'SignOutIcon', 'action::signOut'),
+      section('VisibleSection', 'VisibleIcon', '/visible'),
+      hiddenSection('HiddenSection', 'HiddenIcon', '/hidden'),
+      hiddenSection('ActionSection', 'ActionIcon', 'action::some_action'),
+      section('HasPathParams', 'VisibleIcon', '/visible/:id'),
       section('HasHandler', 'HandlerIcon', '/hasHandler')
         .handle((section, stage) => {
           return {type: 'HANDLER_ACTION', stage};
         }),
       section('HasHandlerRedirect', 'HandlerIcon', '/hasHandlerRedirect')
-        .handle(() => navigate('/tasks'))
+        .handle(() => navigate('/visible')),
+      section('HasHandlerInterceptor', 'HandlerIcon', '/hasHandlerInterceptor')
+        .handle((section, stage) => interceptNavigation((actions) => {
+          return [...actions, {type: `ADDED_BY_INTERCEPTOR_${stage}`}];
+        }))
     ]
   };
   beforeEach(() => {
@@ -54,60 +53,28 @@ describe('navigation', () => {
     });
     it('has navigation entries', () => {
       expect(store.getState().navigation).toBeDefined();
-      expect(getNavSections().length).toBe(11);
+      expect(getNavSections().length).toBe(5);
     });
     it('has a tasks section', () => {
-      expect(getNavSection(0).title).toBe('Tasks');
-      expect(getNavSection(0).path).toBe('/tasks');
-      expect(getNavSection(0).icon).toBe('TaskIcon');
-    });
-    it('has a rfp log section', () => {
-      expect(getNavSection(1).title).toBe('RFP Log');
-      expect(getNavSection(1).path).toBe('/rfp');
-    });
-    it('has a proposals section', () => {
-      expect(getNavSection(2).title).toBe('Proposals');
-      expect(getNavSection(2).path).toBe('/proposals');
-    });
-    it('has a projects section', () => {
-      expect(getNavSection(3).title).toBe('Projects');
-      expect(getNavSection(3).path).toBe('/projects');
-    });
-    it('has a project details section', () => {
-      expect(getNavSection(4).title).toBe('Project Details');
-      expect(getNavSection(4).path).toBe('/projects/:id');
-    });
-    it('has a purchase orders section', () => {
-      expect(getNavSection(5).title).toBe('Purchase Orders');
-      expect(getNavSection(5).path).toBe('/purchaseOrders');
-    });
-    it('has a reports section', () => {
-      expect(getNavSection(6).title).toBe('Reports');
-      expect(getNavSection(6).path).toBe('/reports');
-    });
-    it('has a print action', () => {
-      expect(getNavSection(7).title).toBe('Print');
-      expect(getNavSection(7).path).toBe('action::print');
-    });
-    it('has a sign out action', () => {
-      expect(getNavSection(8).title).toBe('Sign Out');
-      expect(getNavSection(8).path).toBe('action::signOut');
+      expect(getNavSection(0).title).toBe('VisibleSection');
+      expect(getNavSection(0).path).toBe('/visible');
+      expect(getNavSection(0).icon).toBe('VisibleIcon');
     });
   });
   describe('when a navigation request action is dispatched', () => {
     it('contains the section details', () => {
-      store.dispatch(navigate('tasks'));
+      store.dispatch(navigate('visible'));
       expect(store.getState().recording.actions[1].type).toBe(NAVIGATION_REQUESTED);
-      expect(store.getState().recording.actions[1].section.title).toBe('Tasks');
+      expect(store.getState().recording.actions[1].section.title).toBe('VisibleSection');
     });
     it('is able to locate a section with query string parameters', () => {
-      store.dispatch(navigate('tasks?foo=bar'));
+      store.dispatch(navigate('visible?foo=bar'));
       expect(store.getState().recording.actions[1].type).toBe(NAVIGATION_REQUESTED);
-      expect(store.getState().recording.actions[1].section.title).toBe('Tasks');
+      expect(store.getState().recording.actions[1].section.title).toBe('VisibleSection');
       expect(store.getState().recording.actions[1].section.queryParams.foo).toBe('bar');
     });
     it('sets the phase to navigation-requested', () => {
-      store.dispatch(navigate('tasks'));
+      store.dispatch(navigate('visible'));
       expect(container.onBeforeNavigate).toHaveBeenCalled();
       expect(store.getState().navigation.phase).toBe(NavigationPhase.REQUESTED)
     });
@@ -118,7 +85,7 @@ describe('navigation', () => {
         };
       });
       it('returns the phase to idle', () => {
-        store.dispatch(navigate('tasks'));
+        store.dispatch(navigate('visible'));
         expect(container.onBeforeNavigate).toHaveBeenCalled();
         expect(store.getState().navigation.phase).toBe(NavigationPhase.IDLE);
       });
@@ -135,25 +102,25 @@ describe('navigation', () => {
         };
       });
       it('invokes the history api', () => {
-        store.dispatch(navigate('tasks'));
+        store.dispatch(navigate('visible'));
         expect(container.onBeforeNavigate).toHaveBeenCalled();
         expect(store.getState().recording.actions
           .filter(action => action.type === NAVIGATION_COMPLETE).length).toBe(1);
         expect(store.getState().navigation.phase).toBe(NavigationPhase.IDLE);
-        expect(store.getState().navigation.path).toBe('/tasks');
+        expect(store.getState().navigation.path).toBe('/visible');
       });
       it('sets the section to active', () => {
-        store.dispatch(navigate('tasks'));
+        store.dispatch(navigate('visible'));
         expect(store.getState().navigation.sections[0].active).toBe(true);
       });
       describe('when the request contains queryParams', () => {
         it('invokes the history api with the params', async () => {
-          store.dispatch(navigate('tasks?foo=bar'));
+          store.dispatch(navigate('visible?foo=bar'));
           expect(container.onBeforeNavigate).toHaveBeenCalled();
           const found = await store.getState().recording.waitForType(NAVIGATION_COMPLETE);
           expect(found.length).toBe(1);
           expect(store.getState().navigation.phase).toBe(NavigationPhase.IDLE);
-          expect(store.getState().navigation.path).toBe('/tasks');
+          expect(store.getState().navigation.path).toBe('/visible');
           expect(store.getState().navigation.queryParams.foo).toBe('bar');
         });
       });
@@ -177,7 +144,18 @@ describe('navigation', () => {
           store.dispatch(navigate('hasHandlerRedirect'));
           const found = await store.getState().recording.waitForType(NAVIGATION_COMPLETE);
           expect(found.length).toBe(1);
-          expect(found[0].section.path).toBe('/tasks');
+          expect(found[0].section.path).toBe('/visible');
+        });
+        it('can intercept the default navigation actions', async () => {
+          store.dispatch(navigate('HasHandlerInterceptor'));
+          // await store.getState().recording.waitForType(NAVIGATION_REQUESTED);
+          // expect(store.getState().navigation.phase).toBe(NavigationPhase.IN_PROGRESS);
+          let found = await store.getState().recording.waitForType(NAVIGATION_COMPLETE);
+          expect(found.length).toBe(1);
+          found = await store.getState().recording.waitForType('ADDED_BY_INTERCEPTOR_before');
+          expect(found.length).toBe(1);
+          found = await store.getState().recording.waitForType('ADDED_BY_INTERCEPTOR_after');
+          expect(found.length).toBe(1);
         });
       });
     });
@@ -195,9 +173,9 @@ describe('navigation', () => {
       store.dispatch(syncNavigation());
       expect(store.getState().recording.actions[1].type).toBe(NAVIGATION_COMPLETE);
       expect(store.getState().recording.actions[1].section.path).toBe('/foo');
-      expect(store.getState().recording.actions[2].sync).toBeTruthy();
-      expect(store.getState().recording.actions[2].type).toBe(NAVIGATION_REQUESTED);
-      expect(store.getState().recording.actions[2].section.path).toBe('/foo');
+      expect(store.getState().recording.actions[3].sync).toBeTruthy();
+      expect(store.getState().recording.actions[3].type).toBe(NAVIGATION_REQUESTED);
+      expect(store.getState().recording.actions[3].section.path).toBe('/foo');
     });
   });
   describe('extractQueryParams', () => {
@@ -226,32 +204,32 @@ describe('navigation', () => {
   describe('findSection', () => {
     describe('finding by path', () => {
       it('find by path', () => {
-        expect(findSection(container.sections, {path: '/projects'}).title).toBe('Projects');
+        expect(findSection(container.sections, {path: '/visible'}).title).toBe('VisibleSection');
       });
       it('finds by path with extra slashes', () => {
-        expect(findSection(container.sections, {path: '/projects/'}).title).toBe('Projects');
+        expect(findSection(container.sections, {path: '/visible/'}).title).toBe('VisibleSection');
       });
       it('can match on the title', () => {
-        expect(findSection(container.sections, {path: 'login'}).path).toBe('/');
+        expect(findSection(container.sections, 'VisibleSection').path).toBe('/visible');
       });
       it('finds actions', () => {
-        expect(findSection(container.sections, {path: 'action::PRINT'}).path).toBe('action::print');
+        expect(findSection(container.sections, {path: 'action::SOME_ACTION'}).path).toBe('action::some_action');
       });
       it('parses query strings', () => {
-        expect(findSection(container.sections, 'projects?foo=bar').path).toBe('/projects');
-        expect(findSection(container.sections, 'projects?foo=bar').fullPath).toBe('/projects?foo=bar');
-        expect(findSection(container.sections, 'projects?foo=bar').queryParams.foo).toBe('bar');
+        expect(findSection(container.sections, 'visible?foo=bar').path).toBe('/visible');
+        expect(findSection(container.sections, 'visible?foo=bar').fullPath).toBe('/visible?foo=bar');
+        expect(findSection(container.sections, 'visible?foo=bar').queryParams.foo).toBe('bar');
       });
       it('parses query strings from section path', () => {
-        expect(findSection(container.sections, {path: '/projects?foo=bar'}).path).toBe('/projects');
-        expect(findSection(container.sections, {path: '/projects?foo=bar'}).fullPath).toBe('/projects?foo=bar');
-        expect(findSection(container.sections, {path: '/projects?foo=bar'}).queryParams.foo).toBe('bar');
+        expect(findSection(container.sections, {path: '/visible?foo=bar'}).path).toBe('/visible');
+        expect(findSection(container.sections, {path: '/visible?foo=bar'}).fullPath).toBe('/visible?foo=bar');
+        expect(findSection(container.sections, {path: '/visible?foo=bar'}).queryParams.foo).toBe('bar');
       });
       it('parses path parameters', () => {
-        const foundSection = findSection(container.sections, {path: '/projects/123'});
-        expect(foundSection.path).toBe('/projects/123');
-        expect(foundSection.pathPattern).toBe('/projects/:id');
-        expect(foundSection.fullPath).toBe('/projects/123');
+        const foundSection = findSection(container.sections, {path: '/visible/123'});
+        expect(foundSection.path).toBe('/visible/123');
+        expect(foundSection.pathPattern).toBe('/visible/:id');
+        expect(foundSection.fullPath).toBe('/visible/123');
         expect(foundSection.pathParams.id).toBe('123');
       });
     });
