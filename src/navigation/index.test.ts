@@ -157,6 +157,13 @@ describe('navigation', () => {
           found = await store.getState().recording.waitForType('ADDED_BY_INTERCEPTOR_after');
           expect(found.length).toBe(1);
         });
+        it('can handle sections created outside of the module initialization', async () => {
+          const newSection = section('NewSection', 'NewIcon', '/newPath');
+          store.dispatch(navigate('NewSection'));
+          const found = await store.getState().recording.waitForType(NAVIGATION_COMPLETE);
+          expect(found.length).toBe(1);
+          expect(found[0].section.title).toBe(newSection.title);
+        });
       });
     });
   });

@@ -13,6 +13,8 @@ export const NAVIGATION_SYNC = '@NAVIGATION/SYNC';
 
 let navigationCounter : number = 0;
 
+const allSections : {[k:string]:NavigationSectionInstance} = {};
+
 export enum NavigationSectionVisibility {
   VISIBLE = 'visible',
   HIDDEN = 'hidden'
@@ -71,6 +73,7 @@ class NavigationSectionInstance implements NavigationSection {
               public readonly icon : string,
               public readonly path : string,
               public readonly visibility : NavigationSectionVisibility) {
+    allSections[path] = this;
   }
 
   public get handler() : NavigationSectionLifecycleHandler {
@@ -298,6 +301,7 @@ export default ({history, onBeforeNavigate, sections} : NavigationModuleOptions)
         store.dispatch(complete(findSection(sections, {path: history.location.pathname + history.location.search})));
       });
       return next => async (action) => {
+        sections = Object.keys(allSections).map((k:string) => allSections[k]);
         if (NAVIGATION_PRE_REQUEST === action.type) {
           // Find the section from the given input
           const section = findSection(sections, action.search);
