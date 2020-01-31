@@ -263,12 +263,14 @@ const invokeNavigationSectionLifecycleHandler = async (
 export interface NavigationModuleOptions {
   history : any,
   onBeforeNavigate : OnBeforeNavigate,
-  sections : Array<NavigationSectionInstance>
+  sections : Array<NavigationSectionInstance>,
+  interceptClicks: boolean
 }
 
-export default ({history, onBeforeNavigate, sections = []} : NavigationModuleOptions) : Module => {
+export default ({history, onBeforeNavigate, sections = [], interceptClicks = false} : NavigationModuleOptions) : Module => {
   onBeforeNavigate = onBeforeNavigate || ((section, cb) => cb.allow());
   sections.forEach((section) => section.register());
+  let clickInterceptorConfigured : boolean = false;
   return Module.create({
     name: 'navigation',
     preloadedState: {
@@ -302,6 +304,10 @@ export default ({history, onBeforeNavigate, sections = []} : NavigationModuleOpt
       return state;
     },
     middleware: store => {
+      if (interceptClicks && !clickInterceptorConfigured) {
+        clickInterceptorConfigured = true;
+        registerClickInterceptor(store);
+      }
       history.listen(() => {
         store.dispatch(complete(findSection(sections, {path: history.location.pathname + history.location.search})));
       });
@@ -499,4 +505,36 @@ const matchURL = (sections : Array<NavigationSection>, searchValue : string) : N
     pathPattern: null,
     otherThanPathMatch: null
   };
+};
+
+const registerClickInterceptor = (store) => {
+  if (typeof window !== 'undefined') {
+    document.addEventListener('click', (event: MouseEvent) => {
+      let candidate = event.target as Element;
+      let depth = 0;
+      if (candidate && candidate.tagName) {
+        while (candidate && candidate.tagName && !/^a$/i.test(candidate.tagName) && depth < 3) {
+          depth++;
+          candidate = candidate.parentNode as Element;
+        }
+        let windowOrigin = window.location.origin;
+        if (!windowOrigin) {
+          windowOrigin = window.location.protocol + "//"
+            + window.location.hostname
+            + (window.location.port ? ':' + window.location.port : '');
+        }
+        if (candidate.hasAttribute('href')) {
+          const candidateAnchor : HTMLAnchorElement = candidate as HTMLAnchorElement;
+          if (candidateAnchor.href
+            && (candidateAnchor.href.indexOf(windowOrigin) > -1 || /^action::/.test(candidateAnchor.href))
+            && !/^http:\/\//.test(candidateAnchor.getAttribute('href'))
+            && candidateAnchor.getAttribute('href') !== '#'
+            && candidateAnchor.getAttribute('role') !== 'menuitem') {
+            event.preventDefault();
+            store.dispatch(navigate({path: candidateAnchor.getAttribute('href')}));
+          }
+        }
+      }
+    });
+  }
 };
