@@ -29,6 +29,7 @@ export enum NavigationPhase {
 }
 
 export enum NavigationLifecycleStage {
+  ACTION = 'action',
   BEFORE = 'before',
   AFTER = 'after'
 }
@@ -312,11 +313,15 @@ export default ({history, onBeforeNavigate, sections} : NavigationModuleOptions)
               counter: ++navigationCounter
             });
           } else {
-            store.dispatch({
-              type: NAVIGATION_ACTION,
-              navigationAction: navAction[1],
-              section
-            });
+            await invokeNavigationSectionLifecycleHandler(
+              section,
+              NavigationLifecycleStage.ACTION,
+              store,
+              {
+                type: NAVIGATION_ACTION,
+                navigationAction: navAction[1],
+                section
+              });
           }
         } else if (NAVIGATION_REQUESTED === action.type) {
           next(action);
