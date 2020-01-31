@@ -73,11 +73,15 @@ class NavigationSectionInstance implements NavigationSection {
               public readonly icon : string,
               public readonly path : string,
               public readonly visibility : NavigationSectionVisibility) {
-    allSections[path] = this;
   }
 
   public get handler() : NavigationSectionLifecycleHandler {
     return this._handler;
+  }
+
+  public register() : NavigationSectionInstance {
+    allSections[this.path] = this;
+    return this;
   }
 
   public handle(handler : NavigationSectionLifecycleHandler) : NavigationSectionInstance {
@@ -259,11 +263,12 @@ const invokeNavigationSectionLifecycleHandler = async (
 export interface NavigationModuleOptions {
   history : any,
   onBeforeNavigate : OnBeforeNavigate,
-  sections : Array<NavigationSection>
+  sections : Array<NavigationSectionInstance>
 }
 
-export default ({history, onBeforeNavigate, sections} : NavigationModuleOptions) : Module => {
+export default ({history, onBeforeNavigate, sections = []} : NavigationModuleOptions) : Module => {
   onBeforeNavigate = onBeforeNavigate || ((section, cb) => cb.allow());
+  sections.forEach((section) => section.register());
   return Module.create({
     name: 'navigation',
     preloadedState: {

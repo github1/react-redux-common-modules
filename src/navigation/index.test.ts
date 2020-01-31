@@ -158,7 +158,7 @@ describe('navigation', () => {
           expect(found.length).toBe(1);
         });
         it('can handle sections created outside of the module initialization', async () => {
-          const newSection = section('NewSection', 'NewIcon', '/newPath');
+          const newSection = section('NewSection', 'NewIcon', '/newPath').register();
           store.dispatch(navigate('NewSection'));
           const found = await store.getState().recording.waitForType(NAVIGATION_COMPLETE);
           expect(found.length).toBe(1);
