@@ -523,7 +523,7 @@ const registerClickInterceptor = (store) => {
             + window.location.hostname
             + (window.location.port ? ':' + window.location.port : '');
         }
-        if (candidate.hasAttribute('href')) {
+        if (candidate.hasAttribute && candidate.hasAttribute('href')) {
           const candidateAnchor : HTMLAnchorElement = candidate as HTMLAnchorElement;
           if (candidateAnchor.href
             && (candidateAnchor.href.indexOf(windowOrigin) > -1 || /^action::/.test(candidateAnchor.href))
