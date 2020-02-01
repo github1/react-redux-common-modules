@@ -12,20 +12,21 @@ describe('timer', () => {
     store = timer.enforceImmutableState().inRecordedStore();
   });
   it('can start and stop a timer', () => {
+    expect.assertions(2);
     store.dispatch(startTimer('timer1', {interval: 1}));
     expect(store.getState().timer['timer1'].running).toBe(true);
     store.dispatch(stopTimer('timer1'));
     expect(store.getState().timer['timer1'].running).toBe(false);
   });
-  it('can trigger arrays of actions', () => {
+  it('can trigger arrays of actions', async () => {
+    expect.assertions(2);
     store.dispatch(startTimer('timer1', {
       interval: 1,
       action: [{type: 'TestAction1'}, {type: 'TestAction2'}]
     }));
-    return delay(2).then(() => {
-      expect(store.getState().recording.findType('TestAction1').length).toBeGreaterThanOrEqual(1);
-      expect(store.getState().recording.findType('TestAction2').length).toBeGreaterThanOrEqual(1);
-    });
+    await delay(2);
+    expect(store.getState().recording.findType('TestAction1').length).toBeGreaterThanOrEqual(1);
+    expect(store.getState().recording.findType('TestAction2').length).toBeGreaterThanOrEqual(1);
   });
   it('can trigger actions on tick', () => {
     let maxTicks = 5;
@@ -47,9 +48,10 @@ describe('timer', () => {
       }, 1);
     });
   });
-  it('can stop the timer before a tick', () => {
+  it('can stop the timer before a tick', async () => {
+    expect.assertions(3);
     let maxTicks = 5;
-    return new Promise((resolve, reject) => {
+    await new Promise((resolve, reject) => {
       store.dispatch(startTimer('timer1', {
         interval: 51,
         action: {type: 'TestAction'},
@@ -67,15 +69,15 @@ describe('timer', () => {
           reject(new Error('action not found'));
         }
       }, 100);
-    }).then(() => {
-      expect(store.getState().recording.findType(TIMER_TICK).length).toBe(1);
-      expect(store.getState().recording.findType(TIMER_STOPPED).length).toBe(1);
-      expect(store.getState().recording.findType('TestAction').length).toBe(0);
     });
+    expect(store.getState().recording.findType(TIMER_TICK).length).toBe(1);
+    expect(store.getState().recording.findType(TIMER_STOPPED).length).toBe(1);
+    expect(store.getState().recording.findType('TestAction').length).toBe(0);
   });
-  it('can debounce actions fired within internal', () => {
+  it('can debounce actions fired within internal', async () => {
+    expect.assertions(4);
     const checks = [];
-    return new Promise((resolve) => {
+    await new Promise((resolve) => {
       store.dispatch(debounce('timer1', {
         interval: 50,
         action: {type: 'TestAction1'}
@@ -94,30 +96,26 @@ describe('timer', () => {
           resolve();
         }
       }, 25);
-    }).then(() => {
-      expect(checks[0].actionFired).toBe(false);
-      expect(checks[0].isRunning).toBe(true);
-      expect(checks[1].actionFired).toBe(true);
-      expect(checks[1].isRunning).toBe(false);
     });
+    expect(checks[0].actionFired).toBe(false);
+    expect(checks[0].isRunning).toBe(true);
+    expect(checks[1].actionFired).toBe(true);
+    expect(checks[1].isRunning).toBe(false);
   });
-  it('executes debounced timers which occur outside of interval', () => {
+  it('executes debounced timers which occur outside of interval', async () => {
+    expect.assertions(2);
     store.dispatch(debounce('timer1', {
       interval: 1,
       action: {type: 'TestAction1'}
     }));
-    return delay(2)
-      .then(() => {
-        store.dispatch(debounce('timer1', {
-          interval: 1,
-          action: {type: 'TestAction2'}
-        }));
-        return delay(5);
-      })
-      .then(() => {
-        expect(store.getState().recording.findType('TestAction1').length).toBe(1);
-        expect(store.getState().recording.findType('TestAction2').length).toBe(1);
-      })
+    await delay(2);
+    store.dispatch(debounce('timer1', {
+      interval: 1,
+      action: {type: 'TestAction2'}
+    }));
+    await delay(5);
+    expect(store.getState().recording.findType('TestAction1').length).toBe(1);
+    expect(store.getState().recording.findType('TestAction2').length).toBe(1);
   });
 });
 
