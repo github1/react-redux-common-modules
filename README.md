@@ -18,6 +18,7 @@ npm install @github1/react-redux-common-modules --save-dev
 | [ajax](./src/ajax) | Exposes actions to issue and process HTTP requests. |
 | [alerts](./src/alerts) | Provides actions and components for displaying alerts. |
 | [api](./src/api) | Exposes actions for authentication and API invocation. |
+| [conditions](./src/conditions) | Middleware to trigger actions based on state conditions |
 | [datasource](./src/datasource) | Provides abstraction over data which supports sorting, filtering and update events. |
 | [navigation](./src/navigation) | Provides actions and middleware for view navigation.  |
 | [resize](./src/resize) | Captures screen size changes and makes the state available to the consuming application. |
