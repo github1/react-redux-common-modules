@@ -46,7 +46,7 @@ describe('datasource', () => {
     describe('when it is initialized with a key', () => {
         let store;
         beforeEach(() => {
-            store = datasource.inRecordedStore(fakeDataModule);
+            store = datasource.enforceImmutableState().inRecordedStore(fakeDataModule);
             store.dispatch(initDataSource({
                 id: 'someDataSource',
                 source: 'someData.value'
@@ -72,7 +72,7 @@ describe('datasource', () => {
     describe('when it is initialized with sort', () => {
         let store;
         beforeEach(() => {
-            store = datasource.inRecordedStore(fakeDataModule);
+            store = datasource.enforceImmutableState().inRecordedStore(fakeDataModule);
             store.dispatch(initDataSource({
                 id: 'someDataSource',
                 source: 'someData.value',
@@ -89,7 +89,7 @@ describe('datasource', () => {
     describe('when it is initialized with filters', () => {
         let store;
         beforeEach(() => {
-            store = datasource.inRecordedStore(fakeDataModule);
+            store = datasource.enforceImmutableState().inRecordedStore(fakeDataModule);
             store.dispatch(initDataSource({
                 id: 'initWithFiltersDataSource',
                 source: [{ field1: 'd', field2: { subField: 'b' } }, { field1: 'c', field2: { subField: 'd' } }],
@@ -106,7 +106,7 @@ describe('datasource', () => {
     });
     describe('destruction', () => {
         it('can destroy datasources', () => {
-            const store = datasource.inRecordedStore(fakeDataModule);
+            const store = datasource.enforceImmutableState().inRecordedStore(fakeDataModule);
             store.dispatch(initDataSource({
                 id: 'destroyedDataSource',
                 source: [{ field1: 'd', field2: 'b' }, { field1: 'c', field2: 'd' }]
@@ -120,7 +120,7 @@ describe('datasource', () => {
         let store;
         let sourceData;
         beforeEach(() => {
-            store = datasource.inRecordedStore(fakeDataModule);
+            store = datasource.enforceImmutableState().inRecordedStore(fakeDataModule);
             sourceData = [{search_value: 'alpha'}, {search_value: 'bravo'}, {search_value: 'charlie'}];
             store.dispatch(initDataSource({
                 id: 'someDataSource',
@@ -186,7 +186,7 @@ describe('datasource', () => {
         let store;
         let sourceData;
         beforeEach(() => {
-            store = datasource.inRecordedStore(fakeDataModule);
+            store = datasource.enforceImmutableState().inRecordedStore(fakeDataModule);
             sourceData = [{search_value: 'alpha'}, {search_value: 'bravo'}, {search_value: 'charlie'}];
             store.dispatch(initDataSource({
                 id: 'someDataSource',
@@ -214,7 +214,7 @@ describe('datasource', () => {
     describe('updateDataSource', () => {
         let store;
         beforeEach(() => {
-            store = datasource.inStore();
+            store = datasource.enforceImmutableState().inStore();
             store.dispatch(initDataSource({
                 id: 'someDataSource',
                 source: [{value: 1, id: 'a'}, {value: 2, id: 'b'}, {value: 3, id: 'c'}]
@@ -259,7 +259,7 @@ describe('datasource', () => {
         let store;
         let sourceData;
         beforeEach(() => {
-            store = datasource.inStore();
+            store = datasource.enforceImmutableState().inStore();
             sourceData = [{value: 1, id: 'a'}, {value: 2, id: 'b', prop: 'keep'}, {value: 3, id: 'c', prop: 'keep'}];
             store.dispatch(initDataSource({
                 id: 'someDataSource',
