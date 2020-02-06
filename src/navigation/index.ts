@@ -264,7 +264,7 @@ export interface NavigationModuleOptions {
   history : any,
   onBeforeNavigate : OnBeforeNavigate,
   sections : Array<NavigationSectionInstance>,
-  interceptClicks: boolean
+  interceptClicks?: boolean
 }
 
 export default ({history, onBeforeNavigate, sections = [], interceptClicks = false} : NavigationModuleOptions) : Module => {
