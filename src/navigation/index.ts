@@ -529,7 +529,7 @@ const registerClickInterceptor = (store) => {
             && (candidateAnchor.href.indexOf(windowOrigin) > -1 || /^action::/.test(candidateAnchor.href))
             && !/^http:\/\//.test(candidateAnchor.getAttribute('href'))
             && candidateAnchor.getAttribute('href') !== '#'
-            && candidateAnchor.getAttribute('role') !== 'menuitem') {
+            && candidateAnchor.getAttribute('role') !== 'external-link') {
             event.preventDefault();
             store.dispatch(navigate({path: candidateAnchor.getAttribute('href')}));
           }
