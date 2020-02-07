@@ -1,12 +1,12 @@
 {
   "name": "@github1/react-redux-common-modules",
   "private": false,
-  "version": "0.3.76",
+  "version": "0.3.77",
   "description": "Useful redux modules built with [redux-modules](https://github.com/github1/redux-modules)",
   "main": "src/main.js",
   "scripts": {
     "build": "build-tools-build-lib",
-    "start": "INLINE_STYLE=true NO_SERVER=true build-tools devserver",
+    "start": "PORT=9999 INLINE_STYLE=true NO_SERVER=true build-tools devserver",
     "test": "NO_SERVER=true build-tools test --coverage",
     "test:watch": "NO_SERVER=true build-tools test --watch",
     "prepublishOnly": "npm run build"
@@ -15,17 +15,14 @@
   "author": "John Collier <john.collier4@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@github1/build-tools": "0.3.76",
-    "bootstrap": "4.3.1",
-    "enzyme": "^3.3.0",
-    "enzyme-adapter-react-16": "^1.1.1",
+    "@github1/build-tools": "0.3.77",
+    "@types/react": "16.9.19",
     "redux-immutable-state-invariant": "2.1.0"
   },
   "dependencies": {
-    "@github1/redux-modules": "0.3.76",
+    "@github1/redux-modules": "0.3.77",
     "history": "^4.7.2",
     "prop-by-string": "1.0.1",
-    "react-bootstrap": "1.0.0-beta.14",
     "react-redux": "^5.0.7",
     "redux": "^4.0.0"
   },

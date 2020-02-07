@@ -1,13 +1,9 @@
 import React from 'react';
 import AlertsModule, {
   displayAlert,
-  hideAlert,
   requestConfirmation
 } from '../../alerts';
-import {
-  Alert,
-  Alerts
-} from './alert';
+import {Alerts} from './alert';
 import renderToJson from 'react-render-to-json';
 import {
   findJson,
@@ -27,38 +23,42 @@ describe('Alerts', () => {
     alertID = store.getState().recording.actions[1].payload.id;
   });
   it('displays alerts', () => {
-    const alerts = renderToJson(<Alerts store={store}/>);
-    const alert = findJson(alerts, withAttribute('name', 'Alert'))[0];
-    expect(alert).toBeDefined();
-    expect(alert.attributes.title).toBe('someTitle');
-    expect(findJson(alert, child => /fadeIn/.test(child.attributes.className)).length).toBe(1);
-  });
-  it('hides the alert when the close button is clicked', () => {
-    const alerts = renderToJson(<Alerts store={store}/>);
-    const evt = {
-      preventDefault: jest.fn()
-    };
-    findJson(alerts, withAttribute('className', 'close'))[0].attributes.onClick(evt);
-    expect(evt.preventDefault).toHaveBeenCalled();
-    expect(store.getState().recording.findType('@ALERT/HIDE')[0].payload.id).toBe(alertID);
-  });
-  it('displays alerts without a title', () => {
-    const alert = renderToJson(<Alert message="foo" isShowing={true}/>);
-    expect(findJson(alert, withAttribute('className', 'alert-title')).length).toBe(0);
-  });
-  it('hides alerts', () => {
-    store.dispatch(hideAlert(alertID));
-    const alerts = renderToJson(<Alerts store={store}/>);
-    const alert = findJson(alerts, withAttribute('name', 'Alert'))[0];
-    expect(findJson(alert, child => /fadeOut/.test(child.attributes.className)).length).toBe(1);
+    const alerts = renderToJson(<Alerts store={store}
+                                        alertRenderer={(props, index) => {
+                                          return <div key={index}>
+                                            <div
+                                              data-name="id">{props.id}</div>
+                                            <div
+                                              data-name="message">{props.message}</div>
+                                          </div>;
+                                        }}/>);
+    expect(findJson(alerts, withAttribute('data-name', 'id'))[0].children[0]).toBe(alertID);
+    expect(findJson(alerts, withAttribute('data-name', 'message'))[0].children[0]).toBe('someMessage');
   });
   it('displays confirmation dialogs', () => {
     store.dispatch(requestConfirmation({
       title: 'Confirmation',
-      message: 'Confirm?'
+      message: 'Confirm?',
+      actions: [{
+        label: 'action-1'
+      }, {
+        label: 'action-2'
+      }]
     }));
-    const alerts = renderToJson(<Alerts store={store}/>);
-    const alert = findJson(alerts, withAttribute('name', 'ConfirmAlert'))[0];
-    expect(alert.attributes.title).toBe('Confirmation');
+    const alerts = renderToJson(<Alerts store={store}
+                                        alertRenderer={(props, index) => {
+                                          return <div key={index}
+                                                      data-alertType={props.type}>
+                                            {
+                                              props.actions.map((action, i) => {
+                                                return <div key={i}
+                                                            data-name='label'>{action.label}</div>;
+                                              })
+                                            }
+                                          </div>;
+                                        }}/>);
+    const actions = findJson(alerts, withAttribute('data-alertType', 'confirmation'));
+    expect(actions[0].attributes.children[0].props.children).toBe('action-1');
+    expect(actions[0].attributes.children[1].props.children).toBe('action-2');
   });
 });

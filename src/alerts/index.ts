@@ -24,8 +24,10 @@ export const displayAlert = ({title, message, type = 'success', timeout = 3000, 
 };
 
 export interface ConfirmAlertAction {
-  label: string;
-  className?: string;
+  [key : string] : any;
+
+  label : string;
+  className? : string;
 }
 
 export interface RequestConfirmationOptions {
@@ -34,9 +36,20 @@ export interface RequestConfirmationOptions {
   actions? : Array<ConfirmAlertAction>;
 }
 
-export const requestConfirmation = ({title, message, actions} : RequestConfirmationOptions) => {
+export interface AlertModuleAlertState {
+  id : string;
+  type : string;
+  message : string;
+  hide : boolean;
+  actions : Array<ConfirmAlertAction>
+}
+
+export interface AlertModuleState {
+  alerts : Array<AlertModuleAlertState>
+}
+
+export const requestConfirmation = ({title, message, actions = []} : RequestConfirmationOptions) => {
   const id = guid();
-  actions = (actions || []);
   if (actions.length === 0) {
     actions.push({label: 'Ok'});
   }
@@ -59,7 +72,7 @@ export const hideAllAlerts = () => ({type: HIDE_ALL_ALERTS});
 
 const removeAlert = id => ({type: REMOVE_ALERT, payload: {id}});
 
-const triggerAlertAction = (id, action) => ({
+const triggerAlertAction = (id : string, action) => ({
   type: TRIGGER_ALERT_ACTION,
   payload: {
     id,
@@ -67,7 +80,7 @@ const triggerAlertAction = (id, action) => ({
   }
 });
 
-const reducer = (state = {alerts: []}, action) => {
+const reducer = (state : AlertModuleState = {alerts: []}, action) : AlertModuleState => {
   switch (action.type) {
     case DISPLAY_ALERT: {
       if (state.alerts.filter(alert => alert.id === action.payload.id).length === 0) {
@@ -105,6 +118,7 @@ const timeouts = {
 };
 
 const middleware = store => next => action => {
+  const alertState : AlertModuleState = store.getState().alerts;
   if (action.type === DISPLAY_ALERT) {
     clearTimeout(timeouts.hide[action.payload.id]);
     clearTimeout(timeouts.remove[action.payload.id]);
@@ -115,7 +129,7 @@ const middleware = store => next => action => {
     }
   }
   if (action.type === HIDE_ALERT) {
-    const foundAlert = store.getState().alerts.alerts.filter(alert => alert.id === action.payload.id)[0];
+    const foundAlert = alertState.alerts.filter(alert => alert.id === action.payload.id)[0];
     if (foundAlert) {
       timeouts.remove[action.payload.id] = setTimeout(() => {
         store.dispatch(removeAlert(action.payload.id));
@@ -129,14 +143,14 @@ const middleware = store => next => action => {
     store.dispatch(hideAlert(action.payload.id));
   }
   if (action.type === HIDE_ALL_ALERTS) {
-    store.getState().alerts.alerts.forEach(alert => {
+    alertState.alerts.forEach(alert => {
       store.dispatch(removeAlert(alert.id));
     });
   }
   next(action);
 };
 
-export default Module.create({
+const alertsModule = Module.create({
   name: 'alerts',
   reducer,
   middleware,
@@ -145,6 +159,8 @@ export default Module.create({
     triggerAlertAction: (id, action) => triggerAlertAction(id, action)
   }
 });
+
+export default alertsModule;
 
 const guidS4 = () => Math.floor((1 + Math.random()) * 0x10000)
   .toString(16)
