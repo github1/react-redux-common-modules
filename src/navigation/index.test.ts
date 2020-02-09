@@ -124,6 +124,13 @@ describe('navigation', () => {
         store.dispatch(navigate('visible'));
         expect(store.getState().navigation.sections[0].active).toBe(true);
       });
+      describe('when no section is found', () => {
+        it('navigates to a pseudo default section', () => {
+          store.dispatch(navigate({ path: '/does_not_exist' }));
+          expect(store.getState().navigation.path).toBe('/does_not_exist');
+          expect(store.getState().navigation.queryParams).toEqual({});
+        });
+      });
       describe('when the request contains queryParams', () => {
         it('invokes the history api with the params', async () => {
           store.dispatch(navigate('visible?foo=bar'));
@@ -222,7 +229,9 @@ describe('navigation', () => {
   describe('findSection', () => {
     describe('finding by path', () => {
       it('find by path', () => {
-        expect(findSection(container.sections, {path: '/visible'}).title).toBe('VisibleSection');
+        const foundSection = findSection(container.sections, {path: '/visible'});
+        expect(foundSection.pathFound).toBe(true);
+        expect(foundSection.title).toBe('VisibleSection');
       });
       it('finds by path with extra slashes', () => {
         expect(findSection(container.sections, {path: '/visible/'}).title).toBe('VisibleSection');
@@ -251,6 +260,13 @@ describe('navigation', () => {
         expect(foundSection.pathParams.id).toBe('123');
         foundSection = findSection(container.sections, {path: '/visible/123#somehash'});
         expect(foundSection.pathParams.id).toBe('123');
+      });
+      it('returns valid data for unmatched search', () => {
+        let foundSection = findSection(container.sections, {path: '/does_not_exist'});
+        expect(foundSection.path).toBe('/does_not_exist');
+        expect(foundSection.pathPattern).toBe('/does_not_exist');
+        expect(foundSection.fullPath).toBe('/does_not_exist');
+        expect(foundSection.pathFound).toBe(false);
       });
     });
   });

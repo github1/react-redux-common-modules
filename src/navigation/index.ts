@@ -13,7 +13,7 @@ export const NAVIGATION_SYNC = '@NAVIGATION/SYNC';
 
 let navigationCounter : number = 0;
 
-const allSections : {[k:string]:NavigationSectionInstance} = {};
+const allSections : { [k : string] : NavigationSectionInstance } = {};
 
 export enum NavigationSectionVisibility {
   VISIBLE = 'visible',
@@ -40,7 +40,7 @@ export interface NavigationSectionLifecycleHandler {
   (section? : NavigationSectionConcrete, stage? : NavigationLifecycleStage, state? : any) : any | Promise<any>;
 }
 
-export const interceptNavigation = (interceptor: (actions: Array<AnyAction>) => any | Promise<any>) => {
+export const interceptNavigation = (interceptor : (actions : Array<AnyAction>) => any | Promise<any>) => {
   return {
     interceptor
   }
@@ -60,6 +60,7 @@ export interface NavigationSectionConcrete extends NavigationSection {
   queryParams? : any;
   pathPattern? : string;
   pathParams? : any;
+  pathFound? : boolean;
 }
 
 export interface NavigationQueryParams {
@@ -215,7 +216,7 @@ const complete = (section : NavigationSection) => {
   };
 };
 
-const phaseChanged = (phase: NavigationPhase) => {
+const phaseChanged = (phase : NavigationPhase) => {
   return {
     type: NAVIGATION_PHASE_CHANGED,
     phase
@@ -264,7 +265,7 @@ export interface NavigationModuleOptions {
   history : any,
   onBeforeNavigate : OnBeforeNavigate,
   sections : Array<NavigationSectionInstance>,
-  interceptClicks?: boolean
+  interceptClicks? : boolean
 }
 
 export default ({history, onBeforeNavigate, sections = [], interceptClicks = false} : NavigationModuleOptions) : Module => {
@@ -288,6 +289,7 @@ export default ({history, onBeforeNavigate, sections = [], interceptClicks = fal
             title: action.section.title,
             queryParams: action.section.queryParams,
             pathParams: action.section.pathParams,
+            pathFound: action.section.pathFound,
             sections: state.sections.map(section => {
               return {
                 ...section,
@@ -312,7 +314,7 @@ export default ({history, onBeforeNavigate, sections = [], interceptClicks = fal
         store.dispatch(complete(findSection(sections, {path: history.location.pathname + history.location.search})));
       });
       return next => async (action) => {
-        sections = Object.keys(allSections).map((k:string) => allSections[k]);
+        sections = Object.keys(allSections).map((k : string) => allSections[k]);
         if (NAVIGATION_PRE_REQUEST === action.type) {
           // Find the section from the given input
           const section = findSection(sections, action.search);
@@ -375,8 +377,9 @@ export default ({history, onBeforeNavigate, sections = [], interceptClicks = fal
           store.dispatch(phaseChanged(NavigationPhase.IDLE));
         } else if (NAVIGATION_PUSH_HISTORY === action.type) {
           next(action);
-          const hashInfo = /#.*$/.exec(action.section.fullPath);
-          const fullPath = action.section.fullPath.replace(/#.*$/, '');
+          let fullPath = action.section.fullPath || '';
+          const hashInfo = /#.*$/.exec(fullPath);
+          fullPath = fullPath.replace(/#.*$/, '');
           const doHistoryPush = () => {
             history.push(fullPath);
             if (hashInfo) {
@@ -448,21 +451,20 @@ export const findSection = (sections : Array<NavigationSection>, search : string
   } else {
     found = {
       title: null,
-      icon: null,
       path: searchPath,
+      icon: null,
       visibility: null
     };
   }
-  if (foundNavigationSection) {
-    found = JSON.parse(JSON.stringify(foundNavigationSection));
-    found.queryParams = queryParams;
-    found.queryString = queryString;
-    found.pathParams = found.pathParams || pathParams;
-    found.pathPattern = pathPattern || found.path;
-    found.path = (overridePath || searchPath || found.path);
-    found.fullPath = (overridePath || searchPath || found.path) + found.queryString;
-    found.handler = foundNavigationSection.handler;
-  }
+  found = JSON.parse(JSON.stringify(foundNavigationSection ? foundNavigationSection : found));
+  found.queryParams = queryParams;
+  found.queryString = queryString;
+  found.pathParams = found.pathParams || pathParams;
+  found.pathPattern = pathPattern || found.path;
+  found.path = (overridePath || searchPath || found.path);
+  found.fullPath = (overridePath || searchPath || found.path) + found.queryString;
+  found.pathFound = !!foundNavigationSection;
+  found.handler = foundNavigationSection ? foundNavigationSection.handler : undefined;
   return found;
 };
 
@@ -517,7 +519,7 @@ const matchURL = (sections : Array<NavigationSection>, searchValue : string) : N
 
 const registerClickInterceptor = (store) => {
   if (typeof window !== 'undefined') {
-    document.addEventListener('click', (event: MouseEvent) => {
+    document.addEventListener('click', (event : MouseEvent) => {
       let candidate = event.target as Element;
       let depth = 0;
       if (candidate && candidate.tagName) {
