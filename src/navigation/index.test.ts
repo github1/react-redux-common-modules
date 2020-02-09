@@ -109,6 +109,17 @@ describe('navigation', () => {
         expect(store.getState().navigation.phase).toBe(NavigationPhase.IDLE);
         expect(store.getState().navigation.path).toBe('/visible');
       });
+      it('can navigate with a hash', () => {
+        const locationReplaceOrig = window.location.replace.bind(window.location);
+        const locationReplaySpy = jest.fn();
+        window.location.replace = function() {
+          locationReplaySpy.apply(null, arguments);
+          return locationReplaceOrig.apply(null, arguments);
+        };
+        store.dispatch(navigate('visible#123'));
+        expect(container.onBeforeNavigate).toHaveBeenCalled();
+        expect(locationReplaySpy).toHaveBeenCalledWith('#123');
+      });
       it('sets the section to active', () => {
         store.dispatch(navigate('visible'));
         expect(store.getState().navigation.sections[0].active).toBe(true);
@@ -233,10 +244,12 @@ describe('navigation', () => {
         expect(findSection(container.sections, {path: '/visible?foo=bar'}).queryParams.foo).toBe('bar');
       });
       it('parses path parameters', () => {
-        const foundSection = findSection(container.sections, {path: '/visible/123'});
+        let foundSection = findSection(container.sections, {path: '/visible/123'});
         expect(foundSection.path).toBe('/visible/123');
         expect(foundSection.pathPattern).toBe('/visible/:id');
         expect(foundSection.fullPath).toBe('/visible/123');
+        expect(foundSection.pathParams.id).toBe('123');
+        foundSection = findSection(container.sections, {path: '/visible/123#somehash'});
         expect(foundSection.pathParams.id).toBe('123');
       });
     });

@@ -375,12 +375,20 @@ export default ({history, onBeforeNavigate, sections = [], interceptClicks = fal
           store.dispatch(phaseChanged(NavigationPhase.IDLE));
         } else if (NAVIGATION_PUSH_HISTORY === action.type) {
           next(action);
+          const hashInfo = /#.*$/.exec(action.section.fullPath);
+          const fullPath = action.section.fullPath.replace(/#.*$/, '');
+          const doHistoryPush = () => {
+            history.push(fullPath);
+            if (hashInfo) {
+              window.location.replace(hashInfo[0]);
+            }
+          };
           if (action.delay > 0) {
             setTimeout(() => {
-              history.push(action.section.fullPath);
+              doHistoryPush();
             }, action.delay);
           } else {
-            history.push(action.section.fullPath);
+            doHistoryPush();
           }
         } else if (NAVIGATION_COMPLETE === action.type) {
           next(action);
@@ -459,7 +467,7 @@ export const findSection = (sections : Array<NavigationSection>, search : string
 };
 
 const matchURL = (sections : Array<NavigationSection>, searchValue : string) : NavigationMatchResult => {
-  const urlParts = searchValue.split(/\//);
+  const urlParts = searchValue.replace(/#.*$/, '').split(/\//);
   let capturedParams;
   let otherThanPathMatch = false;
   for (let i = 0; i < sections.length; i++) {
