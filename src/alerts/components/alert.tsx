@@ -21,7 +21,7 @@ export interface AlertProps {
 
 export interface AlertsProps {
   store? : Store;
-  alertRenderer : (props : AlertProps, index? : number) => JSX.Element;
+  alertRenderer : ((props : AlertProps, index? : number) => JSX.Element) | {type: any};
 }
 
 export interface AlertsConnectedProps {
@@ -34,7 +34,7 @@ export const Alerts = ({store, alertRenderer} : AlertsProps) => {
   const Connected = alerts._((props : AlertsConnectedProps) => {
     const {alerts, dismissAlert} = props;
     const renderAlert = (alert : AlertModuleAlertState, index : number) => {
-      return alertRenderer({
+      const alertProps: AlertProps = {
         ...alert,
         actions: (alert.actions || []).map((action) => {
           return {
@@ -43,7 +43,13 @@ export const Alerts = ({store, alertRenderer} : AlertsProps) => {
           };
         }),
         dismiss: () => dismissAlert(alert.id)
-      }, index);
+      };
+      if (typeof alertRenderer === 'function') {
+        return alertRenderer(alertProps, index);
+      } else {
+        const AlertRenderer: any = alertRenderer;
+        return <AlertRenderer key={alert.id} {...alertProps}/>;
+      }
     };
     return <div>
       <div className="alert-container">

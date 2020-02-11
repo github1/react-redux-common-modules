@@ -1,10 +1,10 @@
 import React from 'react';
+import TestRenderer from 'react-test-renderer';
 import AlertsModule, {
   displayAlert,
   requestConfirmation
 } from '../../alerts';
 import {Alerts} from './alert';
-import renderToJson from 'react-render-to-json';
 import {
   findJson,
   withAttribute
@@ -22,8 +22,8 @@ describe('Alerts', () => {
     }));
     alertID = store.getState().recording.actions[1].payload.id;
   });
-  it('displays alerts', () => {
-    const alerts = renderToJson(<Alerts store={store}
+  it('displays alerts with renderer as function', () => {
+    const alerts = TestRenderer.create(<Alerts store={store}
                                         alertRenderer={(props, index) => {
                                           return <div key={index}>
                                             <div
@@ -31,7 +31,20 @@ describe('Alerts', () => {
                                             <div
                                               data-name="message">{props.message}</div>
                                           </div>;
-                                        }}/>);
+                                        }}/>).toJSON();
+    expect(findJson(alerts, withAttribute('data-name', 'id'))[0].children[0]).toBe(alertID);
+    expect(findJson(alerts, withAttribute('data-name', 'message'))[0].children[0]).toBe('someMessage');
+  });
+  it('displays alerts with functional component', () => {
+    const alerts = TestRenderer.create(<Alerts store={store}
+                                        alertRenderer={React.memo(({id, message}) => {
+                                          return <div>
+                                            <div
+                                              data-name="id">{id}</div>
+                                            <div
+                                              data-name="message">{message}</div>
+                                          </div>;
+                                        })}/>).toJSON();
     expect(findJson(alerts, withAttribute('data-name', 'id'))[0].children[0]).toBe(alertID);
     expect(findJson(alerts, withAttribute('data-name', 'message'))[0].children[0]).toBe('someMessage');
   });
@@ -45,7 +58,7 @@ describe('Alerts', () => {
         label: 'action-2'
       }]
     }));
-    const alerts = renderToJson(<Alerts store={store}
+    const alerts = TestRenderer.create(<Alerts store={store}
                                         alertRenderer={(props, index) => {
                                           return <div key={index}
                                                       data-alertType={props.type}>
@@ -56,9 +69,9 @@ describe('Alerts', () => {
                                               })
                                             }
                                           </div>;
-                                        }}/>);
+                                        }}/>).toJSON();
     const actions = findJson(alerts, withAttribute('data-alertType', 'confirmation'));
-    expect(actions[0].attributes.children[0].props.children).toBe('action-1');
-    expect(actions[0].attributes.children[1].props.children).toBe('action-2');
+    expect(actions[0].children[0].children[0]).toBe('action-1');
+    expect(actions[0].children[1].children[0]).toBe('action-2');
   });
 });
