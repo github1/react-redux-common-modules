@@ -276,7 +276,9 @@ export default ({history, onBeforeNavigate, sections = [], interceptClicks = fal
     name: 'navigation',
     preloadedState: {
       sections: prepareSections(sections),
-      phase: NavigationPhase.IDLE
+      phase: NavigationPhase.IDLE,
+      queryParams: {},
+      pathParams: {}
     },
     reducer: (state = {}, action) => {
       switch (action.type) {

@@ -201,6 +201,7 @@ describe('navigation', () => {
       expect(store.getState().recording.actions[3].sync).toBeTruthy();
       expect(store.getState().recording.actions[3].type).toBe(NAVIGATION_REQUESTED);
       expect(store.getState().recording.actions[3].section.path).toBe('/foo');
+      expect(store.getState().recording.actions[3].section.queryParams).toEqual({});
     });
   });
   describe('extractQueryParams', () => {
