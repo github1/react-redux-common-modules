@@ -119,25 +119,28 @@ export interface FilterDataSourceOptions {
   textFilter? : any;
   field? : string;
   operator? : string;
+  softFilter? : boolean;
 }
 
-export const filterDataSource = ({id, textFilter, field = 'search_value', operator = 'contains'} : FilterDataSourceOptions) => {
+export const filterDataSource = ({id, textFilter, field = 'search_value', operator = 'contains', softFilter = false} : FilterDataSourceOptions) => {
   return {
     type: DATASOURCE_FILTER_REQUESTED,
     id,
     textFilter: textFilter,
     field,
-    operator
+    operator,
+    softFilter
   }
 };
 
-const filterDataSourceComplete = ({id, textFilter, field, operator} : FilterDataSourceOptions) => {
+const filterDataSourceComplete = ({id, textFilter, field, operator, softFilter} : FilterDataSourceOptions) => {
   return {
     type: DATASOURCE_FILTER_COMPLETE,
     id,
     textFilter,
     field,
-    operator
+    operator,
+    softFilter
   }
 };
 
@@ -237,7 +240,7 @@ export default Module.create({
           ...state,
           ...filterInfo
         };
-        updateSortFilter(updatedState, action.id, false, true);
+        updateSortFilter(updatedState, action.id, false, true, action.softFilter);
         return updatedState;
       }
       case DATASOURCE_DESTROY: {
@@ -248,7 +251,7 @@ export default Module.create({
   }
 });
 
-const updateSortFilter = (state, id, doSort = true, doFilter = true) => {
+const updateSortFilter = (state, id, doSort = true, doFilter = true, softFilter = false) => {
   if (doSort || doFilter) {
     let updatedData = clone(state[id].master);
     if (state[id].sortField && doSort) {
@@ -262,21 +265,34 @@ const updateSortFilter = (state, id, doSort = true, doFilter = true) => {
         .reduce((filtered, key) => {
           const filterRawValue = state[id].textFilters[key].value;
           if (typeof filterRawValue === 'function') {
-            return filtered.filter(filterRawValue);
+            return filter(softFilter, filtered, filterRawValue);
           } else {
             const filterValue = filterRawValue + '';
             const operator = state[id].textFilters[key].operator;
-            return filtered.filter(item => {
+            return filter(softFilter, filtered, (item => {
               const propValue = (propByString.get(key, item) || '') + '';
               if (operator === 'equals') {
                 return propValue.toLowerCase() === filterValue.toLowerCase() || filterValue === '0';
               }
               return propValue.toLowerCase().indexOf(filterValue.toLowerCase()) > -1;
-            });
+            }));
           }
         }, updatedData);
     }
     state[id].data = updatedData;
+  }
+};
+
+const filter = (softFilter: boolean, data : Array<any>, predicate: (obj:any) => boolean) : Array<any> => {
+  if (softFilter) {
+    return data.map((item) => {
+      return {
+        ...item,
+        __exclude: !predicate(item)
+      };
+    });
+  } else {
+    return data.filter(predicate);
   }
 };
 
