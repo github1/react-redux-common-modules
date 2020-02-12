@@ -261,15 +261,16 @@ const updateSortFilter = (state, id, doSort = true, doFilter = true, softFilter 
       state[id].master = clone(updatedData);
     }
     if (state[id].textFilters && doFilter) {
+      const filterSession : string = new Date().valueOf().toString(36) + Math.random().toString(36).substr(2);
       updatedData = Object.keys(state[id].textFilters)
         .reduce((filtered, key) => {
           const filterRawValue = state[id].textFilters[key].value;
           if (typeof filterRawValue === 'function') {
-            return filter(softFilter, filtered, filterRawValue);
+            return filter(filterSession, softFilter, filtered, filterRawValue);
           } else {
             const filterValue = filterRawValue + '';
             const operator = state[id].textFilters[key].operator;
-            return filter(softFilter, filtered, (item => {
+            return filter(filterSession, softFilter, filtered, (item => {
               const propValue = (propByString.get(key, item) || '') + '';
               if (operator === 'equals') {
                 return propValue.toLowerCase() === filterValue.toLowerCase() || filterValue === '0';
@@ -283,12 +284,14 @@ const updateSortFilter = (state, id, doSort = true, doFilter = true, softFilter 
   }
 };
 
-const filter = (softFilter: boolean, data : Array<any>, predicate: (obj:any) => boolean) : Array<any> => {
+const filter = (filterSession: string, softFilter: boolean, data : Array<any>, predicate: (obj:any) => boolean) : Array<any> => {
   if (softFilter) {
     return data.map((item) => {
+      const exclude = item.__filter_session === filterSession ? item.__exclude || !predicate(item) : !predicate(item);
       return {
         ...item,
-        __exclude: !predicate(item)
+        __exclude: exclude,
+        __filter_session: filterSession
       };
     });
   } else {

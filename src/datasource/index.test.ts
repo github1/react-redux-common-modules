@@ -191,17 +191,37 @@ describe('datasource', () => {
     it('can perform a "soft" filter', () => {
       store.dispatch(initDataSource({
         id: 'softFilterDataSource',
-        source: [{search_value: 'alpha31'}, {search_value: 'alpha32'}, {search_value: 'alpha3'}]
+        source: [{
+          search_value: 'alpha31',
+          other_value: 'foo'
+        }, {
+          search_value: 'alpha32',
+          other_value: 'bar'
+        }, {search_value: 'alpha3', other_value: 'baz'}]
       }));
       store.dispatch(filterDataSource({
         id: 'softFilterDataSource',
-        textFilter: 'alpha32',
+        textFilter: 'alpha',
+        softFilter: true
+      }));
+      store.dispatch(filterDataSource({
+        id: 'softFilterDataSource',
+        field: 'other_value',
+        textFilter: '32',
         softFilter: true
       }));
       expect(store.getState().datasource.softFilterDataSource.data[0].search_value).toBe('alpha31');
       expect(store.getState().datasource.softFilterDataSource.data[0].__exclude).toBe(true);
       store.dispatch(filterDataSource({
         id: 'softFilterDataSource',
+        textFilter: '',
+        softFilter: true
+      }));
+      // 'other_value' filter remains
+      expect(store.getState().datasource.softFilterDataSource.data[0].__exclude).toBe(true);
+      store.dispatch(filterDataSource({
+        id: 'softFilterDataSource',
+        field: 'other_value',
         textFilter: '',
         softFilter: true
       }));
