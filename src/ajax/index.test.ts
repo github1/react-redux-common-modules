@@ -1,14 +1,15 @@
 import ajax, {
-  get,
-  post,
+  AJAX_CALL_COMPLETE,
+  AJAX_CALL_FAILED,
   AJAX_CALL_REQUESTED,
   AJAX_CALL_SENT,
-  AJAX_CALL_COMPLETE,
-  AJAX_CALL_SUCCESS,
-  AJAX_CALL_FAILED,
   AJAX_CALL_SLOW,
-  AJAX_CALL_STATS
+  AJAX_CALL_STATS,
+  AJAX_CALL_SUCCESS,
+  get,
+  post
 } from './index';
+import {ajaxModuleTestHelper} from './test-helper';
 
 describe('when calling send', () => {
   let store;
@@ -20,7 +21,7 @@ describe('when calling send', () => {
         return fake;
       }
     };
-    store = ajax(ajaxService, { slowCallThreshold: 1 }).enforceImmutableState().inRecordedStore();
+    store = ajax(ajaxService, {slowCallThreshold: 1}).enforceImmutableState().inRecordedStore();
   });
   it('fires actions when the call succeeds', () => {
     fake = Promise.resolve({status: 200});
@@ -42,7 +43,7 @@ describe('when calling send', () => {
     return new Promise(resolve => {
       store.dispatch(post('http://test.com', () => {
         resolve();
-        return { type: 'TEST_ACTION' };
+        return {type: 'TEST_ACTION'};
       }));
     }).then(() => {
       expect(store.getState().recording.containsType('TEST_ACTION')).toBe(true);
@@ -53,7 +54,7 @@ describe('when calling send', () => {
     return new Promise(resolve => {
       store.dispatch(post('http://test.com', () => {
         resolve();
-        return [{ type: 'TEST_ACTION_1' }, { type: 'TEST_ACTION_2' }];
+        return [{type: 'TEST_ACTION_1'}, {type: 'TEST_ACTION_2'}];
       }));
     }).then(() => {
       expect(store.getState().recording.containsType('TEST_ACTION_1')).toBe(true);
@@ -87,5 +88,37 @@ describe('when calling send', () => {
         resolve();
       }));
     });
+  });
+});
+
+describe('ajaxModuleTestHelper', () => {
+  it('can return static responses', async () => {
+    const store = ajaxModuleTestHelper.createStore();
+    ajaxModuleTestHelper.ajaxResponse.forceResolve({
+      data: 'the response'
+    });
+    store.dispatch(get('http://test.com', () => {}));
+    const success = await store.getState().recording.waitForType(AJAX_CALL_SUCCESS);
+    expect(success[0].payload.response.data).toBe('the response');
+  });
+  it('can return dynamic responses based on the request', async () => {
+    const store = ajaxModuleTestHelper.createStore();
+    await ajaxModuleTestHelper.ajaxResponse.forceResolve((action) => ({
+      data: `the response for ${action.payload.url}`
+    }));
+    store.dispatch(get('http://test.com', () => {}));
+    const success = await store.getState().recording.waitForType(AJAX_CALL_SUCCESS);
+    expect(success[0].payload.response.data).toBe('the response for http://test.com');
+  });
+  it('can return dynamic errors based on the request', async () => {
+    const store = ajaxModuleTestHelper.createStore();
+    ajaxModuleTestHelper.ajaxResponse.forceReject((action) => {
+      throw new Error(`error: ${action.payload.url}`);
+    });
+    store.dispatch(get('http://test.com', () => {}));
+    store.dispatch(get('http://test2.com', () => {}));
+    const failure = await store.getState().recording.waitForType(AJAX_CALL_FAILED);
+    expect(failure[0].payload.error.message).toBe('error: http://test.com');
+    expect(failure[1].payload.error.message).toBe('error: http://test2.com');
   });
 });

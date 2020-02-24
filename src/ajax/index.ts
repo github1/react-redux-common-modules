@@ -199,10 +199,20 @@ export default (ajaxService, opts : AjaxCallOpts = {}) => Module.fromMiddleware(
     ajaxService
       .send(action.payload)
       .then(resp => {
+        if (typeof resp === 'function') {
+          resp = resp(action);
+        }
         store.dispatch(complete(action.payload.id, action.payload, resp.status));
         store.dispatch(success(action.payload.id, resp));
       })
       .catch(err => {
+        if (typeof err === 'function') {
+          try {
+            err = err(action);
+          } catch (errFuncErr) {
+            err = errFuncErr;
+          }
+        }
         store.dispatch(complete(action.payload.id, action.payload, err.status));
         store.dispatch(failed(action.payload.id, err));
       });

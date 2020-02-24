@@ -20,7 +20,6 @@ import {
   failed,
   success
 } from '../ajax';
-import {DeferredPromise} from '@github1/build-tools';
 
 describe('api', () => {
   let store;
@@ -207,29 +206,25 @@ describe('api', () => {
   });
   describe('getRequest', () => {
     it('creates ajax GET requests', async () => {
-      apiModuleTestHelper.ajaxResponse = DeferredPromise.create();
       const action = getRequest('/foo', 'foos');
       expect(action.url).toBe('/foo');
       store.dispatch(action);
-      await apiModuleTestHelper.ajaxResponse.forceResolve({data: 'theFoos'});
-      await apiModuleTestHelper.ajaxResponse;
-      expect(store.getState().recording.findType(DATA_FETCH_SUCCESS)[0].queryName).toBe('foos');
-      expect(store.getState().recording.findType(DATA_FETCH_SUCCESS)[0].data).toBe('theFoos');
+      apiModuleTestHelper.ajaxResponse.forceResolve({data: 'theFoos'});
+      const success = await store.getState().recording.waitForType(DATA_FETCH_SUCCESS);
+      expect(success[0].queryName).toBe('foos');
+      expect(success[0].data).toBe('theFoos');
     });
   });
   describe('executeCommand', () => {
-    it('dispatches an authorizationFailed action for 401 status', () => {
-      apiModuleTestHelper.ajaxResponse = DeferredPromise.create();
-      store.dispatch(executeCommand('test/command', {}, {}, (err) => ({type: `SOME_ERROR_${err.status}`})));
+    it('dispatches an authorizationFailed action for 401 status', async () => {
       const err = new Error('401');
       (err as any).status = 401;
-      return apiModuleTestHelper.ajaxResponse
-        .forceReject(err)
-        .catch(() => '').then(() => {
-          expect(store.getState().recording.containsType(COMMAND_FAILED)).toBe(true);
-          expect(store.getState().recording.findType(COMMAND_FAILED)[0].error.status).toBe(401);
-          expect(store.getState().recording.containsType('SOME_ERROR_401')).toBe(true);
-        });
+      apiModuleTestHelper.ajaxResponse
+        .forceReject(err);
+      store.dispatch(executeCommand('test/command', {}, {}, (err) => ({type: `SOME_ERROR_${err.status}`})));
+      const failure = await store.getState().recording.waitForType(COMMAND_FAILED);
+      expect(failure[0].error.status).toBe(401);
+      await store.getState().recording.waitForType('SOME_ERROR_401');
     });
   });
   describe('commandResponseHandler', () => {
