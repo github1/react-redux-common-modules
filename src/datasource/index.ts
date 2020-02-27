@@ -301,21 +301,27 @@ const filter = (filterSession: string, softFilter: boolean, data : Array<any>, p
 
 const resolveDataFromKey = (state, key) => propByString.get(key, state);
 
+const sortFuncs = {};
+
 export const sortFunc = (field, baseSortField, direction) => {
-  return (a, b) => {
-    let itemA : any = propByString.get(field, a);
-    let itemB : any = propByString.get(field, b);
-    let result : any = ((itemA > itemB) as any) - ((itemA < itemB) as any);
-    if (baseSortField && result === 0 && field !== baseSortField) {
-      itemA = propByString.get(baseSortField, a);
-      itemB = propByString.get(baseSortField, b);
-      result = ((itemA > itemB) as any) - ((itemA < itemB) as any);
-    }
-    if (direction === 'desc') {
-      return result - (result * 2);
-    }
-    return result;
-  };
+  const key = `${field}.${baseSortField}.${direction}`;
+  if (!sortFuncs[key]) {
+    sortFuncs[key] = (a, b) => {
+      let itemA : any = propByString.get(field, a);
+      let itemB : any = propByString.get(field, b);
+      let result : any = ((itemA > itemB) as any) - ((itemA < itemB) as any);
+      if (baseSortField && result === 0 && field !== baseSortField) {
+        itemA = propByString.get(baseSortField, a);
+        itemB = propByString.get(baseSortField, b);
+        result = ((itemA > itemB) as any) - ((itemA < itemB) as any);
+      }
+      if (direction === 'desc') {
+        return result - (result * 2);
+      }
+      return result;
+    };
+  }
+  return sortFuncs[key];
 };
 
 const clone = data => data.slice();
