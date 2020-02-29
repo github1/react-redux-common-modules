@@ -8,9 +8,8 @@ import {
   createGraphQuery,
   DATA_FETCH_FAILED,
   DATA_FETCH_SUCCESS,
+  dataFetch,
   executeCommand,
-  getRequest,
-  graphQuery,
   invalidatePrefetchCache,
   signout
 } from './index';
@@ -114,7 +113,7 @@ describe('api', () => {
       expect(store.getState().api.callInProgress).toBe(false);
     });
   });
-  describe('graphQuery', () => {
+  describe('createGraphQuery', () => {
     it('creates graph queries with quoted string arguments', () => {
       const query = createGraphQuery({
         graphObjects: [{
@@ -150,69 +149,148 @@ describe('api', () => {
       });
       expect(query).toBe('{ graph { graphObjects (c3: 1) { name } } }');
     });
-    describe('prefetchedResponses', () => {
-      it('returns prefetched data', async () => {
-        store = apiModuleTestHelper.createStore({
-          preloadedState: {
-            api: {
-              usePrefetchedAlways: true,
-              prefetched: {
-                "{ graph { graphObjects (criteria: 1) { name } } }": {
-                  data: {graph: {graphObjects: [{name: 'hi'}]}},
-                  statusCode: 200
-                }
-              }
-            }
-          }
-        });
-        store.dispatch(graphQuery({
-          graphObjects: [{
-            criteria: 1
-          }, {name: ''}]
-        }, 'graphObjects'));
-        expect(store.getState().recording.findType(DATA_FETCH_SUCCESS)[0].queryName).toBe('graphObjects');
-        expect(store.getState().recording.findType(AJAX_CALL_REQUESTED).length).toBe(0);
-        store.dispatch(invalidatePrefetchCache());
-        store.dispatch(graphQuery({
-          graphObjects: [{
-            criteria: 1
-          }, {name: ''}]
-        }, 'graphObjects'));
-        expect(store.getState().recording.findType(AJAX_CALL_REQUESTED).length).toBe(1);
+  });
+  describe('dataFetch.fromQuery', () => {
+    it('performs graph queries', async () => {
+      const action = dataFetch('foos').fromQuery({
+        graphOfObjects: {
+          c1: null
+        }
       });
-      it('dispatches @API/DATA_FETCH_FAILED on non 200 status', () => {
-        store = apiModuleTestHelper.createStore({
-          preloadedState: {
-            api: {
-              usePrefetchedAlways: true,
-              prefetched: {
-                "{ graph { graphObjects (criteria: 1) { name } } }": {
-                  statusCode: 404
-                }
-              }
-            }
+      store.dispatch(action);
+      apiModuleTestHelper.ajaxResponse.forceResolve({
+        data: {
+          graph: {
+            graphOfObjects: ['graphObj']
           }
-        });
-        store.dispatch(graphQuery({
-          graphObjects: [{
-            criteria: 1
-          }, {name: ''}]
-        }, 'graphObjects'));
-        const dataFetchFailedAction = store.getState().recording.findType(DATA_FETCH_FAILED)[0];
-        expect(dataFetchFailedAction.queryName).toBe('graphObjects');
-        expect(dataFetchFailedAction.error.status).toBe(404);
+        }
       });
+      const success = await store.getState().recording.waitForType(DATA_FETCH_SUCCESS);
+      expect(success[0].queryName).toBe('graphOfObjects');
+      expect(success[0].data[0]).toBe('graphObj');
     });
   });
-  describe('getRequest', () => {
-    it('creates ajax GET requests', async () => {
-      const action = getRequest('/foo', 'foos');
+  describe('dataFetch.fromUrl', () => {
+    it('performs GET requests', async () => {
+      const action = dataFetch('foos').fromUrl('/foo');
       expect(action.url).toBe('/foo');
       store.dispatch(action);
       apiModuleTestHelper.ajaxResponse.forceResolve({data: 'theFoos'});
       const success = await store.getState().recording.waitForType(DATA_FETCH_SUCCESS);
       expect(success[0].queryName).toBe('foos');
       expect(success[0].data).toBe('theFoos');
+    });
+  });
+  describe('dataFetch.fromStaticData', () => {
+    it('returns the supplied data', async () => {
+      const action = dataFetch('foos').fromStaticData('theFoosStatic');
+      expect(action.staticData).toBe('theFoosStatic');
+      store.dispatch(action);
+      const success = await store.getState().recording.waitForType(DATA_FETCH_SUCCESS);
+      expect(success[0].queryName).toBe('foos');
+      expect(success[0].data).toBe('theFoosStatic');
+    });
+  });
+  describe('dataFetch.withPostProcessor', () => {
+    it('processes the fetched data', async () => {
+      const action = dataFetch('foos')
+        .fromStaticData('theFoosStatic')
+        .withPostProcessor((data) => `${data}-processed`);
+      store.dispatch(action);
+      const success = await store.getState().recording.waitForType(DATA_FETCH_SUCCESS);
+      expect(success[0].data).toBe('theFoosStatic-processed');
+    });
+  });
+  describe('dataFetch.withName', () => {
+    it('uses the name', async () => {
+      const action = dataFetch('foos')
+        .fromStaticData('theFoosStatic')
+        .withName('foo-name');
+      store.dispatch(action);
+      const success = await store.getState().recording.waitForType(DATA_FETCH_SUCCESS);
+      expect(success[0].queryName).toBe('foo-name');
+    });
+  });
+  describe('dataFetch.onSuccess', () => {
+    it('runs the onSuccess handler', async () => {
+      const action = dataFetch('foos')
+        .fromStaticData('theFoosStatic')
+        .onSuccess(() => {
+          return {
+            type: 'SUCCESS_ACTION'
+          };
+        });
+      store.dispatch(action);
+      await store.getState().recording.waitForType('SUCCESS_ACTION');
+    });
+  });
+  describe('dataFetch.onFailure', () => {
+    it('runs the onSuccess handler', async () => {
+      const action = dataFetch('foos')
+        .fromUrl('/foo')
+        .onFailure(() => {
+          return {
+            type: 'FAILED_ACTION'
+          };
+        });
+      store.dispatch(action);
+      apiModuleTestHelper.ajaxResponse.forceResolve(() => {
+        throw new Error('failed')
+      });
+      await store.getState().recording.waitForType('FAILED_ACTION');
+    });
+  });
+  describe('prefetchedResponses', () => {
+    it('returns prefetched data', async () => {
+      store = apiModuleTestHelper.createStore({
+        preloadedState: {
+          api: {
+            usePrefetchedAlways: true,
+            prefetched: {
+              "{ graph { graphObjects (criteria: 1) { name } } }": {
+                data: {graph: {graphObjects: [{name: 'hi'}]}},
+                statusCode: 200
+              }
+            }
+          }
+        }
+      });
+      store.dispatch(dataFetch().fromQuery({
+        graphObjects: [{
+          criteria: 1
+        }, {name: ''}]
+      }));
+      expect(store.getState().recording.findType(DATA_FETCH_SUCCESS)[0].queryName).toBe('graphObjects');
+      expect(store.getState().recording.findType(AJAX_CALL_REQUESTED).length).toBe(0);
+      store.dispatch(invalidatePrefetchCache());
+      store.dispatch(dataFetch().fromQuery({
+        graphObjects: [{
+          criteria: 1
+        }, {name: ''}]
+      }));
+      expect(store.getState().recording.findType(AJAX_CALL_REQUESTED).length).toBe(1);
+    });
+    it('dispatches @API/DATA_FETCH_FAILED on non 200 status', () => {
+      store = apiModuleTestHelper.createStore({
+        preloadedState: {
+          api: {
+            usePrefetchedAlways: true,
+            prefetched: {
+              "{ graph { graphObjects (criteria: 1) { name } } }": {
+                statusCode: 404
+              }
+            }
+          }
+        }
+      });
+      store.dispatch(dataFetch().fromQuery({
+        graphObjects: [{
+          criteria: 1
+        }, {name: ''}]
+      }));
+      const dataFetchFailedAction = store.getState().recording.findType(DATA_FETCH_FAILED)[0];
+      expect(dataFetchFailedAction.queryName).toBe('graphObjects');
+      expect(dataFetchFailedAction.error.status).toBe(404);
     });
   });
   describe('executeCommand', () => {

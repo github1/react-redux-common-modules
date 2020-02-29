@@ -3,11 +3,12 @@ import {Store} from 'redux';
 import ajax from './index';
 import {IDeferredPromise,DeferredPromise} from '@github1/build-tools';
 
-let _ajaxResponseInternal = DeferredPromise.create();
+let _ajaxResponseInternal;
 
 export interface AjaxModuleTestHelper {
   ajaxResponse : IDeferredPromise;
   createStore? : (...module : Array<ModuleLike>) => Store;
+  reset: () => void;
 }
 
 export const ajaxModuleTestHelper : AjaxModuleTestHelper = {
@@ -18,10 +19,14 @@ export const ajaxModuleTestHelper : AjaxModuleTestHelper = {
     forceReject(value : any) : void {
       _ajaxResponseInternal.forceReject(value);
     }
-  }
+  },
+  reset: () => _ajaxResponseInternal = DeferredPromise.create()
 };
 
-export const createFakeAjaxModule = () => ajax({send: () => _ajaxResponseInternal});
+export const createFakeAjaxModule = () => {
+  _ajaxResponseInternal = DeferredPromise.create();
+  return ajax({send: () => _ajaxResponseInternal});
+};
 ajaxModuleTestHelper.createStore = (...modules : Array<ModuleLike>) : Store => {
   return createFakeAjaxModule().enforceImmutableState().inRecordedStore(...modules);
 };
