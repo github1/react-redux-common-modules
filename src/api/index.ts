@@ -76,7 +76,7 @@ export interface DataFetchHandler {
   onFailed? : DataFetchFailedHandler;
 }
 
-const dataFetchHandlers : { [key : string] : DataFetchHandler } = {};
+const dataFetchHandlers : { [key : string] : Array<DataFetchHandler> } = {};
 
 export const invalidatePrefetchCache = (key : string = null) => {
   return {
@@ -94,7 +94,6 @@ export interface DataFetchRequested {
   staticData? : any;
   graphQuery? : any;
   postProcessor? : (data : any, state? : any) => any;
-  handler? : DataFetchHandler;
 }
 
 export interface DataFetchRequestBuilder extends DataFetchRequested {
@@ -133,7 +132,6 @@ export const dataFetch = (name? : string) : DataFetchRequestBuilder => {
     type: DATA_FETCH_REQUESTED,
     dataFetchId: fetchId,
     graphQuery: undefined,
-    handler: undefined,
     postProcessor: undefined,
     queryName: name || fetchId,
     queryResultName: name || fetchId,
@@ -155,15 +153,13 @@ export const dataFetch = (name? : string) : DataFetchRequestBuilder => {
       return dataFetch;
     },
     onFailure(handler : DataFetchFailedHandler) : DataFetchRequestBuilder {
-      dataFetch.handler = dataFetch.handler || {};
-      dataFetch.handler.onFailed = handler;
-      dataFetchHandlers[dataFetch.dataFetchId] = dataFetch.handler;
+      dataFetchHandlers[dataFetch.dataFetchId] = dataFetchHandlers[dataFetch.dataFetchId] || [];
+      dataFetchHandlers[dataFetch.dataFetchId].push({onFailed: handler});
       return dataFetch;
     },
     onSuccess(handler : DataFetchSuccessHandler) : DataFetchRequestBuilder {
-      dataFetch.handler = dataFetch.handler || {};
-      dataFetch.handler.onSuccess = handler;
-      dataFetchHandlers[dataFetch.dataFetchId] = dataFetch.handler;
+      dataFetchHandlers[dataFetch.dataFetchId] = dataFetchHandlers[dataFetch.dataFetchId] || [];
+      dataFetchHandlers[dataFetch.dataFetchId].push({onSuccess: handler});
       return dataFetch;
     },
     withName(name : string) : DataFetchRequestBuilder {
@@ -351,20 +347,22 @@ export default Module.create({
           }
         }));
       }
-    } else if (DATA_FETCH_SUCCESS === action.type) {
+    } else if (DATA_FETCH_SUCCESS === action.type || DATA_FETCH_FAILED === action.type) {
       next(action);
-      if (dataFetchHandlers[action.dataFetchId] && dataFetchHandlers[action.dataFetchId].onSuccess) {
-        let actions : ActionsOrThunks | void = dataFetchHandlers[action.dataFetchId].onSuccess(action, store.getState());
-        (Array.isArray(actions) ? actions : [actions])
-          .forEach((handlerAction) => store.dispatch(handlerAction as AnyAction));
-      }
-    } else if (DATA_FETCH_FAILED === action.type) {
-      next(action);
-      if (dataFetchHandlers[action.dataFetchId] && dataFetchHandlers[action.dataFetchId].onFailed) {
-        let actions : ActionsOrThunks | void = dataFetchHandlers[action.dataFetchId].onFailed(action, store.getState());
-        (Array.isArray(actions) ? actions : [actions])
-          .forEach((handlerAction) => store.dispatch(handlerAction as AnyAction));
-      }
+      (dataFetchHandlers[action.dataFetchId] || [])
+        .forEach((handler : DataFetchHandler) => {
+          let actions : ActionsOrThunks | void = undefined;
+          if (DATA_FETCH_SUCCESS === action.type && handler.onSuccess) {
+            actions = handler.onSuccess(action, store.getState());
+          } else if (DATA_FETCH_FAILED === action.type && handler.onFailed) {
+            actions = handler.onFailed(action, store.getState());
+          }
+          if (actions) {
+            (Array.isArray(actions) ? actions : [actions])
+              .forEach((handlerAction) => store.dispatch(handlerAction as AnyAction));
+          }
+        });
+      delete dataFetchHandlers[action.dataFetchId];
     } else if (COMMAND_REQUESTED === action.type) {
       next(action);
       store.dispatch(post('service/' + action.name, {

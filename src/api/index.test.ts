@@ -223,6 +223,23 @@ describe('api', () => {
       store.dispatch(action);
       await store.getState().recording.waitForType('SUCCESS_ACTION');
     });
+    it('runs multiple onSuccess handler', async () => {
+      const action = dataFetch('foos')
+        .fromStaticData('theFoosStatic')
+        .onSuccess(() => {
+          return {
+            type: 'SUCCESS_ACTION_1'
+          };
+        })
+        .onSuccess(() => {
+          return {
+            type: 'SUCCESS_ACTION_2'
+          };
+        });
+      store.dispatch(action);
+      await store.getState().recording.waitForType('SUCCESS_ACTION_1');
+      await store.getState().recording.waitForType('SUCCESS_ACTION_2');
+    });
   });
   describe('dataFetch.onFailure', () => {
     it('runs the onSuccess handler', async () => {
