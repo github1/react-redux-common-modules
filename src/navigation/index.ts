@@ -57,9 +57,9 @@ export interface NavigationSection extends NavigationPath {
 export interface NavigationSectionConcrete extends NavigationSection {
   fullPath? : string;
   queryString? : string;
-  queryParams? : any;
+  queryParams? : {[key:string]:string};
   pathPattern? : string;
-  pathParams? : any;
+  pathParams? : {[key:string]:string};
   pathFound? : boolean;
 }
 
