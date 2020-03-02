@@ -131,6 +131,9 @@ describe('datasource', () => {
         source: sourceData
       }));
     });
+    it('holds its own id', () => {
+      expect(store.getState().datasource.someDataSource.id).toBe('someDataSource');
+    });
     it('can filter the values', () => {
       store.dispatch(filterDataSource({
         id: 'someDataSource',

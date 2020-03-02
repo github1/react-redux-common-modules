@@ -195,6 +195,7 @@ export default Module.create({
       case DATASOURCE_INIT: {
         const initData = {
           [action.id]: {
+            id: action.id,
             baseSortField: action.baseSortField,
             data: action.data,
             master: action.master || state[action.id].master,
