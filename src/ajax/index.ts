@@ -189,11 +189,13 @@ export default (ajaxService, opts : AjaxCallOpts = {}) => Module.fromMiddleware(
   opts.slowCallThreshold = opts.slowCallThreshold || 500;
   if (action.type === AJAX_CALL_REQUESTED) {
     callStoreRefs[action.payload.id] = store;
-    callTimeouts[action.payload.id] = window.setTimeout(() => {
-      slowCalls[action.payload.id] = true;
-      store.dispatch(reportCallStats());
-      store.dispatch(reportSlowCall(action.payload.id, action.payload, opts.slowCallThreshold));
-    }, opts.slowCallThreshold);
+    if (typeof window !== 'undefined') {
+      callTimeouts[action.payload.id] = window.setTimeout(() => {
+        slowCalls[action.payload.id] = true;
+        store.dispatch(reportCallStats());
+        store.dispatch(reportSlowCall(action.payload.id, action.payload, opts.slowCallThreshold));
+      }, opts.slowCallThreshold);
+    }
     next(action);
     next(sent(action.payload));
     ajaxService

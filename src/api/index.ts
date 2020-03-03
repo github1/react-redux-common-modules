@@ -91,6 +91,7 @@ export interface DataFetchRequested {
   url : string;
   queryName : string;
   queryResultName? : string;
+  caller? : string;
   staticData? : any;
   graphQuery? : any;
   postProcessor? : (data : any, state? : any) => any;
@@ -104,6 +105,8 @@ export interface DataFetchRequestBuilder extends DataFetchRequested {
   fromUrl(url : string) : DataFetchRequestBuilder;
 
   withName(name : string) : DataFetchRequestBuilder;
+
+  fromCaller(caller : string) : DataFetchRequestBuilder;
 
   withPostProcessor(postProcessor : (data : any) => any) : DataFetchRequestBuilder;
 
@@ -164,6 +167,10 @@ export const dataFetch = (name? : string) : DataFetchRequestBuilder => {
     },
     withName(name : string) : DataFetchRequestBuilder {
       dataFetch.queryName = name;
+      return dataFetch;
+    },
+    fromCaller(caller : string) : DataFetchRequestBuilder {
+      dataFetch.caller = caller;
       return dataFetch;
     },
     withPostProcessor(postProcessor : (data : any) => any) : DataFetchRequestBuilder {
@@ -329,7 +336,7 @@ export default Module.create({
           }
         }));
       } else {
-        store.dispatch(doGraphQuery(action.queryName, action.graphQuery, store.getState(), (err, response) => {
+        store.dispatch(doGraphQuery(action.queryName, action.caller, action.graphQuery, store.getState(), (err, response) => {
           try {
             if (err) {
               return dataFetchFailed({...action, error: err});
@@ -407,9 +414,13 @@ const doGetRequest = (queryName, url, storeState, responseHandler) => {
   }, responseHandler), storeState, responseHandler);
 };
 
-const doGraphQuery = (queryName, query, storeState, responseHandler) => {
+const doGraphQuery = (queryName: string, caller: string, query: any, storeState: any, responseHandler) => {
   const renderedQuery = createGraphQuery(query);
-  return doWithPrefetchCheck(queryName, renderedQuery, post(`graph?name=${queryName}`, {
+  const queryParams = [`name=${queryName}`];
+  if (caller) {
+    queryParams.push(`caller=${caller}`);
+  }
+  return doWithPrefetchCheck(queryName, renderedQuery, post(`graph?${queryParams.join('&')}`, {
     data: "\"" + renderedQuery + "\"",
     accept: APPLICATION_AMF,
     contentType: TEXT_PLAIN
