@@ -91,7 +91,7 @@ export interface DataFetchRequested {
   url : string;
   queryName : string;
   queryResultName? : string;
-  caller? : string;
+  tag? : string;
   staticData? : any;
   graphQuery? : any;
   postProcessor? : (data : any, state? : any) => any;
@@ -106,7 +106,7 @@ export interface DataFetchRequestBuilder extends DataFetchRequested {
 
   withName(name : string) : DataFetchRequestBuilder;
 
-  fromCaller(caller : string) : DataFetchRequestBuilder;
+  withTag(tag : string) : DataFetchRequestBuilder;
 
   withPostProcessor(postProcessor : (data : any) => any) : DataFetchRequestBuilder;
 
@@ -169,8 +169,8 @@ export const dataFetch = (name? : string) : DataFetchRequestBuilder => {
       dataFetch.queryName = name;
       return dataFetch;
     },
-    fromCaller(caller : string) : DataFetchRequestBuilder {
-      dataFetch.caller = caller;
+    withTag(tag : string) : DataFetchRequestBuilder {
+      dataFetch.tag = tag;
       return dataFetch;
     },
     withPostProcessor(postProcessor : (data : any) => any) : DataFetchRequestBuilder {
@@ -336,7 +336,7 @@ export default Module.create({
           }
         }));
       } else {
-        store.dispatch(doGraphQuery(action.queryName, action.caller, action.graphQuery, store.getState(), (err, response) => {
+        store.dispatch(doGraphQuery(action.queryName, action.tag, action.graphQuery, store.getState(), (err, response) => {
           try {
             if (err) {
               return dataFetchFailed({...action, error: err});
@@ -414,11 +414,11 @@ const doGetRequest = (queryName, url, storeState, responseHandler) => {
   }, responseHandler), storeState, responseHandler);
 };
 
-const doGraphQuery = (queryName: string, caller: string, query: any, storeState: any, responseHandler) => {
+const doGraphQuery = (queryName: string, tag: string, query: any, storeState: any, responseHandler) => {
   const renderedQuery = createGraphQuery(query);
   const queryParams = [`name=${queryName}`];
-  if (caller) {
-    queryParams.push(`caller=${caller}`);
+  if (tag) {
+    queryParams.push(`tag=${tag}`);
   }
   return doWithPrefetchCheck(queryName, renderedQuery, post(`graph?${queryParams.join('&')}`, {
     data: "\"" + renderedQuery + "\"",
