@@ -97,7 +97,7 @@ describe('ajaxModuleTestHelper', () => {
     ajaxModuleTestHelper.ajaxResponse.forceResolve({
       data: 'the response'
     });
-    store.dispatch(get('http://test.com', () => {}));
+    store.dispatch(get('http://test.com'));
     const success = await store.getState().recording.waitForType(AJAX_CALL_SUCCESS);
     expect(success[0].payload.response.data).toBe('the response');
   });
@@ -106,7 +106,7 @@ describe('ajaxModuleTestHelper', () => {
     await ajaxModuleTestHelper.ajaxResponse.forceResolve((action) => ({
       data: `the response for ${action.payload.url}`
     }));
-    store.dispatch(get('http://test.com', () => {}));
+    store.dispatch(get('http://test.com'));
     const success = await store.getState().recording.waitForType(AJAX_CALL_SUCCESS);
     expect(success[0].payload.response.data).toBe('the response for http://test.com');
   });
@@ -115,8 +115,8 @@ describe('ajaxModuleTestHelper', () => {
     ajaxModuleTestHelper.ajaxResponse.forceReject((action) => {
       throw new Error(`error: ${action.payload.url}`);
     });
-    store.dispatch(get('http://test.com', () => {}));
-    store.dispatch(get('http://test2.com', () => {}));
+    store.dispatch(get('http://test.com'));
+    store.dispatch(get('http://test2.com'));
     const failure = await store.getState().recording.waitForType(AJAX_CALL_FAILED);
     expect(failure[0].payload.error.message).toBe('error: http://test.com');
     expect(failure[1].payload.error.message).toBe('error: http://test2.com');

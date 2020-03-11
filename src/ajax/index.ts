@@ -80,7 +80,7 @@ export type AjaxCallAction =
   | AjaxCallSuccessAction
   | AjaxCallFailedAction;
 
-const send = (method : string, url : string, opts : any, callback? : AjaxCallback) => {
+const send = (method : string, url : string, opts : any = {}, callback? : AjaxCallback) => {
   if (typeof opts === 'function') {
     callback = opts;
     opts = {};
@@ -107,11 +107,11 @@ const send = (method : string, url : string, opts : any, callback? : AjaxCallbac
 
 const sendMethod = (method : string) => (url : string, opts : any, callback? : AjaxCallback) => send(method, url, opts, callback);
 
-export const get = sendMethod('get');
+export const get = (url : string, opts : any = {}, callback? : AjaxCallback) => sendMethod('get')(url, opts, callback);
 
-export const post = sendMethod('post');
+export const post = (url : string, opts : any = {}, callback? : AjaxCallback) => sendMethod('post')(url, opts, callback);
 
-export const del = sendMethod('delete');
+export const del = (url : string, opts : any = {}, callback? : AjaxCallback) => sendMethod('delete')(url, opts, callback);
 
 const sent = opts => ({type: AJAX_CALL_SENT, payload: opts});
 
