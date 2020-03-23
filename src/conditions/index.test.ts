@@ -32,9 +32,9 @@ describe('conditions', () => {
       await store.getState().recording.waitForType('CONDITION_MET_2');
     });
     it('timesout if condition not met in a period of time', async () => {
-      store.dispatch(waitFor(stateCondition(() => false, {type: 'CONDITION_MET'})
+      store.dispatch(waitFor(stateCondition(() => false, {type: 'CONDITION_METS'})
         .onTimeout(1, {type: 'CONDITION_TIMEOUT'})));
-      await store.getState().recording.waitForType('CONDITION_TIMEOUT', 500);
+      await store.getState().recording.waitForType('CONDITION_TIMEOUT', 1000);
     }, 1000);
   });
 });

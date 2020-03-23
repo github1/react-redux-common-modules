@@ -285,6 +285,19 @@ describe('datasource', () => {
       }));
       expect(store.getState().datasource.someDataSource.data[0].value).toBe(999);
     });
+    it('records a timestamp when it was updated', async () => {
+      const initTime = store.getState().datasource.someDataSource.updateTime;
+      expect(initTime).toBeGreaterThan(0);
+      await delay(1);
+      store.dispatch(updateDataSource({
+        id: 'someDataSource',
+        source: []
+      }));
+      expect(initTime).toBeLessThan(store.getState().datasource.someDataSource.updateTime);
+    });
+    it('records if the datasource was updated in a browser environment', async () => {
+      expect(store.getState().datasource.someDataSource.inBrowser).toBe(true);
+    });
     it('can update the data source without filter', () => {
       store.dispatch(filterDataSource({
         id: 'someDataSource',
@@ -366,6 +379,8 @@ describe('datasource', () => {
     });
   });
 });
+
+const delay = (ms) => new Promise((resolve) => setTimeout(() => resolve(), ms));
 
 const fakeDataModule = {
   name: 'someData',

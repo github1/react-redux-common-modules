@@ -163,6 +163,9 @@ export default Module.create({
         action.data = action.master;
       }
 
+      action.updateTime = new Date().getTime();
+      action.inBrowser = typeof window !== undefined;
+
       if (DATASOURCE_UPDATE === action.type && existingDataSource) {
         action.sortField = existingDataSource.sortField;
         action.sortDirection = existingDataSource.sortDirection;
@@ -201,7 +204,9 @@ export default Module.create({
             master: action.master || state[action.id].master,
             sortField: action.sortField,
             sortDirection: action.sortDirection,
-            textFilters: action.textFilters
+            textFilters: action.textFilters,
+            updateTime: action.updateTime,
+            inBrowser: action.inBrowser
           }
         };
         updateSortFilter(initData, action.id, action.sort, action.filter);

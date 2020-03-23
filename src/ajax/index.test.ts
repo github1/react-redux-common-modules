@@ -113,12 +113,12 @@ describe('ajaxModuleTestHelper', () => {
   it('can return dynamic errors based on the request', async () => {
     const store = ajaxModuleTestHelper.createStore();
     ajaxModuleTestHelper.ajaxResponse.forceReject((action) => {
-      throw new Error(`error: ${action.payload.url}`);
+      throw `error: ${action.payload.url}`;
     });
     store.dispatch(get('http://test.com'));
     store.dispatch(get('http://test2.com'));
     const failure = await store.getState().recording.waitForType(AJAX_CALL_FAILED);
-    expect(failure[0].payload.error.message).toBe('error: http://test.com');
-    expect(failure[1].payload.error.message).toBe('error: http://test2.com');
+    expect(failure[0].payload.error).toBe('error: http://test.com');
+    expect(failure[1].payload.error).toBe('error: http://test2.com');
   });
 });
