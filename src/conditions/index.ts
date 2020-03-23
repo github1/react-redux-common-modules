@@ -13,42 +13,48 @@ export interface StateCondition {
   (state : any) : boolean;
 }
 
-export class OnStateActionDefinition {
-  public timeout: number = 5000;
-  public timeoutActions : Array<ConditionResult>;
-
-  constructor(public condition : StateCondition,
-              public actions : Array<ConditionResult>) {
-  }
-
-  public onTimeout(timeout: number, ...actions : Array<ConditionResult>) : OnStateActionDefinition {
-    this.timeout = timeout;
-    this.timeoutActions = actions;
-    return this;
-  }
+export interface OnConditionAction extends AnyAction {
+  type : string;
+  condition : StateCondition,
+  timeout : number;
+  main : Array<ConditionResult>;
+  alt : Array<ConditionResult>;
 }
 
-export const stateCondition = (condition : StateCondition,
-                               ...actions : Array<ConditionResult>) : OnStateActionDefinition =>
-  new OnStateActionDefinition(condition, actions);
+export interface OnConditionBuilder extends OnConditionAction {
+  thenDispatch(...actions : Array<ConditionResult>) : OnConditionAction;
 
-export const waitFor = (definition : OnStateActionDefinition) : AnyAction => {
-  return {
+  otherwiseDispatch(...actions : Array<ConditionResult>) : OnConditionAction;
+}
+
+export const waitFor = (condition : StateCondition, timeout : number = 1000) : OnConditionBuilder => {
+  const onCondition : OnConditionBuilder = {
     type: ON_CONDITION,
-    definition
+    condition,
+    timeout,
+    main: [],
+    alt: [],
+    thenDispatch: (...actions : Array<ConditionResult>) => {
+      onCondition.main = actions;
+      return onCondition;
+    },
+    otherwiseDispatch: (...actions : Array<ConditionResult>) => {
+      onCondition.alt = actions;
+      return onCondition;
+    },
   };
+  return onCondition;
+};
+
+export const onlyIf = (condition : StateCondition) : OnConditionBuilder => {
+  return waitFor(condition, 0);
 };
 
 export default Module.create({
   name: 'conditions',
   middleware: store => next => action => {
     if (ON_CONDITION === action.type) {
-      let timedout = false;
-      const definition : OnStateActionDefinition = action.definition;
-      const waitTimeout = setTimeout(() => {
-        processConditionActions(definition.timeoutActions);
-      }, definition.timeout);
-      const processConditionActions = (conditionResults: Array<ConditionResult>) => {
+      const processConditionActions = (conditionResults : Array<ConditionResult>) => {
         if (conditionResults) {
           const conditionActions : Array<AnyAction> = [];
           conditionResults.forEach((conditionResult : ConditionResult) => {
@@ -69,17 +75,32 @@ export default Module.create({
           });
         }
       };
-      const checkCondition = () => {
-        if (definition.condition(store.getState())) {
-          clearTimeout(waitTimeout);
-          processConditionActions(definition.actions);
-        } else {
-          if (!timedout) {
-            setTimeout(() => checkCondition(), 1);
+
+      const definition : OnConditionAction = action;
+      if (definition.timeout > 0) {
+        let timedout = false;
+        const waitTimeout = setTimeout(() => {
+          timedout = true;
+          processConditionActions(definition.alt);
+        }, definition.timeout);
+        const checkCondition = () => {
+          if (definition.condition(store.getState())) {
+            clearTimeout(waitTimeout);
+            processConditionActions(definition.main);
+          } else {
+            if (!timedout) {
+              setTimeout(() => checkCondition(), 1);
+            }
           }
+        };
+        checkCondition();
+      } else {
+        if (definition.condition(store.getState())) {
+          processConditionActions(definition.main);
+        } else {
+          processConditionActions(definition.alt);
         }
-      };
-      checkCondition();
+      }
     }
     next(action);
   }
