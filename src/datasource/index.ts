@@ -164,7 +164,7 @@ export default Module.create({
       }
 
       action.updateTime = new Date().getTime();
-      action.inBrowser = typeof window !== undefined;
+      action.inBrowser = typeof window !== 'undefined';
 
       if (DATASOURCE_UPDATE === action.type && existingDataSource) {
         action.sortField = existingDataSource.sortField;
