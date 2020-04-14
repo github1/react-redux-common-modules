@@ -108,7 +108,7 @@ export interface DataFetchRequestBuilder extends DataFetchRequested {
 
   withTag(tag : string) : DataFetchRequestBuilder;
 
-  withPostProcessor(postProcessor : (data : any) => any) : DataFetchRequestBuilder;
+  withPostProcessor(postProcessor : (data : any, state? : any) => any) : DataFetchRequestBuilder;
 
   onSuccess(handler : DataFetchSuccessHandler) : DataFetchRequestBuilder;
 
