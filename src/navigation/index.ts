@@ -381,9 +381,13 @@ export default ({history, onBeforeNavigate, sections = [], interceptClicks = fal
           next(action);
           let fullPath = action.section.fullPath || '';
           const hashInfo = /#.*$/.exec(fullPath);
-          fullPath = fullPath.replace(/#.*$/, '');
+          const pathname = action.section.path.replace(/#.*$/, '');
+          const search = action.section.queryString;
           const doHistoryPush = () => {
-            history.push(fullPath);
+            history.push({
+              pathname,
+              search
+            });
             if (hashInfo) {
               window.location.replace(hashInfo[0]);
             }

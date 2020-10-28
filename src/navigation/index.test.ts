@@ -141,6 +141,20 @@ describe('navigation', () => {
           expect(store.getState().navigation.path).toBe('/visible');
           expect(store.getState().navigation.queryParams.foo).toBe('bar');
         });
+        it('drops the query params when navigating to a new url without query params after syncing', async () => {
+          store.dispatch(navigate({path: '/visible?foo=bar'}));
+          let navigationCompleteAction = await store.getState().recording.waitForType(NAVIGATION_COMPLETE);
+          expect(store.getState().navigation.path).toBe('/visible');
+          expect(store.getState().navigation.fullPath).toBe('/visible?foo=bar');
+          expect(store.getState().navigation.queryParams.foo).toBe('bar');
+          expect(navigationCompleteAction[0].section.fullPath).toBe('/visible?foo=bar');
+          store.dispatch(navigate({path: '/visible'}));
+          navigationCompleteAction = await store.getState().recording.waitForType(NAVIGATION_COMPLETE);
+          expect(navigationCompleteAction[1].section.fullPath).toBe('/visible');
+          expect(store.getState().navigation.path).toBe('/visible');
+          expect(store.getState().navigation.fullPath).toBe('/visible');
+          expect(store.getState().navigation.queryParams.foo).toBeUndefined();
+        });
       });
       describe('when the navigation request is delayed', () => {
         it('executes after the delay', () => {
