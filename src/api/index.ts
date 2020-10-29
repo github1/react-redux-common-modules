@@ -217,6 +217,13 @@ const getCallName = (action) => {
   return callName;
 };
 
+function toBase64(value) {
+  if (typeof btoa === 'undefined') {
+    return Buffer.from(value).toString('base64');
+  }
+  return btoa(value);
+}
+
 export default Module.create({
   name: 'api',
   preloadedState: {
@@ -295,7 +302,7 @@ export default Module.create({
       const headers : { [key : string] : string } = {};
       let mode = action.hasOwnProperty('username') && action.hasOwnProperty('password') ? 'basic-auth' : 'cookie';
       if (action.username && action.password) {
-        headers.Authorization = `Basic ${btoa([action.username.toLowerCase(), action.password].join(':'))}`
+        headers.Authorization = `Basic ${toBase64([action.username.toLowerCase(), action.password].join(':'))}`
       }
       store.dispatch(get('service/identity', {
         accept: APPLICATION_AMF,
