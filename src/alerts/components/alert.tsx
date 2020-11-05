@@ -1,10 +1,12 @@
 import React from 'react';
 import {Store} from 'redux';
+// import {connect} from 'react-redux';
 import alerts, {
   AlertModuleAlertState,
   AlertModuleState,
   ConfirmAlertAction
 } from '../../alerts';
+import {connectModule} from '../../connect';
 
 export interface ConfirmAlertActionProps extends ConfirmAlertAction {
   trigger();
@@ -31,10 +33,10 @@ export interface AlertsConnectedProps {
 }
 
 export const Alerts = ({store, alertRenderer} : AlertsProps) => {
-  const Connected = alerts._((props : AlertsConnectedProps) => {
+  const Connected = connectModule(alerts)((props : AlertsConnectedProps) => {
     const {alerts, dismissAlert} = props;
     const renderAlert = (alert : AlertModuleAlertState, index : number) => {
-      const alertProps: AlertProps = {
+      const alertProps : AlertProps = {
         ...alert,
         actions: (alert.actions || []).map((action) => {
           return {
@@ -47,7 +49,7 @@ export const Alerts = ({store, alertRenderer} : AlertsProps) => {
       if (typeof alertRenderer === 'function') {
         return alertRenderer(alertProps, index);
       } else {
-        const AlertRenderer: any = alertRenderer;
+        const AlertRenderer : any = alertRenderer;
         return <AlertRenderer key={alert.id} {...alertProps}/>;
       }
     };

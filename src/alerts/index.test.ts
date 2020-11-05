@@ -5,7 +5,6 @@ import alert, {
   requestConfirmation
 } from './index';
 
-
 jest.useFakeTimers();
 
 describe('when an alert is displayed', () => {
@@ -70,4 +69,3 @@ describe('when an alert is displayed', () => {
     expect(store.getState().alerts.alerts.length).toBe(1);
   });
 });
-
