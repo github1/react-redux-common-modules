@@ -268,9 +268,42 @@ export interface NavigationModuleOptions {
   interceptClicks? : boolean
 }
 
+export const clickInterceptorCallback = (store) => {
+  if (typeof window !== 'undefined') {
+    document.addEventListener('click', (event : MouseEvent) => {
+      let candidate = event.target as Element;
+      let depth = 0;
+      if (candidate && candidate.tagName) {
+        while (candidate && candidate.tagName && !/^a$/i.test(candidate.tagName) && depth < 3) {
+          depth++;
+          candidate = candidate.parentNode as Element;
+        }
+        let windowOrigin = window.location.origin;
+        if (!windowOrigin) {
+          windowOrigin = window.location.protocol + "//"
+            + window.location.hostname
+            + (window.location.port ? ':' + window.location.port : '');
+        }
+        if (candidate.hasAttribute && candidate.hasAttribute('href')) {
+          const candidateAnchor : HTMLAnchorElement = candidate as HTMLAnchorElement;
+          if (candidateAnchor.href
+            && (candidateAnchor.href.indexOf(windowOrigin) > -1 || /^action::/.test(candidateAnchor.href))
+            && !/^http:\/\//.test(candidateAnchor.getAttribute('href'))
+            && candidateAnchor.getAttribute('href') !== '#'
+            && candidateAnchor.getAttribute('role') !== 'external-link') {
+            event.preventDefault();
+            store.dispatch(navigate({path: candidateAnchor.getAttribute('href')}));
+          }
+        }
+      }
+    });
+  }
+}
+
 export default ({history, onBeforeNavigate, sections = [], interceptClicks = false} : NavigationModuleOptions) : Module => {
   onBeforeNavigate = onBeforeNavigate || ((section, cb) => cb.allow());
   sections.forEach((section) => section.register());
+
   let clickInterceptorConfigured : boolean = false;
   return Module.create({
     name: 'navigation',
@@ -310,7 +343,7 @@ export default ({history, onBeforeNavigate, sections = [], interceptClicks = fal
     middleware: store => {
       if (interceptClicks && !clickInterceptorConfigured) {
         clickInterceptorConfigured = true;
-        registerClickInterceptor(store);
+        clickInterceptorCallback(store);
       }
       history.listen(() => {
         store.dispatch(complete(findSection(sections, {path: history.location.pathname + history.location.search})));
@@ -389,7 +422,7 @@ export default ({history, onBeforeNavigate, sections = [], interceptClicks = fal
               search
             });
             if (hashInfo) {
-              window.location.replace(hashInfo[0]);
+              history.replace(hashInfo[0]);
             }
           };
           if (action.delay > 0) {
@@ -521,36 +554,4 @@ const matchURL = (sections : Array<NavigationSection>, searchValue : string) : N
     pathPattern: null,
     otherThanPathMatch: null
   };
-};
-
-const registerClickInterceptor = (store) => {
-  if (typeof window !== 'undefined') {
-    document.addEventListener('click', (event : MouseEvent) => {
-      let candidate = event.target as Element;
-      let depth = 0;
-      if (candidate && candidate.tagName) {
-        while (candidate && candidate.tagName && !/^a$/i.test(candidate.tagName) && depth < 3) {
-          depth++;
-          candidate = candidate.parentNode as Element;
-        }
-        let windowOrigin = window.location.origin;
-        if (!windowOrigin) {
-          windowOrigin = window.location.protocol + "//"
-            + window.location.hostname
-            + (window.location.port ? ':' + window.location.port : '');
-        }
-        if (candidate.hasAttribute && candidate.hasAttribute('href')) {
-          const candidateAnchor : HTMLAnchorElement = candidate as HTMLAnchorElement;
-          if (candidateAnchor.href
-            && (candidateAnchor.href.indexOf(windowOrigin) > -1 || /^action::/.test(candidateAnchor.href))
-            && !/^http:\/\//.test(candidateAnchor.getAttribute('href'))
-            && candidateAnchor.getAttribute('href') !== '#'
-            && candidateAnchor.getAttribute('role') !== 'external-link') {
-            event.preventDefault();
-            store.dispatch(navigate({path: candidateAnchor.getAttribute('href')}));
-          }
-        }
-      }
-    });
-  }
 };

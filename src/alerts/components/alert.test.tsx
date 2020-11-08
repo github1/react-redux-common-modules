@@ -1,5 +1,4 @@
 import React from 'react';
-import '@testing-library/jest-dom/extend-expect'
 import TestRenderer from 'react-test-renderer';
 import AlertsModule, {displayAlert, requestConfirmation} from '../../alerts';
 import {Alerts} from './alert';

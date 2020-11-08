@@ -11,7 +11,8 @@ import nav, {
   NavigationPhase,
   OnBeforeNavigate,
   section,
-  syncNavigation
+  syncNavigation,
+  clickInterceptorCallback
 } from './index';
 import {createMemoryHistory} from 'history';
 
@@ -102,7 +103,7 @@ describe('navigation', () => {
         };
       });
       it('invokes the history api', () => {
-        store.dispatch(navigate('visible'));
+        store.dispatch(navigate('/visible'));
         expect(container.onBeforeNavigate).toHaveBeenCalled();
         expect(store.getState().recording.actions
           .filter(action => action.type === NAVIGATION_COMPLETE).length).toBe(1);
@@ -110,15 +111,9 @@ describe('navigation', () => {
         expect(store.getState().navigation.path).toBe('/visible');
       });
       it('can navigate with a hash', () => {
-        const locationReplaceOrig = window.location.replace.bind(window.location);
-        const locationReplaySpy = jest.fn();
-        window.location.replace = function() {
-          locationReplaySpy.apply(null, arguments);
-          return locationReplaceOrig.apply(null, arguments);
-        };
         store.dispatch(navigate('visible#123'));
         expect(container.onBeforeNavigate).toHaveBeenCalled();
-        expect(locationReplaySpy).toHaveBeenCalledWith('#123');
+        expect(history.location.hash).toBe('#123');
       });
       it('sets the section to active', () => {
         store.dispatch(navigate('visible'));
@@ -180,8 +175,6 @@ describe('navigation', () => {
         });
         it('can intercept the default navigation actions', async () => {
           store.dispatch(navigate('HasHandlerInterceptor'));
-          // await store.getState().recording.waitForType(NAVIGATION_REQUESTED);
-          // expect(store.getState().navigation.phase).toBe(NavigationPhase.IN_PROGRESS);
           let found = await store.getState().recording.waitForType(NAVIGATION_COMPLETE);
           expect(found.length).toBe(1);
           found = await store.getState().recording.waitForType('ADDED_BY_INTERCEPTOR_before');
@@ -283,6 +276,26 @@ describe('navigation', () => {
         expect(foundSection.fullPath).toBe('/does_not_exist');
         expect(foundSection.pathFound).toBe(false);
       });
+    });
+  });
+  describe('clickInterceptor', () => {
+    it('dispatches a navigation action on click', async () => {
+      onBeforeNavigate = (section, cb) => {
+        cb.allow();
+      };
+      store.dispatch(navigate('visible'));
+      let found = await store.getState().recording.waitForType(NAVIGATION_COMPLETE);
+      expect(found.length).toBe(1);
+      const a = document.createElement('a');
+      a.setAttribute('href', '/visible/123');
+      document.body.appendChild(a);
+      clickInterceptorCallback(store);
+      const evt = document.createEvent('MouseEvents');
+      evt.initEvent('click', true, true);
+      a.dispatchEvent(evt);
+      found = await store.getState().recording.waitForType(NAVIGATION_COMPLETE);
+      expect(found.length).toBe(2);
+      expect(found[1].section.path).toBe('/visible/123');
     });
   });
 });
