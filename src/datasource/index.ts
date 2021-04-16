@@ -75,18 +75,12 @@ export const updateDataSource = ({
   }
 };
 
-export interface MapDataSourceOptions {
-  sort? : boolean;
-  filter? : boolean;
-}
 
-export const mapDataSource = (id, func, {sort, filter} : MapDataSourceOptions = {}) => {
+export const mapDataSource = (id, func) => {
   return {
     type: DATASOURCE_MAP,
     id,
-    func,
-    sort,
-    filter
+    func
   }
 };
 
@@ -179,15 +173,6 @@ export default Module.create({
     } else if (DATASOURCE_FILTER_REQUESTED === action.type) {
       next(action);
       next(filterDataSourceComplete({...action}));
-    } else if (DATASOURCE_MAP === action.type) {
-      if (existingDataSource) {
-        store.dispatch(updateDataSource({
-          id: action.id,
-          source: JSON.parse(JSON.stringify(existingDataSource.master)).map(action.func),
-          sort: action.sort,
-          filter: action.filter
-        }));
-      }
     } else {
       next(action);
     }
@@ -247,6 +232,19 @@ export default Module.create({
           ...filterInfo
         };
         updateSortFilter(updatedState, action.id, false, true, action.softFilter);
+        return updatedState;
+      }
+      case DATASOURCE_MAP: {
+        let updatedState = {...state};
+        if (updatedState[action.id]) {
+          const updatedItem = {...updatedState[action.id]};
+          for (const field of ['master', 'data']) {
+            if (updatedItem[field]) {
+              updatedItem[field] = JSON.parse(JSON.stringify(updatedItem[field])).map(action.func);
+            }
+          }
+          updatedState = {...updatedState, ...{[action.id]: updatedItem}};
+        }
         return updatedState;
       }
       case DATASOURCE_DESTROY: {

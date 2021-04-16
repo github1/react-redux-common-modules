@@ -359,9 +359,6 @@ describe('datasource', () => {
           record.value = -1;
         }
         return record;
-      }, {
-        sort: false,
-        filter: true
       }));
       expect(store.getState().datasource.someDataSource.data[0].id).toBe('c');
     });
