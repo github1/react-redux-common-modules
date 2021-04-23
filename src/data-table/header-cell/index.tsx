@@ -7,6 +7,7 @@ import {
   dragColumnEnd,
   headerCellClicked
 } from '../';
+import { Store } from 'redux';
 
 const getPageXY = (evt) => {
   evt = evt || window['event'];
@@ -15,6 +16,7 @@ const getPageXY = (evt) => {
 
 interface HeaderCellProps {
   columnIndex : number;
+  store: Store<DataTableModuleStoreState>;
 }
 
 interface HeaderCellPrivateProps {
@@ -29,7 +31,7 @@ interface HeaderCellPrivateProps {
 const _HeaderCell : React.FC<HeaderCellPrivateProps> = (props : HeaderCellPrivateProps) => {
   const {column} = props;
   const thProps : React.DetailedHTMLProps<React.ThHTMLAttributes<HTMLTableHeaderCellElement>, HTMLTableHeaderCellElement> = {};
-  const thClassNames = [column.className];
+  const thClassNames = [];
   let icon = null;
   if (column.sortable) {
     if (!props.isResizing) {

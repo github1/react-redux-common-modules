@@ -7,7 +7,6 @@ import {
   Action,
   Store
 } from 'redux';
-import {Provider} from 'react-redux';
 import {Scrollbars} from '../scrollbars';
 import {ColumnGroup} from './column-group';
 import {HeaderRow} from './header-row';
@@ -29,9 +28,10 @@ export interface ColumnProps {
   href? : ((record? : any, column? : ColumnProps) => string) | string;
   labelFunction? : (record? : any, field? : string) => string;
   renderer? : (record? : any, column? : ColumnProps) => ReactElement | string;
-  // private
+  // private-ish
   index? : number;
   isGroupColumn? : boolean;
+  sortDirection? : string;
 }
 
 export interface GroupingProps {
@@ -196,9 +196,13 @@ function createDataTableModule(state : DataTableModuleState) : Module {
     },
     middleware: store => next => action => {
       if (action.type === HEADER_CELL_CLICKED) {
-        const column : ColumnProps = store.getState().dataTable.columns[action.index];
+        const storeState : DataTableModuleStoreState = store.getState();
+        const column : ColumnProps = storeState.dataTable.columns[action.index];
         if (column.onHeaderClick) {
-          column.onHeaderClick(column);
+          column.onHeaderClick({
+            ...column,
+            sortDirection: storeState.dataTable.sortField === column.field ? storeState.dataTable.sortDirection : null
+          });
         }
       } else {
         next(action);
@@ -227,88 +231,55 @@ export class DataTable extends React.Component<DataTableProps, any> {
     const grouping : GroupingProps = storeState.dataTable.grouping;
     const data : any[] = storeState.dataTable.data;
     if (grouping) {
-      if (this.props.scrollable) {
-        content = <div className="data-table data-table-grouped">
-          <table
-            className="table table-header table-bordered">
-            <ColumnGroup/>
-            <HeaderRow/>
-          </table>
+      const groupedContent = data
+        .map((groupRecord, idx) => {
+          return (
+            <div key={`group-tab-${idx}`}>
+              <div
+                className="data-table-group-heading">{grouping.labelFunction ? grouping.labelFunction(groupRecord) : grouping.by}</div>
+              <table
+                className="table table-header table-bordered">
+                <ColumnGroup store={this.store}/>
+                <DataRow data={groupRecord[grouping.by] || []}
+                         rowClassName={this.props.rowClassName}
+                         store={this.store}/>
+              </table>
+            </div>
+          )
+        });
+      content = <div className="data-table data-table-grouped">
+        <table
+          className="table table-header table-bordered">
+          <ColumnGroup store={this.store}/>
+          <HeaderRow store={this.store}/>
+          {!this.props.scrollable ? groupedContent : null}
+        </table>
+        {this.props.scrollable ?
           <Scrollbars universal={true}
                       autoHide={true}
                       className="table-scroll-container">
-          {
-            data
-              .map((groupRecord, idx) => {
-                return (
-                  <div key={`group-tab-${idx}`}>
-                    <div className="data-table-group-heading">{grouping.labelFunction ? grouping.labelFunction(groupRecord) : grouping.by}</div>
-                    <table
-                           className="table table-header table-bordered">
-                      <ColumnGroup/>
-                      <DataRow data={groupRecord[grouping.by] || []} rowClassName={this.props.rowClassName}/>
-                    </table>
-                  </div>
-                )
-              })
-          }
-          </Scrollbars>
-        </div>;
-      } else {
-        content = <div className="data-table data-table-grouped">
-          <table
-            className="table table-header table-bordered">
-            <ColumnGroup/>
-            <HeaderRow/>
-          </table>
-          {
-            data
-              .map((groupRecord, idx) => {
-                return (
-                  <div>
-                    <div className="data-table-group-heading">{grouping.labelFunction ? grouping.labelFunction(groupRecord) : grouping.by}</div>
-                    <table key={`group-tab-${idx}`}
-                           className="table table-header table-bordered">
-                      <ColumnGroup/>
-                      <DataRow data={groupRecord[grouping.by] || []} rowClassName={this.props.rowClassName}/>
-                    </table>
-                  </div>
-                )
-              })
-          }
-        </div>;
-      }
+            {groupedContent}
+          </Scrollbars> : null}
+      </div>;
     } else {
-      if (this.props.scrollable) {
-        content = <div className="data-table data-table-scrollable">
-          <table className="table table-header table-bordered">
-            <ColumnGroup/>
-            <HeaderRow/>
+      content = <div
+        className={`data-table${this.props.scrollable ? ' data-table-scrollable' : ''}`}>
+        <table className="table table-header table-bordered">
+          <ColumnGroup store={this.store}/>
+          <HeaderRow store={this.store}/>
+          {!this.props.scrollable ? <DataRow store={this.store} rowClassName={this.props.rowClassName}/> : null}
+        </table>
+        {this.props.scrollable ? <Scrollbars universal={true}
+                                             autoHide={true}
+                                             className="table-scroll-container">
+          <table className="table table-content table-bordered">
+            <ColumnGroup store={this.store}/>
+            <DataRow rowClassName={this.props.rowClassName} store={this.store}/>
           </table>
-          <Scrollbars universal={true}
-                      autoHide={true}
-                      className="table-scroll-container">
-            <table className="table table-content table-bordered">
-              <ColumnGroup/>
-              <DataRow rowClassName={this.props.rowClassName}/>
-            </table>
-          </Scrollbars>
-        </div>;
-      } else {
-        content = <div className="data-table">
-          <table className="table table-header table-bordered">
-            <ColumnGroup/>
-            <HeaderRow/>
-            <DataRow rowClassName={this.props.rowClassName}/>
-          </table>
-        </div>;
-      }
+        </Scrollbars> : null}
+      </div>;
     }
-    return <Provider store={this.store}>
-      {
-        content
-      }
-    </Provider>;
+    return content;
   }
 
   private prepareStoreProps() : DataTableModuleState {

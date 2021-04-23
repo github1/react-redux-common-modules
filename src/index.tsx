@@ -63,13 +63,9 @@ const Main : React.FC<any> = () => {
     sortDirection: undefined
   });
   const handleHeaderClick = (column) => {
-    let sortDirection = 'asc';
-    if (sortState.sortField === column.field && sortState.sortDirection === 'asc') {
-      sortDirection = 'desc';
-    }
     setSortState({
       sortField: column.field,
-      sortDirection
+      sortDirection: column.sortDirection === 'asc' ? 'desc' : 'asc'
     });
   };
   return <div>

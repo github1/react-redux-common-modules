@@ -6,11 +6,13 @@ import {
   DataTableModuleStoreState
 } from '../';
 import propByString from 'prop-by-string';
+import { Store } from 'redux';
 
 export interface DataCellProps {
   columnIndex : number;
   rowIndex : number;
   data : any[];
+  store: Store<DataTableModuleStoreState>;
 }
 
 interface DataCellPrivateProps {
