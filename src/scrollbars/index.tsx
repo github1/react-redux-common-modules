@@ -10,6 +10,8 @@ export interface ScrollbarsProps {
   className?:  string;
   calculateHeight?: (bounds) => number;
   scrollContainerRef?: Ref<any>;
+  universal?: boolean;
+  autoHide?: boolean;
 }
 
 export const Scrollbars : React.FC<ScrollbarsProps> = (props) => {

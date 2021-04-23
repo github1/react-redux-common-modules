@@ -284,7 +284,6 @@ export class DataTable extends React.Component<DataTableProps, any> {
           <table className="table table-header table-bordered">
             <ColumnGroup/>
             <HeaderRow/>
-            <DataRow rowClassName={this.props.rowClassName}/>
           </table>
           <Scrollbars universal={true}
                       autoHide={true}
