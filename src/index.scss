@@ -1,0 +1,219 @@
+body {
+  font-family: Arial, serif;
+  overflow: hidden;
+}
+
+.table-container {
+  display: flex;
+  flex-direction: row;
+  .data-table {
+    min-width: 500px;
+  }
+}
+
+.data-table {
+  border: none;
+
+  .row-three {
+    background-color: #fff4c2;
+  }
+
+  .data-table-group-heading {
+    text-align: left;
+    font-weight: bold;
+    background-color: #0074D9;
+    color: #fff;
+    border-top: none;
+    border-left: none !important;
+    padding: 15px;
+  }
+
+  .table {
+    table-layout: fixed !important;
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 0;
+
+    .table-header {
+      table-layout: fixed !important;
+    }
+  }
+
+  &.data-table-scrollable {
+    .table {
+      table-layout: fixed !important;
+      border: none !important;
+    }
+  }
+
+  th, td {
+    padding: 0;
+    border-bottom: 1px solid #aaa;
+
+    &.data-table-summary {
+      font-style: italic;
+    }
+
+    border-right: none;
+
+    &:first-of-type {
+      border-left: none;
+    }
+  }
+
+  th, td, col {
+    overflow: hidden;
+    &.hide-small {
+      //@media screen {
+      //  @include media-breakpoint-down(sm) {
+      //    display: none;
+      //  }
+      //}
+    }
+    &.header-only {
+      @media print {
+        display: none;
+      }
+      padding: 0;
+    }
+  }
+
+  th {
+    padding: 1px 0 1px 0;
+    text-overflow: ellipsis;
+    height: 42px;
+    white-space: normal;
+    user-select: none;
+    cursor: default;
+    font-weight: bold;
+    text-align: left;
+    overflow: visible;
+
+    //border-left: 1px solid #aaa;
+    //border-top: 1px solid #aaa;
+
+    .th-content-wrapper {
+      transition-duration: 250ms;
+    }
+
+    &.sortable:hover {
+      .th-content-wrapper:hover {
+        background-color: #aaa;
+      }
+    }
+
+    &.sortable:active {
+      .th-content-wrapper:hover {
+        background-color: #aaa;
+      }
+    }
+
+    .th-content-holder {
+      position: relative !important;
+      align-items: center;
+      height: 100%;
+
+      .th-content-wrapper {
+        height: 100%;
+        width: 100%;
+        display: table;
+        // this needs to be full height/width and should cause highlight
+        .th-content {
+          padding: 0 8px 0 8px;
+          display: table-cell;
+          vertical-align: middle;
+          // contains words and sort icon, these should be in the middle
+          i {
+            color: #aaa;
+            font-size: 12px; // sort icon
+            padding-top: 2px;
+            padding-left: 4px;
+          }
+        }
+      }
+
+      .th-resize {
+        // should not cause th highlight
+        @media print {
+          display: none;
+        }
+        position: absolute !important;
+        background-color: transparent;
+        width: 30px;
+        height: 100%;
+        left: 0;
+        cursor: ew-resize;
+        &:before {
+          transition-duration: 500ms;
+          content: "";
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 1px;
+          opacity: 0;
+          left: 0;
+          background: #555;
+          cursor: ew-resize;
+        }
+
+        &.resizing {
+          &:before {
+            box-shadow: 0 0 5px 0 rgba(0, 0, 0, .3);
+            opacity: 1;
+          }
+        }
+
+        &:hover {
+          &:before {
+            opacity: 1;
+          }
+        }
+      }
+    }
+
+  }
+
+  td {
+
+    font-variant-numeric: tabular-nums;
+
+    padding: 8px 8px 8px 8px;
+    color: #777;
+    border-left: 1px solid #aaa;
+
+    text-overflow: ellipsis;
+
+    a.table-link {
+      color: #aaa;
+      text-decoration: none;
+      display: block;
+      margin: -10em;
+      padding: 10em;
+    }
+  }
+
+  tbody {
+    tr {
+      background-color: #fff;
+      &:hover {
+        background-color: #eee;
+      }
+
+      &:first-of-type td {
+        border-top-width: 0 !important;
+      }
+      &.excluded {
+        display: none;
+      }
+    }
+  }
+
+  .table-scroll-container {
+    background-color: #fff;
+    -webkit-overflow-scrolling: touch;
+    @media screen {
+      overflow-x: hidden;
+    }
+  }
+
+}
