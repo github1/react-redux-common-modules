@@ -25,14 +25,16 @@ interface DataCellPrivateProps {
 const _DataCell : React.FC<DataCellPrivateProps> = (props : DataCellPrivateProps) => {
   const {column, record, rowIndex} = props;
   let content;
+  let applyHref = true;
   if (column.renderer) {
     content = column.renderer(record, column);
+    applyHref = false;
   } else if (column.labelFunction) {
     content = column.labelFunction(record, column.field);
   } else {
     content = propByString.get(column.field, record) || '';
   }
-  if (column.href) {
+  if (column.href && applyHref) {
     let href;
     if (typeof column.href === 'function') {
       href = column.href(record, column);
