@@ -39,6 +39,7 @@ export interface GroupingProps {
   summaryFields? : string[];
   labelFunction? : (record? : any, field? : string) => string;
   idFunction? : (record? : any) => string;
+  summarize?: string[];
 }
 
 export interface DataTableProps {
@@ -47,7 +48,7 @@ export interface DataTableProps {
   data? : any[];
   sortField? : string;
   sortDirection? : string;
-  rowClassName? : (record? : any) => string;
+  rowClassName? : (record? : any, rowIndex?: number) => string;
 }
 
 export interface DataTableModuleState {
@@ -233,6 +234,28 @@ export class DataTable extends React.Component<DataTableProps, any> {
     if (grouping) {
       const groupedContent = data
         .map((groupRecord, idx) => {
+          const groupRecordChildren = groupRecord[grouping.by] || [];
+          // Figure out which columns should not be rendered in the summary view
+          const skipRenderingCoordinates : {row: number, column: number}[] = [];
+          let rowClassNameFunction = this.props.rowClassName;
+          if (grouping.summarize) {
+            groupRecordChildren.push(groupRecord);
+            for (let i = 0; i < storeState.dataTable.columns.length; i++) {
+              const column : ColumnProps = storeState.dataTable.columns[i];
+              if (grouping.summarize.indexOf(column.field) == -1) {
+                skipRenderingCoordinates.push({
+                  row: groupRecordChildren.length - 1,
+                  column: i
+                });
+              }
+            }
+            rowClassNameFunction = (record, rowIndex) => {
+              if (rowIndex === groupRecordChildren.length - 1) {
+                return 'data-table-summary';
+              }
+              return this.props.rowClassName ? this.props.rowClassName(record, rowIndex) : null;
+            };
+          }
           return (
             <div key={`group-tab-${idx}`}>
               <div
@@ -240,12 +263,13 @@ export class DataTable extends React.Component<DataTableProps, any> {
               <table
                 className="table table-header table-bordered">
                 <ColumnGroup store={this.store}/>
-                <DataRow data={groupRecord[grouping.by] || []}
-                         rowClassName={this.props.rowClassName}
+                <DataRow data={groupRecordChildren}
+                         rowClassName={rowClassNameFunction}
+                         skipRenderingCoordinates={skipRenderingCoordinates}
                          store={this.store}/>
               </table>
             </div>
-          )
+          );
         });
       content = <div className="data-table data-table-grouped">
         <table
@@ -346,6 +370,6 @@ export const ColumnSet : React.FC<any> = () => {
   return <div/>;
 }
 
-export const Grouping : React.FC<any> = () => {
+export const Grouping : React.FC<GroupingProps> = () => {
   return <div/>;
 }

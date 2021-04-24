@@ -50,10 +50,6 @@ body {
     padding: 0;
     border-bottom: 1px solid #aaa;
 
-    &.data-table-summary {
-      font-style: italic;
-    }
-
     border-right: none;
 
     &:first-of-type {
@@ -197,6 +193,12 @@ body {
       background-color: #fff;
       &:hover {
         background-color: #eee;
+      }
+
+      &.data-table-summary {
+        td {
+          font-style: italic;
+        }
       }
 
       &:first-of-type td {

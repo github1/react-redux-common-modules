@@ -44,16 +44,19 @@ for (let i = 0; i < 20; i++) {
     name: 'NIGHT VISION DEVICES',
     category: {name: 'CORPORATE'},
     foo: 'Lorem ipsum dolor sit amet.',
-    bar: 'Eprehenderit in voluptate velit esse cillum dolore.'
+    bar: 'Eprehenderit in voluptate velit esse cillum dolore.',
+    count: Math.floor(Math.random() * 99) + 1
   });
 }
 
 const groupedRecords = [];
 for (let i = 0; i < 20; i++) {
+  const children = records.slice(0, Math.floor(Math.random() * 4) + 1);
   groupedRecords.push({
-    id: `${i}`,
+    id: `g${i}`,
     name: 'NIGHT VISION DEVICES',
-    children: records.slice(0, 2)
+    count: children.reduce((sum, child) => sum + child.count, 0),
+    children
   });
 }
 
@@ -122,12 +125,15 @@ const Main : React.FC<any> = () => {
         sortField={sortState.sortField}
         sortDirection={sortState.sortDirection}
         data={groupedRecords}>
-        <Grouping by="children" labelFunction={(record) => `${record.id} - ${record.name}` }/>
+        <Grouping by="children"
+                  labelFunction={(record) => `${record.id} - ${record.name}` }
+                  summarize={['count']}/>
         <Column label="Id" field="id" width={50} className="blah"/>
         <Column label="Name" field="name"
                 href={(record, column) => `#${record.id}-${column.field}`}/>
         <Column label="Bar" field="bar" width={100}
                 labelFunction={(record, field) => `${field}: ${record[field]}`}/>
+        <Column label="Count" field="count" width={100}/>
       </DataTable>
     </div>
   </div>;
