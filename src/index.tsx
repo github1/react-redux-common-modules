@@ -37,9 +37,9 @@ store.dispatch(requestConfirmation({
 const root : HTMLDivElement = document.createElement('div');
 document.body.appendChild(root);
 
-const records = [];
+const defaultRecords = [];
 for (let i = 0; i < 20; i++) {
-  records.push({
+  defaultRecords.push({
     id: `${i}`,
     name: 'NIGHT VISION DEVICES',
     category: {name: 'CORPORATE'},
@@ -51,7 +51,7 @@ for (let i = 0; i < 20; i++) {
 
 const groupedRecords = [];
 for (let i = 0; i < 20; i++) {
-  const children = records.slice(0, Math.floor(Math.random() * 4) + 1);
+  const children = defaultRecords.slice(0, Math.floor(Math.random() * 4) + 1);
   groupedRecords.push({
     id: `g${i}`,
     name: 'NIGHT VISION DEVICES',
@@ -61,15 +61,25 @@ for (let i = 0; i < 20; i++) {
 }
 
 const Main : React.FC<any> = () => {
+  const includeGroupedTable = true;
   const [sortState, setSortState] = useState({
     sortField: undefined,
     sortDirection: undefined
   });
+  const [inputValue, setInputValue] = useState('');
+  const [records, setRecords] = useState(defaultRecords);
+
   const handleHeaderClick = (column) => {
     setSortState({
       sortField: column.field,
       sortDirection: column.sortDirection === 'asc' ? 'desc' : 'asc'
     });
+  };
+  const handleInputChange = (evt) => {
+    setInputValue(evt.target.value);
+    setRecords(defaultRecords.filter(record => {
+      return JSON.stringify(record).toLowerCase().indexOf(evt.target.value.toLowerCase()) > -1;
+    }))
   };
   return <div>
     <button onClick={() => {
@@ -94,6 +104,7 @@ const Main : React.FC<any> = () => {
       handleHeaderClick({field: 'name'});
     }}>Click
     </div>
+    <input type="text" onChange={handleInputChange} value={inputValue}/>
     <div className="table-container">
       <DataTable
         scrollable={true}
@@ -108,7 +119,8 @@ const Main : React.FC<any> = () => {
         <Column label="Id" field="id" width={50} className="blah"/>
         <Column label="Name" field="name"
                 href={(record, column) => `#${record.id}-${column.field}`}/>
-        <Column label="Category" field="category.name" width={100} className="row-three"/>
+        <Column label="Category" field="category.name" width={100}
+                className="row-three"/>
         <ColumnSet>
           <Column label="Foo"
                   field="foo"
@@ -120,21 +132,22 @@ const Main : React.FC<any> = () => {
                   labelFunction={(record, field) => `${field}: ${record[field]}`}/>
         </ColumnSet>
       </DataTable>
+      { includeGroupedTable ?
       <DataTable
         scrollable={true}
         sortField={sortState.sortField}
         sortDirection={sortState.sortDirection}
         data={groupedRecords}>
         <Grouping by="children"
-                  labelFunction={(record) => `${record.id} - ${record.name}` }
-                  summarize={['count']}/>
+                  labelFunction={(record) => `${record.id} - ${record.name}`}
+                  summaryFields={['count']}/>
         <Column label="Id" field="id" width={50} className="blah"/>
         <Column label="Name" field="name"
                 href={(record, column) => `#${record.id}-${column.field}`}/>
         <Column label="Bar" field="bar" width={100}
                 labelFunction={(record, field) => `${field}: ${record[field]}`}/>
         <Column label="Count" field="count" width={100}/>
-      </DataTable>
+      </DataTable> : null }
     </div>
   </div>;
 };

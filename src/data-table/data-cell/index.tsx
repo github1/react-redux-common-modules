@@ -3,7 +3,8 @@ import {connect} from 'react-redux';
 import {
   ColumnProps,
   dataCellClicked,
-  DataTableModuleStoreState
+  DataTableModuleStoreState,
+  GroupingSummaryDataType
 } from '../';
 import propByString from 'prop-by-string';
 import { Store } from 'redux';
@@ -51,9 +52,14 @@ const _DataCell : React.FC<DataCellPrivateProps> = (props : DataCellPrivateProps
 
 export const DataCell : React.FC<DataCellProps> = connect(
   (state : DataTableModuleStoreState, ownProps : DataCellProps) : DataCellPrivateProps => {
+    let record = ownProps.data ? ownProps.data[ownProps.rowIndex] : state.dataTable.data[ownProps.rowIndex];
+    if (record && record.type === GroupingSummaryDataType) {
+      // Get actual summary data record
+      record = record.record;
+    }
     return {
       column: state.dataTable.columns[ownProps.columnIndex],
-      record: ownProps.data ? ownProps.data[ownProps.rowIndex] : state.dataTable.data[ownProps.rowIndex],
+      record,
       rowIndex: ownProps.rowIndex
     };
   },

@@ -1,6 +1,6 @@
 import React, {
   ReactElement,
-  ReactNode
+  ReactNode,
 } from 'react';
 import {Module} from '@github1/redux-modules';
 import {
@@ -11,6 +11,11 @@ import {Scrollbars} from '../scrollbars';
 import {ColumnGroup} from './column-group';
 import {HeaderRow} from './header-row';
 import {DataRow} from './data-row';
+
+// Constants
+
+export const GroupingHeadingDataType = 'GroupingHeadingData';
+export const GroupingSummaryDataType = 'GroupingSummaryData';
 
 // Common interfaces
 
@@ -37,9 +42,20 @@ export interface ColumnProps {
 export interface GroupingProps {
   by : string;
   summaryFields? : string[];
-  labelFunction? : (record? : any, field? : string) => string;
+  labelFunction? : (record? : any) => string;
   idFunction? : (record? : any) => string;
-  summarize?: string[];
+  summarize? : string[];
+}
+
+export interface GroupingHeadingData {
+  type : typeof GroupingHeadingDataType
+  label : string;
+}
+
+export interface GroupingSummaryData {
+  type : typeof GroupingSummaryDataType
+  record : any;
+  includeColumnIndices : number[];
 }
 
 export interface DataTableProps {
@@ -48,7 +64,7 @@ export interface DataTableProps {
   data? : any[];
   sortField? : string;
   sortDirection? : string;
-  rowClassName? : (record? : any, rowIndex?: number) => string;
+  rowClassName? : (record? : any, rowIndex? : number) => string;
 }
 
 export interface DataTableModuleState {
@@ -132,6 +148,10 @@ function getColumnIndexToResize(columns : ColumnProps[], columnIndex : number) {
   return columnIndex;
 }
 
+function getColumnComparisonKey(column : ColumnProps) : string {
+  return column.field + column.sortField + column.selectable + column.hideSmall + column.href;
+}
+
 // Component
 
 function createDataTableModule(state : DataTableModuleState) : Module {
@@ -139,7 +159,7 @@ function createDataTableModule(state : DataTableModuleState) : Module {
     name: 'dataTable',
     reducer: (state : DataTableModuleState, action) : DataTableModuleState => {
       switch (action.type) {
-        case SYNC_STORE_STATE:
+        case SYNC_STORE_STATE: {
           const syncStoreStateAction : SyncStoreStateAction = action as SyncStoreStateAction;
           // Sync prop changes with store state
           let columns = state.columns;
@@ -150,10 +170,31 @@ function createDataTableModule(state : DataTableModuleState) : Module {
               column.width = columns[idx].width;
             });
           }
-          return {
-            ...state, ...action.state,
-            columns: [...syncStoreStateAction.state.columns]
-          };
+          const currentColumnsComparisonKey = state.columns.map(getColumnComparisonKey).join(',');
+          const newColumnsComparisonKey = syncStoreStateAction.state.columns.map(getColumnComparisonKey).join(',');
+          let newState = state;
+          if (state.sortDirection !== syncStoreStateAction.state.sortDirection
+            || state.sortField !== syncStoreStateAction.state.sortField) {
+            newState = {
+              ...newState,
+              sortDirection: syncStoreStateAction.state.sortDirection,
+              sortField: syncStoreStateAction.state.sortField
+            };
+          }
+          if (currentColumnsComparisonKey !== newColumnsComparisonKey) {
+            newState = {
+              ...newState,
+              columns: [...syncStoreStateAction.state.columns]
+            };
+          }
+          if (state.data !== syncStoreStateAction.state.data) {
+            newState = {
+              ...newState,
+              data: syncStoreStateAction.state.data
+            };
+          }
+          return newState;
+        }
         case DRAG_COLUMN:
           let newState = state;
           const columnIndexToResize = getColumnIndexToResize(newState.columns, action.index);
@@ -227,83 +268,23 @@ export class DataTable extends React.Component<DataTableProps, any> {
   }
 
   public render() {
-    let content;
-    const storeState : DataTableModuleStoreState = this.store.getState();
-    const grouping : GroupingProps = storeState.dataTable.grouping;
-    const data : any[] = storeState.dataTable.data;
-    if (grouping) {
-      const groupedContent = data
-        .map((groupRecord, idx) => {
-          const groupRecordChildren = groupRecord[grouping.by] || [];
-          // Figure out which columns should not be rendered in the summary view
-          const skipRenderingCoordinates : {row: number, column: number}[] = [];
-          let rowClassNameFunction = this.props.rowClassName;
-          if (grouping.summarize) {
-            groupRecordChildren.push(groupRecord);
-            for (let i = 0; i < storeState.dataTable.columns.length; i++) {
-              const column : ColumnProps = storeState.dataTable.columns[i];
-              if (grouping.summarize.indexOf(column.field) == -1) {
-                skipRenderingCoordinates.push({
-                  row: groupRecordChildren.length - 1,
-                  column: i
-                });
-              }
-            }
-            rowClassNameFunction = (record, rowIndex) => {
-              if (rowIndex === groupRecordChildren.length - 1) {
-                return 'data-table-summary';
-              }
-              return this.props.rowClassName ? this.props.rowClassName(record, rowIndex) : null;
-            };
-          }
-          return (
-            <div key={`group-tab-${idx}`}>
-              <div
-                className="data-table-group-heading">{grouping.labelFunction ? grouping.labelFunction(groupRecord) : grouping.by}</div>
-              <table
-                className="table table-header table-bordered">
-                <ColumnGroup store={this.store}/>
-                <DataRow data={groupRecordChildren}
-                         rowClassName={rowClassNameFunction}
-                         skipRenderingCoordinates={skipRenderingCoordinates}
-                         store={this.store}/>
-              </table>
-            </div>
-          );
-        });
-      content = <div className="data-table data-table-grouped">
-        <table
-          className="table table-header table-bordered">
+    return <div
+      className={`data-table${this.props.scrollable ? ' data-table-scrollable' : ''}`}>
+      <table className="table table-header table-bordered">
+        <ColumnGroup store={this.store}/>
+        <HeaderRow store={this.store}/>
+        {!this.props.scrollable ? <DataRow store={this.store}
+                                           rowClassName={this.props.rowClassName}/> : null}
+      </table>
+      {this.props.scrollable ? <Scrollbars universal={true}
+                                           autoHide={true}
+                                           className="table-scroll-container">
+        <table className="table table-content table-bordered">
           <ColumnGroup store={this.store}/>
-          <HeaderRow store={this.store}/>
-          {!this.props.scrollable ? groupedContent : null}
+          <DataRow rowClassName={this.props.rowClassName} store={this.store}/>
         </table>
-        {this.props.scrollable ?
-          <Scrollbars universal={true}
-                      autoHide={true}
-                      className="table-scroll-container">
-            {groupedContent}
-          </Scrollbars> : null}
-      </div>;
-    } else {
-      content = <div
-        className={`data-table${this.props.scrollable ? ' data-table-scrollable' : ''}`}>
-        <table className="table table-header table-bordered">
-          <ColumnGroup store={this.store}/>
-          <HeaderRow store={this.store}/>
-          {!this.props.scrollable ? <DataRow store={this.store} rowClassName={this.props.rowClassName}/> : null}
-        </table>
-        {this.props.scrollable ? <Scrollbars universal={true}
-                                             autoHide={true}
-                                             className="table-scroll-container">
-          <table className="table table-content table-bordered">
-            <ColumnGroup store={this.store}/>
-            <DataRow rowClassName={this.props.rowClassName} store={this.store}/>
-          </table>
-        </Scrollbars> : null}
-      </div>;
-    }
-    return content;
+      </Scrollbars> : null}
+    </div>;
   }
 
   private prepareStoreProps() : DataTableModuleState {
@@ -347,11 +328,40 @@ export class DataTable extends React.Component<DataTableProps, any> {
       };
     });
 
+    let data = [...(this.props.data || [])];
+    const grouping = groupings[0];
+    if (grouping) {
+      let includeSummaryColumnIndices = [];
+      if (grouping.summaryFields && grouping.summaryFields.length > 0) {
+        includeSummaryColumnIndices = columns.reduce((indices, column, idx) => {
+          if (grouping.summaryFields.indexOf(column.field) > -1) {
+            indices.push(idx);
+          }
+          return indices;
+        }, []);
+      }
+      data = data.reduce((d, record) => {
+        d.push({
+          type: GroupingHeadingDataType,
+          label: grouping.labelFunction(record)
+        });
+        d.push(...record[grouping.by]);
+        if (grouping.summaryFields && grouping.summaryFields.length > 0) {
+          d.push({
+            type: GroupingSummaryDataType,
+            record,
+            includeColumnIndices: includeSummaryColumnIndices
+          });
+        }
+        return d;
+      }, []);
+    }
+
     return {
       scrollable: this.props.scrollable,
       columns,
       grouping: groupings[0],
-      data: this.props.data || [],
+      data,
       sortDirection: this.props.sortDirection,
       sortField: this.props.sortField
     };
