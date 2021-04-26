@@ -40,7 +40,6 @@ const _HeaderCell : React.FC<HeaderCellPrivateProps> = (props : HeaderCellPrivat
     if (props.sortDirection) {
       thClassNames.push('sorted');
       icon = column.sortIcons ? column.sortIcons[0] : null;
-      // overlayProps.sortDirection = sortDirection;
       if (props.sortDirection === 'desc') {
         thClassNames.push('sorted-desc');
         icon = column.sortIcons ? column.sortIcons[1] : null;
@@ -105,7 +104,7 @@ export const HeaderCell : React.FC<HeaderCellProps> = connect(
     return {
       column,
       isResizing: state.dataTable.draggingColumnIndexActual === ownProps.columnIndex,
-      sortDirection: state.dataTable.sortField === column.field ? state.dataTable.sortDirection : null,
+      sortDirection: state.dataTable.sortField === column.sortField ? state.dataTable.sortDirection : null,
     };
   },
   (dispatch, {columnIndex}) : HeaderCellPrivateProps => {

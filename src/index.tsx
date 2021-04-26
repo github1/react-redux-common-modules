@@ -42,7 +42,7 @@ for (let i = 0; i < 20; i++) {
   defaultRecords.push({
     id: `${i}`,
     name: 'NIGHT VISION DEVICES',
-    category: {name: 'CORPORATE'},
+    category: {id: i, name: `C-${i}`},
     foo: 'Lorem ipsum dolor sit amet.',
     bar: 'Eprehenderit in voluptate velit esse cillum dolore.',
     count: Math.floor(Math.random() * 99) + 1
@@ -71,7 +71,7 @@ const Main : React.FC<any> = () => {
 
   const handleHeaderClick = (column) => {
     setSortState({
-      sortField: column.field,
+      sortField: column.sortField,
       sortDirection: column.sortDirection === 'asc' ? 'desc' : 'asc'
     });
   };
@@ -119,7 +119,7 @@ const Main : React.FC<any> = () => {
         <Column label="Id" field="id" width={50} className="blah"/>
         <Column label="Name" field="name"
                 href={(record, column) => `#${record.id}-${column.field}`}/>
-        <Column label="Category" field="category.name" width={100}
+        <Column label="Category" field="category.name" sortField="category.id" width={100}
                 className="row-three"/>
         <ColumnSet>
           <Column label="Foo"

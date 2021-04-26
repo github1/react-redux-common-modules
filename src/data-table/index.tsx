@@ -244,7 +244,7 @@ function createDataTableModule(state : DataTableModuleState) : Module {
         if (column.onHeaderClick) {
           column.onHeaderClick({
             ...column,
-            sortDirection: storeState.dataTable.sortField === column.field ? storeState.dataTable.sortDirection : null
+            sortDirection: storeState.dataTable.sortField === column.sortField ? storeState.dataTable.sortDirection : null
           });
         }
       } else {
@@ -327,7 +327,9 @@ export class DataTable extends React.Component<DataTableProps, any> {
         hasColumnsWithoutWidth = true;
       }
       return {
-        ...columnDefaultProps, ...column,
+        ...columnDefaultProps,
+        ...column,
+        sortField: column.sortField || column.field,
         index: idx,
         className: classNames
       };
