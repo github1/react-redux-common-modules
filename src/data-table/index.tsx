@@ -316,7 +316,7 @@ export class DataTable extends React.Component<DataTableProps, any> {
     let hasColumnsWithoutWidth = false;
     // Merge column default props
     columns = columns.map((column : ColumnProps, idx : number) => {
-      let classNames = column.field;
+      let classNames = column.field.replace(/\\./g, '-');
       if (column.className) {
         classNames = `${classNames} ${column.className}`;
       }
