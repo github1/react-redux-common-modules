@@ -37,6 +37,7 @@ export interface ColumnProps {
   index? : number;
   isGroupColumn? : boolean;
   sortDirection? : string;
+  isNotResizable? : boolean;
 }
 
 export interface GroupingProps {
@@ -141,9 +142,9 @@ export function dataCellClicked(columnIndex : number, rowIndex : number) : DataC
 // Utils
 
 function getColumnIndexToResize(columns : ColumnProps[], columnIndex : number) {
-  const column = columns[columnIndex];
-  if (isNaN(column.width)) {
-    return getColumnIndexToResize(columns, columnIndex - 1);
+  let indexOfWidthless = columns.findIndex(column => isNaN(column.width));
+  if (columnIndex <= indexOfWidthless) {
+    return columnIndex - 1;
   }
   return columnIndex;
 }
@@ -312,6 +313,7 @@ export class DataTable extends React.Component<DataTableProps, any> {
         groupings.push(child.props);
       }
     });
+    let hasColumnsWithoutWidth = false;
     // Merge column default props
     columns = columns.map((column : ColumnProps, idx : number) => {
       let classNames = column.field;
@@ -321,12 +323,29 @@ export class DataTable extends React.Component<DataTableProps, any> {
       if (column.hideSmall || column.isGroupColumn) {
         classNames = `${classNames} hide-small`;
       }
+      if (isNaN(column.width)) {
+        hasColumnsWithoutWidth = true;
+      }
       return {
         ...columnDefaultProps, ...column,
         index: idx,
         className: classNames
       };
     });
+    if (!hasColumnsWithoutWidth) {
+      // Add width-less column
+      columns.push({
+        label: ''
+      });
+    }
+    if (this.props.scrollable) {
+      // Add fake column for scrollbar
+      columns.push({
+        label: '',
+        width: 8,
+        isNotResizable: true
+      });
+    }
 
     let data = [...(this.props.data || [])];
     const grouping = groupings[0];

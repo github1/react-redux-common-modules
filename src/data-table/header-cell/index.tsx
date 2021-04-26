@@ -86,7 +86,7 @@ const _HeaderCell : React.FC<HeaderCellPrivateProps> = (props : HeaderCellPrivat
   };
 
   return <th key={`th${column.index}`} {...thProps}>
-    <div className="th-content-holder">
+    { column.isNotResizable ?  '' : (<div className="th-content-holder">
       <span
         className={`th-resize ${props.isResizing ? 'resizing' : ''}`}
         draggable={false}
@@ -95,7 +95,7 @@ const _HeaderCell : React.FC<HeaderCellPrivateProps> = (props : HeaderCellPrivat
                             <span
                               className="th-content">{column.label}{icon}</span>
       </div>
-    </div>
+    </div>)}
   </th>;
 }
 

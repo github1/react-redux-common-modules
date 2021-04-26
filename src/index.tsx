@@ -143,7 +143,7 @@ const Main : React.FC<any> = () => {
                   summaryFields={['count']}/>
         <Column label="Id" field="id" width={50} className="blah"/>
         <Column label="Name" field="name"
-                href={(record, column) => `#${record.id}-${column.field}`}/>
+                href={(record, column) => `#${record.id}-${column.field}`} width={200}/>
         <Column label="Bar" field="bar" width={100}
                 labelFunction={(record, field) => `${field}: ${record[field]}`}/>
         <Column label="Count" field="count" width={100}/>

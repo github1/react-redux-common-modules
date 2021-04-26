@@ -16,7 +16,6 @@ export interface DataRowProps {
 }
 
 interface DataRowPrivateProps {
-  scrollable : boolean;
   columns : ColumnProps[];
   data : any[];
   dataProvided : boolean;
@@ -25,7 +24,7 @@ interface DataRowPrivateProps {
 }
 
 const _DataRow : React.FC<DataRowPrivateProps> = ({
-                                                    scrollable,
+
                                                     columns,
                                                     data,
                                                     dataProvided,
@@ -37,7 +36,7 @@ const _DataRow : React.FC<DataRowPrivateProps> = ({
     data.map((record, rowIdx) => {
       let className = rowClassName ? rowClassName(record, rowIdx) : null;
       if (record.type === GroupingHeadingDataType) {
-        const colSpan = scrollable ? columns.length + 1 : columns.length;
+        const colSpan = columns.length;
         return <tr key={`tr-${rowIdx}`} className={className}>
           <td colSpan={colSpan} className='data-table-group-heading'>{record.label}</td>
         </tr>;
@@ -50,7 +49,10 @@ const _DataRow : React.FC<DataRowPrivateProps> = ({
       return <tr key={`tr-${rowIdx}`} className={className}>
         {
           columns.map((column, idx) => {
-            if (includeColumnIndices !== null && includeColumnIndices.indexOf(idx) === -1) {
+            if (column.isNotResizable) {
+              return <td key={`col${idx}-${rowIdx}`} className="data-table-borderless-cell"/>;
+            }
+            if ((includeColumnIndices !== null && includeColumnIndices.indexOf(idx) === -1) || !column.field) {
               return <td key={`col${idx}-${rowIdx}`} className="data-table-empty-cell"/>;
             }
             return <DataCell key={`col${idx}-${rowIdx}`}
@@ -59,9 +61,6 @@ const _DataRow : React.FC<DataRowPrivateProps> = ({
                              data={dataProvided ? data : null}
                              store={store}/>;
           })
-        }
-        {
-          scrollable ? <td className="header-only"/> : null
         }
       </tr>
     })
@@ -72,7 +71,6 @@ const _DataRow : React.FC<DataRowPrivateProps> = ({
 export const DataRow = connect((state : DataTableModuleStoreState,
                                 ownProps : DataRowProps) : DataRowPrivateProps => {
   return {
-    scrollable: state.dataTable.scrollable,
     columns: state.dataTable.columns,
     data: ownProps.data || state.dataTable.data,
     dataProvided: !!ownProps.data,
