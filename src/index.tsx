@@ -120,16 +120,16 @@ const Main : React.FC<any> = () => {
         <Column label="Name" field="name"
                 href={(record, column) => `#${record.id}-${column.field}`}/>
         <Column label="Category" field="category.name" sortField="category.id" width={100}
-                className="row-three"/>
+                className="row-three" hideSmall={true}/>
         <ColumnSet>
           <Column label="Foo"
                   field="foo"
                   width={100}
                   renderer={(record, column) => {
                     return <b>{record[column.field]}</b>;
-                  }}/>
+                  }} hideSmall={true}/>
           <Column label="Bar" field="bar" width={150}
-                  labelFunction={(record, field) => `${field}: ${record[field]}`}/>
+                  labelFunction={(record, field) => `${field}: ${record[field]}`} hideSmall={true}/>
         </ColumnSet>
       </DataTable>
       { includeGroupedTable ?

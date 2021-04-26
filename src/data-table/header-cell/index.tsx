@@ -33,6 +33,9 @@ const _HeaderCell : React.FC<HeaderCellPrivateProps> = (props : HeaderCellPrivat
   const thProps : React.DetailedHTMLProps<React.ThHTMLAttributes<HTMLTableHeaderCellElement>, HTMLTableHeaderCellElement> = {};
   const thClassNames = [];
   let icon = null;
+  if (column.hideSmall) {
+    thClassNames.push('hide-small');
+  }
   if (column.sortable) {
     if (!props.isResizing) {
       thClassNames.push('sortable');
@@ -48,7 +51,7 @@ const _HeaderCell : React.FC<HeaderCellPrivateProps> = (props : HeaderCellPrivat
   }
   thProps.className = thClassNames.join(' ');
 
-  if (!props.isResizing) {
+  if (!props.isResizing && !column.isNotResizable) {
     thProps.onClick = (evt) => {
       const element : HTMLElement = evt.target as HTMLElement;
       if ((element.getAttribute('class') || '').trim() !== 'th-resize') {
