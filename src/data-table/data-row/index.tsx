@@ -53,7 +53,7 @@ const _DataRow : React.FC<DataRowPrivateProps> = ({
               return <td key={`col${idx}-${rowIdx}`} className="data-table-borderless-cell"/>;
             }
             if ((includeColumnIndices !== null && includeColumnIndices.indexOf(idx) === -1) || !column.field) {
-              return <td key={`col${idx}-${rowIdx}`} className="data-table-empty-cell"/>;
+              return <td key={`col${idx}-${rowIdx}`} className={`data-table-empty-cell ${column.hideSmall ? ' hide-small' : ''}`}/>;
             }
             return <DataCell key={`col${idx}-${rowIdx}`}
                              columnIndex={idx}
