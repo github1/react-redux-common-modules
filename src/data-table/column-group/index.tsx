@@ -15,7 +15,7 @@ const _ColumnGroup : React.FC<ColumnGroupProps> = ({columns}) => {
       columns.map((column, index) => {
         const colProps = {
           'data-column-label': column.label,
-          className: column.hideSmall || column.isGroupColumn ? 'hide-small' : null,
+          className: column.hideSmall ? 'hide-small' : '',
           width: undefined
         };
         if (!isNaN(column.width) && column.width) {

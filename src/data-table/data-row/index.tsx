@@ -33,37 +33,46 @@ const _DataRow : React.FC<DataRowPrivateProps> = ({
                                                   }) => {
   return <tbody className="thead-light">
   {
-    data.map((record, rowIdx) => {
+    data.reduce((rows, record, rowIdx) => {
       let className = rowClassName ? rowClassName(record, rowIdx) : null;
       if (record.type === GroupingHeadingDataType) {
         const colSpan = columns.length;
-        return <tr key={`tr-${rowIdx}`} className={className}>
-          <td colSpan={colSpan} className='data-table-group-heading'>{record.label}</td>
-        </tr>;
-      }
-      let includeColumnIndices = null;
-      if (record.type === GroupingSummaryDataType) {
-        className = (className + ' data-table-summary').trim();
-        includeColumnIndices = record.includeColumnIndices;
-      }
-      return <tr key={`tr-${rowIdx}`} className={className}>
-        {
-          columns.map((column, idx) => {
-            if (column.isNotResizable) {
-              return <td key={`col${idx}-${rowIdx}`} className="data-table-borderless-cell"/>;
-            }
-            if ((includeColumnIndices !== null && includeColumnIndices.indexOf(idx) === -1) || !column.field) {
-              return <td key={`col${idx}-${rowIdx}`} className={`data-table-empty-cell ${column.hideSmall ? ' hide-small' : ''}`}/>;
-            }
-            return <DataCell key={`col${idx}-${rowIdx}`}
-                             columnIndex={idx}
-                             rowIndex={rowIdx}
-                             data={dataProvided ? data : null}
-                             store={store}/>;
-          })
+        // Number of cols visible when small
+        const colSpanHideSmall = columns.filter(column => !column.hideSmall).length;
+        rows.push(<tr key={`tr-${rowIdx}-lg`} className={className}>
+          <td colSpan={colSpan} className='data-table-group-heading hide-small'>{record.label}</td>
+        </tr>);
+        rows.push(<tr key={`tr-${rowIdx}-sm`} className={className}>
+          <td colSpan={colSpanHideSmall} className='data-table-group-heading hide-large'>{record.label}</td>
+        </tr>);
+      } else {
+        let includeColumnIndices = null;
+        if (record.type === GroupingSummaryDataType) {
+          className = (className + ' data-table-summary').trim();
+          includeColumnIndices = record.includeColumnIndices;
         }
-      </tr>
-    })
+        rows.push(<tr key={`tr-${rowIdx}`} className={className}>
+          {
+            columns.map((column, idx) => {
+              if (column.isNotResizable) {
+                return <td key={`col${idx}-${rowIdx}`}
+                           className="data-table-borderless-cell"/>;
+              }
+              if ((includeColumnIndices !== null && includeColumnIndices.indexOf(idx) === -1) || !column.field) {
+                return <td key={`col${idx}-${rowIdx}`}
+                           className={`data-table-empty-cell ${column.hideSmall ? ' hide-small' : ''}`}/>;
+              }
+              return <DataCell key={`col${idx}-${rowIdx}`}
+                               columnIndex={idx}
+                               rowIndex={rowIdx}
+                               data={dataProvided ? data : null}
+                               store={store}/>;
+            })
+          }
+        </tr>);
+      }
+      return rows;
+    }, [])
   }
   </tbody>;
 }

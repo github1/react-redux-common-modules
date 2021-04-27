@@ -35,7 +35,6 @@ export interface ColumnProps {
   renderer? : (record? : any, column? : ColumnProps) => ReactElement | string;
   // private-ish
   index? : number;
-  isGroupColumn? : boolean;
   sortDirection? : string;
   isNotResizable? : boolean;
 }
@@ -320,7 +319,7 @@ export class DataTable extends React.Component<DataTableProps, any> {
       if (column.className) {
         classNames = `${classNames} ${column.className}`;
       }
-      if (column.hideSmall || column.isGroupColumn) {
+      if (column.hideSmall) {
         classNames = `${classNames} hide-small`;
       }
       if (isNaN(column.width)) {
