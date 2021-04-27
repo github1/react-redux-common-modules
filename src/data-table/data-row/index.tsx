@@ -34,16 +34,16 @@ const _DataRow : React.FC<DataRowPrivateProps> = ({
   return <tbody className="thead-light">
   {
     data.reduce((rows, record, rowIdx) => {
-      let className = rowClassName ? rowClassName(record, rowIdx) : null;
+      let className = rowClassName ? rowClassName(record, rowIdx) : '';
       if (record.type === GroupingHeadingDataType) {
         const colSpan = columns.length;
         // Number of cols visible when small
         const colSpanHideSmall = columns.filter(column => !column.hideSmall).length;
-        rows.push(<tr key={`tr-${rowIdx}-lg`} className={className}>
-          <td colSpan={colSpan} className='data-table-group-heading hide-small'>{record.label}</td>
+        rows.push(<tr key={`tr-${rowIdx}-lg`} className={className + ' hide-small'}>
+          <td colSpan={colSpan} className='data-table-group-heading'>{record.label}</td>
         </tr>);
-        rows.push(<tr key={`tr-${rowIdx}-sm`} className={className}>
-          <td colSpan={colSpanHideSmall} className='data-table-group-heading hide-large'>{record.label}</td>
+        rows.push(<tr key={`tr-${rowIdx}-sm`} className={className + ' hide-large'}>
+          <td colSpan={colSpanHideSmall} className='data-table-group-heading'>{record.label}</td>
         </tr>);
       } else {
         let includeColumnIndices = null;
