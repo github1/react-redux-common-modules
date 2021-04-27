@@ -31,7 +31,7 @@ interface HeaderCellPrivateProps {
 const _HeaderCell : React.FC<HeaderCellPrivateProps> = (props : HeaderCellPrivateProps) => {
   const {column} = props;
   const thProps : React.DetailedHTMLProps<React.ThHTMLAttributes<HTMLTableHeaderCellElement>, HTMLTableHeaderCellElement> = {};
-  const thClassNames = [];
+  const thClassNames = [column.field.replace(/\./g, '-')];
   let icon = null;
   if (column.hideSmall) {
     thClassNames.push('hide-small');
