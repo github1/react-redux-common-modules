@@ -263,9 +263,9 @@ const invokeNavigationSectionLifecycleHandler = async (
 
 export interface NavigationModuleOptions {
   history : any,
-  onBeforeNavigate : OnBeforeNavigate,
   sections : Array<NavigationSectionInstance>,
-  interceptClicks? : boolean
+  interceptClicks? : boolean,
+  onBeforeNavigate? : OnBeforeNavigate
 }
 
 export const clickInterceptorCallback = (store) => {
