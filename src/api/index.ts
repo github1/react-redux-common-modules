@@ -108,14 +108,18 @@ export interface DataFetchQueryRoot<T, A = any> {
   [name : string] : Partial<T> | [A, Partial<T>]
 }
 
-export interface DataFetchQueryDefinition<S extends DataFetchQueryRoot<T, A>, T, A = any> {
+export interface DataFetchQueryNamedDefinition<S extends DataFetchQueryRoot<T, A>, T, A = any> {
   name? : string;
   schema : S;
   postProcessor? : DataFetchPostProcessor<T>;
 }
 
+type DataFetchQueryDefinition<S extends DataFetchQueryRoot<T, A>, T, A = any> =
+  DataFetchQueryNamedDefinition<S, T, A>
+  | S;
+
 export interface DataFetchRequestBuilder<S extends DataFetchQueryRoot<T>, T, A = any> extends DataFetchRequested {
-  fromQuery(graphQueryDefinition : DataFetchQueryDefinition<S, T, A> | S) : DataFetchRequestBuilder<S, T>;
+  fromQuery(graphQueryDefinition : DataFetchQueryDefinition<S, T, A>) : DataFetchRequestBuilder<S, T>;
 
   fromStaticData(data : any) : DataFetchRequestBuilder<S, T>;
 
