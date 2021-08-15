@@ -114,7 +114,7 @@ export interface DataFetchQueryNamedDefinition<S extends DataFetchQueryRoot<T, A
   postProcessor? : DataFetchPostProcessor<T>;
 }
 
-type DataFetchQueryDefinition<S extends DataFetchQueryRoot<T, A>, T, A = any> =
+export type DataFetchQueryDefinition<S extends DataFetchQueryRoot<T, A>, T, A = any> =
   DataFetchQueryNamedDefinition<S, T, A>
   | S;
 
