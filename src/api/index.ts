@@ -39,7 +39,10 @@ export const authenticate = () => {
   return {type: AUTHENTICATE_REQUESTED}
 };
 
-export const authenticateWithUsernamePassword = ({username, password} : AuthenticateOptions) => {
+export const authenticateWithUsernamePassword = ({
+                                                   username,
+                                                   password
+                                                 } : AuthenticateOptions) => {
   return {type: AUTHENTICATE_REQUESTED, username, password}
 };
 
@@ -97,22 +100,36 @@ export interface DataFetchRequested {
   postProcessor? : (data : any, state? : any) => any;
 }
 
-export interface DataFetchRequestBuilder extends DataFetchRequested {
-  fromQuery(graphQueryDefinition : any) : DataFetchRequestBuilder;
+export interface DataFetchPostProcessor<T, S = any> {
+  (data : T[], state? : S) : any
+}
 
-  fromStaticData(data : any) : DataFetchRequestBuilder;
+export interface DataFetchQueryRoot<T, A = any> {
+  [name : string] : Partial<T> | [A, Partial<T>]
+}
 
-  fromUrl(url : string) : DataFetchRequestBuilder;
+export interface DataFetchQueryDefinition<S extends DataFetchQueryRoot<T, A>, T, A = any> {
+  name? : string;
+  schema : S;
+  postProcessor? : DataFetchPostProcessor<T>;
+}
 
-  withName(name : string) : DataFetchRequestBuilder;
+export interface DataFetchRequestBuilder<S extends DataFetchQueryRoot<T>, T, A = any> extends DataFetchRequested {
+  fromQuery(graphQueryDefinition : DataFetchQueryDefinition<S, T, A> | S) : DataFetchRequestBuilder<S, T>;
 
-  withTag(tag : string) : DataFetchRequestBuilder;
+  fromStaticData(data : any) : DataFetchRequestBuilder<S, T>;
 
-  withPostProcessor(postProcessor : (data : any, state? : any) => any) : DataFetchRequestBuilder;
+  fromUrl(url : string) : DataFetchRequestBuilder<S, T>;
 
-  onSuccess(handler : DataFetchSuccessHandler) : DataFetchRequestBuilder;
+  withName(name : string) : DataFetchRequestBuilder<S, T>;
 
-  onFailure(handler : DataFetchFailedHandler) : DataFetchRequestBuilder;
+  withTag(tag : string) : DataFetchRequestBuilder<S, T>;
+
+  withPostProcessor(postProcessor : DataFetchPostProcessor<T>) : DataFetchRequestBuilder<S, T>;
+
+  onSuccess(handler : DataFetchSuccessHandler) : DataFetchRequestBuilder<S, T>;
+
+  onFailure(handler : DataFetchFailedHandler) : DataFetchRequestBuilder<S, T>;
 }
 
 export interface DataFetchSuccess {
@@ -129,9 +146,9 @@ export interface DataFetchFailed {
   error : any;
 }
 
-export const dataFetch = (name? : string) : DataFetchRequestBuilder => {
+export const dataFetch = <S extends DataFetchQueryRoot<T>, T>(name? : string) : DataFetchRequestBuilder<S, T> => {
   const fetchId : string = generateDataFetchID();
-  const dataFetch : DataFetchRequestBuilder = {
+  const dataFetch : DataFetchRequestBuilder<S, T> = {
     type: DATA_FETCH_REQUESTED,
     dataFetchId: fetchId,
     graphQuery: undefined,
@@ -140,40 +157,40 @@ export const dataFetch = (name? : string) : DataFetchRequestBuilder => {
     queryResultName: name || fetchId,
     staticData: undefined,
     url: undefined,
-    fromQuery(graphQueryDefinition : any) : DataFetchRequestBuilder {
+    fromQuery(graphQueryDefinition : DataFetchQueryDefinition<S, T> | S) : DataFetchRequestBuilder<S, T> {
       dataFetch.graphQuery = graphQueryDefinition.schema ? graphQueryDefinition.schema : graphQueryDefinition;
-      dataFetch.postProcessor = graphQueryDefinition.postProcessor;
+      dataFetch.postProcessor = graphQueryDefinition.postProcessor as DataFetchPostProcessor<any>;
       dataFetch.queryResultName = Object.keys(dataFetch.graphQuery)[0];
-      dataFetch.queryName = graphQueryDefinition.name || dataFetch.queryResultName;
+      dataFetch.queryName = (graphQueryDefinition.name || dataFetch.queryResultName) as string;
       return dataFetch;
     },
-    fromStaticData(data : any) : DataFetchRequestBuilder {
+    fromStaticData(data : any) : DataFetchRequestBuilder<S, T> {
       dataFetch.staticData = data;
       return dataFetch;
     },
-    fromUrl(url : string) : DataFetchRequestBuilder {
+    fromUrl(url : string) : DataFetchRequestBuilder<S, T> {
       dataFetch.url = url;
       return dataFetch;
     },
-    onFailure(handler : DataFetchFailedHandler) : DataFetchRequestBuilder {
+    onFailure(handler : DataFetchFailedHandler) : DataFetchRequestBuilder<S, T> {
       dataFetchHandlers[dataFetch.dataFetchId] = dataFetchHandlers[dataFetch.dataFetchId] || [];
       dataFetchHandlers[dataFetch.dataFetchId].push({onFailed: handler});
       return dataFetch;
     },
-    onSuccess(handler : DataFetchSuccessHandler) : DataFetchRequestBuilder {
+    onSuccess(handler : DataFetchSuccessHandler) : DataFetchRequestBuilder<S, T> {
       dataFetchHandlers[dataFetch.dataFetchId] = dataFetchHandlers[dataFetch.dataFetchId] || [];
       dataFetchHandlers[dataFetch.dataFetchId].push({onSuccess: handler});
       return dataFetch;
     },
-    withName(name : string) : DataFetchRequestBuilder {
+    withName(name : string) : DataFetchRequestBuilder<S, T> {
       dataFetch.queryName = name;
       return dataFetch;
     },
-    withTag(tag : string) : DataFetchRequestBuilder {
+    withTag(tag : string) : DataFetchRequestBuilder<S, T> {
       dataFetch.tag = tag;
       return dataFetch;
     },
-    withPostProcessor(postProcessor : (data : any) => any) : DataFetchRequestBuilder {
+    withPostProcessor(postProcessor : (data : any) => any) : DataFetchRequestBuilder<S, T> {
       dataFetch.postProcessor = postProcessor;
       return dataFetch;
     }
@@ -181,7 +198,12 @@ export const dataFetch = (name? : string) : DataFetchRequestBuilder => {
   return dataFetch;
 };
 
-export const dataFetchSuccess = ({dataFetchId, queryName, queryResultName, data} : DataFetchSuccess) => ({
+export const dataFetchSuccess = ({
+                                   dataFetchId,
+                                   queryName,
+                                   queryResultName,
+                                   data
+                                 } : DataFetchSuccess) => ({
   type: DATA_FETCH_SUCCESS,
   dataFetchId,
   queryName,
@@ -189,7 +211,12 @@ export const dataFetchSuccess = ({dataFetchId, queryName, queryResultName, data}
   data
 });
 
-export const dataFetchFailed = ({dataFetchId, queryName, queryResultName, error} : DataFetchFailed) => ({
+export const dataFetchFailed = ({
+                                  dataFetchId,
+                                  queryName,
+                                  queryResultName,
+                                  error
+                                } : DataFetchFailed) => ({
   type: DATA_FETCH_FAILED,
   dataFetchId,
   queryName,
@@ -421,7 +448,7 @@ const doGetRequest = (queryName, url, storeState, responseHandler) => {
   }, responseHandler), storeState, responseHandler);
 };
 
-const doGraphQuery = (queryName: string, tag: string, query: any, storeState: any, responseHandler) => {
+const doGraphQuery = (queryName : string, tag : string, query : any, storeState : any, responseHandler) => {
   const renderedQuery = createGraphQuery(query);
   const queryParams = [`name=${queryName}`];
   if (tag) {
