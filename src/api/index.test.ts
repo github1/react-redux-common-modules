@@ -274,7 +274,7 @@ describe('api', () => {
       });
       type ArgType = {criteria: number};
       type ResponseSchema = { name : string };
-      store.dispatch(dataFetch<{ graphObjects : [ArgType, ResponseSchema] }, ResponseSchema>().fromQuery({
+      store.dispatch(dataFetch<ResponseSchema, ArgType, 'graphObjects'>().fromQuery({
         graphObjects: [{
           criteria: 1
         }, {name: ''}]
