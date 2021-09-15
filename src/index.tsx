@@ -1,11 +1,7 @@
 import React, {useState} from 'react';
 import ReactDOM from 'react-dom';
 import {Store} from 'redux';
-import Alerts, {
-  displayAlert,
-  hideAllAlerts,
-  requestConfirmation
-} from './alerts';
+import Alerts from './alerts';
 import {Alerts as AlertsContainer} from './alerts/components/alert';
 import {
   Column,
@@ -14,23 +10,31 @@ import {
   DataTable,
   Grouping
 } from './data-table';
-import {Module} from '@github1/redux-modules';
 import {Provider} from 'react-redux'
 import './index.scss';
 
-const store : Store = Module.createStore(Alerts);
+const {
+  displayAlert,
+  hideAllAlerts,
+  requestConfirmation
+} = Alerts.actions;
+
+const store : Store = Alerts.asStore({
+  enforceImmutableState: true, 
+  enableReduxDevTools: true});
 
 store.dispatch(displayAlert({
   title: 'hi',
   message: 'asdas',
-  timeout: 5000
+  timeout: 1000
 }));
 
 store.dispatch(requestConfirmation({
   title: 'Hello',
   message: 'Test message',
   actions: [{
-    label: 'some action'
+    label: 'some action',
+    action: {type: 'SOME_ACTION' }
   }]
 }));
 

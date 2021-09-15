@@ -1,39 +1,65 @@
-import { Module } from '@github1/redux-modules';
+import { createModule } from '@github1/redux-modules';
 
-const REGISTER_RESIZE_LISTENER = '@resize/register-resize-listener';
-export const RESIZED = '@resize/resized';
+function isWindow(w: any): w is Window {
+  return typeof w !== 'undefined' && w.location;
+}
 
-const registerResizeListener = () => ({type: REGISTER_RESIZE_LISTENER});
-
-export const resized = (height, width) => {
-    return {type: RESIZED, height, width};
-};
-
-export default (window? : Window) => Module.create({
-    name: 'resize',
-    reducer: (state = {}, action) => {
-        if (action.type === RESIZED) {
-            return {
-                ...state,
-                height: action.height,
-                width: action.width
-            }
-        }
-        return state;
+export default createModule('resize', {
+  initializer(props: { window: Window | 'none' }): { window: Window | 'none' } {
+    return {
+      window:
+        props.window === 'none'
+          ? undefined
+          : props.window ||
+            (typeof window === 'undefined' ? undefined : window),
+    };
+  },
+  actionCreators: {
+    registerResizeListener(): { type: '@resize/register-resize-listener' } {
+      return {
+        type: '@resize/register-resize-listener',
+      };
     },
-    middleware: store => next => action => {
-        if (action.type === REGISTER_RESIZE_LISTENER) {
-            if (typeof window === 'undefined') {
-                store.dispatch(resized(0, 0));
-            } else {
-                const onResize = () => next(resized(window.innerHeight, window.innerWidth));
-                onResize();
-                window.addEventListener('resize', onResize);
-            }
-        }
-        next(action);
+    resized(
+      height: number,
+      width: number
+    ): { type: '@resize/resized'; height: number; width: number } {
+      return { type: '@resize/resized', height, width };
     },
-    postConfigure: store => {
-      store.dispatch(registerResizeListener());
+  },
+})
+  .reduce(
+    (
+      state: { height: number; width: number } = {
+        height: 0,
+        width: 0,
+      },
+      action
+    ) => {
+      if (action.type === '@resize/resized') {
+        return {
+          ...state,
+          height: action.height,
+          width: action.width,
+        };
+      }
+      return state;
     }
-});
+  )
+  .on((store) => (next) => (action) => {
+    if (action.type === '@resize/register-resize-listener') {
+      const { window } = store.props;
+      if (isWindow(window)) {
+        const onResize = () =>
+          next(store.actions.resized(window.innerHeight, window.innerWidth));
+        onResize();
+        window.addEventListener('resize', onResize);
+      } else {
+        store.dispatch(store.actions.resized(0, 0));
+      }
+    }
+    next(action);
+  })
+  .configure((store) => {
+    store.dispatch(store.actions.resize.registerResizeListener());
+  });

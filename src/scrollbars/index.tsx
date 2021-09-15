@@ -3,7 +3,7 @@ import React, {
   Ref
 } from 'react';
 import {Scrollbars as ScrollbarsExternal} from 'react-custom-scrollbars';
-import Measure from 'react-measure'
+import Measure from 'react-measure';
 
 export interface ScrollbarsProps {
   children? : ReactNode;

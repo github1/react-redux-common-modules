@@ -1,9 +1,10 @@
-import {Module} from '@github1/redux-modules';
-import {
-  Action,
-  Dispatch,
-  Store
-} from 'redux';
+import { createModule } from '@github1/redux-modules';
+import { Action, Dispatch, MiddlewareAPI } from 'redux';
+import AjaxService, {
+  AjaxServiceRequestOptions,
+  AjaxServiceResponse,
+} from '@github1/ajax-service';
+import { Optional } from 'utility-types';
 
 export const AJAX_CALL_REQUESTED = '@AJAX/CALL_REQUESTED';
 export const AJAX_CALL_SENT = '@AJAX/CALL_SENT';
@@ -18,162 +19,117 @@ export const APPLICATION_JSON = 'application/json';
 export const APPLICATION_AMF = 'application/x-amf';
 export const TEXT_PLAIN = 'text/plain';
 
-export interface AjaxCallOpts {
-  slowCallThreshold? : number;
+type AjaxModuleStubData<TType> =
+  | Partial<TType>
+  | PromiseLike<TType>
+  | ((opts: AjaxServiceRequestOptions) => Partial<TType> | PromiseLike<TType>);
+
+export type AjaxSender = {
+  send(options: AjaxServiceRequestOptions): Promise<AjaxServiceResponse>;
+};
+
+export type AjaxCallOpts = {
+  ajaxSender?: AjaxSender;
+  slowCallThreshold?: number;
+};
+
+export type AjaxCallback = (
+  err?: Error & { status?: any },
+  resp?: AjaxServiceResponse
+) => Action | Array<Action> | void;
+
+const callbacks: { [key: string]: AjaxCallback } = {};
+const callStoreRefs: { [key: string]: MiddlewareAPI } = {};
+const callTimeouts: { [key: string]: number } = {};
+const slowCalls: { [key: string]: boolean } = {};
+const retriedCalls: { [key: string]: number } = {};
+
+export interface AjaxCallRequestedAction
+  extends Action<typeof AJAX_CALL_REQUESTED> {
+  payload: {
+    id: string;
+    method: string;
+    url: string;
+    headers: Record<string, string>;
+    data: any;
+  };
 }
 
-export type AjaxCallback = (err? : Error, resp? : any) => Action | Array<Action> | void;
-
-const callbacks : { [key : string] : AjaxCallback } = {};
-const callStoreRefs : { [key : string] : Store } = {};
-const callTimeouts : { [key : string] : number } = {};
-const slowCalls : { [key : string] : boolean } = {};
-const retriedCalls : { [key : string] : number } = {};
-
-export interface AjaxCallRequestedAction extends Action<typeof AJAX_CALL_REQUESTED> {
-  payload : {
-    id : string
-  }
+export interface AjaxCallSentAction extends Action<typeof AJAX_CALL_SENT> {
+  payload: AjaxCallRequestedAction['payload'];
 }
 
-export interface AjaxCallSuccessAction extends Action<typeof AJAX_CALL_SUCCESS> {
-  payload : {
-    id : string,
-    response : any
-  }
+export interface AjaxCallSuccessAction
+  extends Action<typeof AJAX_CALL_SUCCESS> {
+  payload: {
+    id: string;
+    response: AjaxServiceResponse;
+  };
 }
 
 export interface AjaxCallFailedAction extends Action<typeof AJAX_CALL_FAILED> {
-  payload : {
-    id : string,
-    error : any
-  }
+  payload: {
+    id: string;
+    status: number;
+    error: any;
+  };
 }
 
-export interface AjaxCallRetriedAction extends Action<typeof AJAX_CALL_RETRIED> {
-  payload : {
-    id : string,
-    opts : any,
-    attemptNumber : number,
-    numOfAttempts : number,
-    error : any
-  }
+export interface AjaxCallRetriedAction
+  extends Action<typeof AJAX_CALL_RETRIED> {
+  payload: {
+    id: string;
+    opts: any;
+    attemptNumber: number;
+    numOfAttempts: number;
+    error: any;
+  };
 }
 
 export interface AjaxCallSlowAction extends Action<typeof AJAX_CALL_SLOW> {
-  payload : {
-    id : string,
-    opts : any,
-    duration : any
-  }
+  payload: {
+    id: string;
+    opts: any;
+    duration: any;
+  };
 }
 
 export interface AjaxCallStatsAction extends Action<typeof AJAX_CALL_STATS> {
-  payload : {
-    maxCurrentRetryAttempts : number,
-    numSlow : number
-  }
+  payload: {
+    maxCurrentRetryAttempts: number;
+    numSlow: number;
+  };
 }
 
-export type AjaxCallAction =
-  AjaxCallRequestedAction
-  | AjaxCallSuccessAction
-  | AjaxCallFailedAction;
-
-const send = (method : string, url : string, opts : any = {}, callback? : AjaxCallback) => {
-  if (typeof opts === 'function') {
-    callback = opts;
-    opts = {};
-  }
-  opts.method = method.toUpperCase();
-  opts.id = `call-${generateCallID()}`;
-  opts.interceptors = opts.interceptors || [];
-  opts.interceptors.push({
-    onRetry: (err, attemptNumber, numOfAttempts, fetchOpts) => {
-      const store = callStoreRefs[opts.id];
-      if (store) {
-        retriedCalls[opts.id] = attemptNumber;
-        store.dispatch(retried(opts.id, fetchOpts, attemptNumber, numOfAttempts, err));
-        store.dispatch(reportCallStats());
-      }
-    }
-  });
-  callbacks[opts.id] = callback;
-  return {
-    type: AJAX_CALL_REQUESTED,
-    payload: {url, ...opts}
-  }
-};
-
-const sendMethod = (method : string) => (url : string, opts : any, callback? : AjaxCallback) => send(method, url, opts, callback);
-
-export const get = (url : string, opts : any = {}, callback? : AjaxCallback) => sendMethod('get')(url, opts, callback);
-
-export const post = (url : string, opts : any = {}, callback? : AjaxCallback) => sendMethod('post')(url, opts, callback);
-
-export const del = (url : string, opts : any = {}, callback? : AjaxCallback) => sendMethod('delete')(url, opts, callback);
-
-const sent = opts => ({type: AJAX_CALL_SENT, payload: opts});
-
-const complete = (id, request, status) => ({
-  type: AJAX_CALL_COMPLETE,
-  payload: {id, request, status}
-});
-
-export const success = (id, response) => ({
-  type: AJAX_CALL_SUCCESS,
-  payload: {id, response}
-});
-
-export const failed = (id, error) => ({
-  type: AJAX_CALL_FAILED,
-  payload: {id, error}
-});
-
-export const retried = (id : string, opts, attemptNumber, numOfAttempts, error) : AjaxCallRetriedAction => ({
-  type: AJAX_CALL_RETRIED,
+export interface AjaxCallCompleteAction
+  extends Action<typeof AJAX_CALL_COMPLETE> {
   payload: {
-    id,
-    opts,
-    attemptNumber,
-    numOfAttempts,
-    error
-  }
-});
+    id: string;
+    request: AjaxCallRequestedAction['payload'];
+    status: number;
+  };
+}
 
-const reportSlowCall = (id : string, opts, duration : number = -1) : AjaxCallSlowAction => ({
-  type: AJAX_CALL_SLOW,
-  payload: {
-    id,
-    opts,
-    duration
-  }
-});
-
-const reportCallStats = () : AjaxCallStatsAction => ({
-  type: AJAX_CALL_STATS,
-  payload: {
-    maxCurrentRetryAttempts: Object
-      .keys(retriedCalls)
-      .reduce((max, retriedCall) => Math.max(max, retriedCalls[retriedCall]), 0),
-    numSlow: Object.keys(slowCalls).length
-  }
-});
-
-const invokeCallback = (id : string, dispatch : Dispatch, err : Error, resp? : any) => {
-  const callback : AjaxCallback = callbacks[id];
+function invokeCallback(
+  id: string,
+  dispatch: Dispatch,
+  reportCallStatusActionCreator: () => Action,
+  err: Error,
+  resp?: any
+) {
+  const callback: AjaxCallback = callbacks[id];
   clearTimeout(callTimeouts[id]);
   delete callStoreRefs[id];
   delete callTimeouts[id];
   delete slowCalls[id];
   delete retriedCalls[id];
-  dispatch(reportCallStats());
+  dispatch(reportCallStatusActionCreator());
   if (callback) {
     delete callbacks[id];
     const action = callback(err, resp);
     if (action) {
       if (Array.isArray(action)) {
-        action.forEach(action => {
+        action.forEach((action) => {
           if (action) {
             dispatch(action);
           }
@@ -183,55 +139,342 @@ const invokeCallback = (id : string, dispatch : Dispatch, err : Error, resp? : a
       }
     }
   }
+}
+
+let stubbedAjaxSender: AjaxSender;
+
+const ajaxModule = createModule('ajax', {
+  initializer(opts: AjaxCallOpts = {}) {
+    if (!opts.slowCallThreshold) {
+      opts.slowCallThreshold = 1000;
+    }
+    if (!opts.ajaxSender) {
+      opts.ajaxSender = AjaxService();
+    }
+    return opts;
+  },
+  actionCreators: {
+    send(
+      method: string,
+      url: string,
+      optsOrCallback?:
+        | Omit<AjaxServiceRequestOptions, 'method' | 'url'>
+        | AjaxCallback,
+      callback?: AjaxCallback
+    ): AjaxCallRequestedAction {
+      let opts: AjaxServiceRequestOptions;
+      if (typeof optsOrCallback === 'function') {
+        callback = optsOrCallback;
+        opts = { method, url };
+      } else {
+        opts = { ...optsOrCallback, method, url };
+      }
+      opts.method = method.toUpperCase();
+      opts.id = `call-${generateCallID()}`;
+      opts.interceptors = opts.interceptors || [];
+      opts.interceptors.push({
+        onRetry: (err, attemptNumber, numOfAttempts, fetchOpts) => {
+          const store = callStoreRefs[opts.id];
+          if (store) {
+            retriedCalls[opts.id] = attemptNumber;
+            store.dispatch(
+              this.retried(
+                opts.id,
+                fetchOpts,
+                attemptNumber,
+                numOfAttempts,
+                err
+              )
+            );
+            store.dispatch(this.reportCallStats());
+          }
+        },
+      });
+      callbacks[opts.id] = callback;
+      return {
+        type: AJAX_CALL_REQUESTED,
+        payload: {
+          url,
+          id: opts.id,
+          headers: opts.headers || {},
+          data: opts.data || undefined,
+          ...opts,
+        },
+      };
+    },
+    get(
+      url: string,
+      opts?: AjaxCallback | Omit<AjaxServiceRequestOptions, 'method' | 'url'>,
+      callback?: AjaxCallback
+    ): AjaxCallRequestedAction {
+      if (typeof opts === 'function') {
+        callback = opts;
+        opts = {};
+      }
+      return this.send('GET', url, opts, callback);
+    },
+    post(
+      url: string,
+      opts?: AjaxCallback | Omit<AjaxServiceRequestOptions, 'method' | 'url'>,
+      callback?: AjaxCallback
+    ): AjaxCallRequestedAction {
+      if (typeof opts === 'function') {
+        callback = opts;
+        opts = {};
+      }
+      return this.send('POST', url, opts, callback);
+    },
+    del(
+      url: string,
+      opts?: Omit<AjaxServiceRequestOptions, 'method' | 'url'>,
+      callback?: AjaxCallback
+    ) {
+      return this.send('DELETE', url, opts, callback);
+    },
+    sent(request: AjaxCallRequestedAction['payload']): AjaxCallSentAction {
+      return { type: AJAX_CALL_SENT, payload: request };
+    },
+    complete(
+      id: string,
+      request: AjaxCallRequestedAction['payload'],
+      status: number
+    ): AjaxCallCompleteAction {
+      return {
+        type: AJAX_CALL_COMPLETE,
+        payload: { id, request, status },
+      };
+    },
+    success(
+      id: string,
+      response: Optional<AjaxServiceResponse, 'headers'>
+    ): AjaxCallSuccessAction {
+      return {
+        type: AJAX_CALL_SUCCESS,
+        payload: { id, response: response as AjaxServiceResponse },
+      };
+    },
+    failed(id: string, error: Error): AjaxCallFailedAction {
+      return {
+        type: AJAX_CALL_FAILED,
+        payload: { id, status: 0, error },
+      };
+    },
+    retried(
+      id: string,
+      opts,
+      attemptNumber,
+      numOfAttempts,
+      error
+    ): AjaxCallRetriedAction {
+      return {
+        type: AJAX_CALL_RETRIED,
+        payload: {
+          id,
+          opts,
+          attemptNumber,
+          numOfAttempts,
+          error,
+        },
+      };
+    },
+    reportSlowCall(
+      id: string,
+      opts,
+      duration: number = -1
+    ): AjaxCallSlowAction {
+      return {
+        type: AJAX_CALL_SLOW,
+        payload: {
+          id,
+          opts,
+          duration,
+        },
+      };
+    },
+    reportCallStats(): AjaxCallStatsAction {
+      return {
+        type: AJAX_CALL_STATS,
+        payload: {
+          maxCurrentRetryAttempts: Object.keys(retriedCalls).reduce(
+            (max, retriedCall) => Math.max(max, retriedCalls[retriedCall]),
+            0
+          ),
+          numSlow: Object.keys(slowCalls).length,
+        },
+      };
+    },
+  },
+})
+  .configure(() => {
+    stubbedAjaxSender = null;
+  })
+  .on((store) => (next) => (action) => {
+    const { slowCallThreshold } = store.props;
+    if (action.type === AJAX_CALL_REQUESTED) {
+      callStoreRefs[action.payload.id] = store as MiddlewareAPI;
+      if (typeof window !== 'undefined') {
+        callTimeouts[action.payload.id] = window.setTimeout(() => {
+          // Handle call timeout
+          slowCalls[action.payload.id] = true;
+          store.dispatch(store.actions.reportCallStats());
+          store.dispatch(
+            store.actions.reportSlowCall(
+              action.payload.id,
+              action.payload,
+              slowCallThreshold
+            )
+          );
+        }, slowCallThreshold);
+      }
+      next(action);
+      next(store.actions.sent(action.payload));
+      (stubbedAjaxSender || store.props.ajaxSender)
+        .send(action.payload)
+        .then((resp: AjaxServiceResponse) => {
+          if (typeof resp === 'function') {
+            resp = (resp as any)(action);
+          }
+          store.dispatch(
+            store.actions.complete(
+              action.payload.id,
+              action.payload,
+              resp.status
+            )
+          );
+          store.dispatch(store.actions.success(action.payload.id, resp));
+        })
+        .catch(
+          (maybeErr: (Error & { status?: any }) | ((a: Action) => Error)) => {
+            let err: Error & { status?: any };
+            if (typeof maybeErr === 'function') {
+              try {
+                err = maybeErr(action);
+              } catch (errFuncErr) {
+                err = errFuncErr;
+              }
+            } else {
+              err = maybeErr;
+            }
+            store.dispatch(
+              store.actions.complete(
+                action.payload.id,
+                action.payload,
+                err.status
+              )
+            );
+            store.dispatch(store.actions.failed(action.payload.id, err));
+          }
+        );
+    } else if (action.type === AJAX_CALL_SUCCESS) {
+      next(action);
+      invokeCallback(
+        action.payload.id,
+        store.dispatch.bind(store),
+        store.actions.reportCallStats,
+        null,
+        action.payload.response
+      );
+    } else if (action.type === AJAX_CALL_FAILED) {
+      next(action);
+      invokeCallback(
+        action.payload.id,
+        store.dispatch.bind(store),
+        store.actions.reportCallStats,
+        action.payload.error
+      );
+    } else {
+      next(action);
+    }
+  });
+
+ajaxModule as any;
+
+type AjaxStubbing = {
+  forceResolve(value: AjaxModuleStubData<Partial<AjaxServiceResponse>>): void;
+  forceReject(
+    value: AjaxModuleStubData<Partial<AjaxServiceResponse | Error>>
+  ): void;
+  resetStub(): void;
 };
 
-export default (ajaxService, opts : AjaxCallOpts = {}) => Module.fromMiddleware((store : Store) => (next : Dispatch) => (action : AjaxCallAction) => {
-  opts.slowCallThreshold = opts.slowCallThreshold || 500;
-  if (action.type === AJAX_CALL_REQUESTED) {
-    callStoreRefs[action.payload.id] = store;
-    if (typeof window !== 'undefined') {
-      callTimeouts[action.payload.id] = window.setTimeout(() => {
-        slowCalls[action.payload.id] = true;
-        store.dispatch(reportCallStats());
-        store.dispatch(reportSlowCall(action.payload.id, action.payload, opts.slowCallThreshold));
-      }, opts.slowCallThreshold);
-    }
-    next(action);
-    next(sent(action.payload));
-    ajaxService
-      .send(action.payload)
-      .then(resp => {
-        if (typeof resp === 'function') {
-          resp = resp(action);
+function addStubbing(
+  mod: typeof ajaxModule & Partial<AjaxStubbing>
+): typeof ajaxModule & AjaxStubbing {
+  mod.forceResolve = (
+    value: AjaxModuleStubData<Partial<AjaxServiceResponse>>
+  ) => {
+    const description = [value, '\nfrom:', getCaller()];
+    console.log('Setting forceResolve:\n', ...description);
+    stubbedAjaxSender = {
+      send: (opts: AjaxServiceRequestOptions) => {
+        console.log('Running forceResolve:\n', ...description);
+        return Promise.resolve(
+          (typeof value === 'function'
+            ? value(opts as AjaxServiceRequestOptions)
+            : value) as AjaxServiceResponse
+        );
+      },
+    };
+  };
+  mod.forceReject = (
+    value: AjaxModuleStubData<Partial<AjaxServiceResponse | Error>>
+  ) => {
+    const description = [value, '\nfrom:', getCaller()];
+    console.log('Setting forceReject:\n', ...description);
+    stubbedAjaxSender = {
+      send: (opts: AjaxServiceRequestOptions) => {
+        console.log('Running forceReject:\n', ...description);
+        try {
+          return Promise.reject(
+            (typeof value === 'function'
+              ? value(opts as AjaxServiceRequestOptions)
+              : value) as AjaxServiceResponse | Error
+          );
+        } catch (err) {
+          return Promise.reject(err);
         }
-        store.dispatch(complete(action.payload.id, action.payload, resp.status));
-        store.dispatch(success(action.payload.id, resp));
-      })
-      .catch(err => {
-        if (typeof err === 'function') {
-          try {
-            err = err(action);
-          } catch (errFuncErr) {
-            err = errFuncErr;
-          }
-        }
-        store.dispatch(complete(action.payload.id, action.payload, err.status));
-        store.dispatch(failed(action.payload.id, err));
-      });
-  } else if (action.type === AJAX_CALL_SUCCESS) {
-    next(action);
-    invokeCallback(action.payload.id, store.dispatch.bind(store), null, action.payload.response);
-  } else if (action.type === AJAX_CALL_FAILED) {
-    next(action);
-    invokeCallback(action.payload.id, store.dispatch.bind(store), action.payload.error);
-  } else {
-    next(action);
-  }
-});
+      },
+    };
+  };
+  mod.resetStub = () => {
+    stubbedAjaxSender = null;
+  };
+  return mod as typeof ajaxModule & AjaxStubbing;
+}
 
-const generateCallID = () : string => {
-  const s4 = () => Math.floor((1 + Math.random()) * 0x10000)
-    .toString(16)
-    .substring(1);
-  return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+export default addStubbing(ajaxModule);
+
+const getCaller = () => {
+  try {
+    throw new Error('');
+  } catch (err) {
+    return `${
+      err.stack
+        .split(/\n/)[3]
+        .trim()
+        .split(' ')
+        .filter((part: string) => /.*[0-9]+:[0-9]+\)?$/.test(part))[0]
+    }`.replace(/^\(|\)$/g, '');
+  }
+};
+
+const generateCallID = (): string => {
+  const s4 = () =>
+    Math.floor((1 + Math.random()) * 0x10000)
+      .toString(16)
+      .substring(1);
+  return (
+    s4() +
+    s4() +
+    '-' +
+    s4() +
+    '-' +
+    s4() +
+    '-' +
+    s4() +
+    '-' +
+    s4() +
+    s4() +
+    s4()
+  );
 };

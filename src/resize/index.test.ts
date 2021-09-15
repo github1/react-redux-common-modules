@@ -1,10 +1,14 @@
-import resize, {resized} from './index';
+import resize from '.';
+const { resized } = resize.actions;
 
 describe('resize', () => {
-  let store;
   describe('when window is defined', () => {
+    const store = resize.initialize({ window }).asStore({
+      deferred: true,
+      enforceImmutableState: true,
+    });
     beforeEach(() => {
-      store = resize(window).enforceImmutableState().inRecordedStore();
+      store.reload();
     });
     it('updates the dimensions state when resized', () => {
       store.dispatch(resized(1, 2));
@@ -13,8 +17,12 @@ describe('resize', () => {
     });
   });
   describe('when window is undefined', () => {
+    const store = resize.initialize({ window: 'none' }).asStore({
+      deferred: true,
+      enforceImmutableState: true,
+    });
     beforeEach(() => {
-      store = resize().inRecordedStore();
+      store.reload();
     });
     it('initializes the size to 0,0', () => {
       expect(store.getState().resize.height).toBe(0);

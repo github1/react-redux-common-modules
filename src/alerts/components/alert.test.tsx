@@ -1,23 +1,25 @@
 import React from 'react';
 import TestRenderer from 'react-test-renderer';
-import AlertsModule, {displayAlert, requestConfirmation} from '../../alerts';
+import AlertsModule from '../../alerts';
 import {Alerts} from './alert';
 import {
   findJson,
   withAttribute
 } from '@github1/build-tools';
 
+const {displayAlert, requestConfirmation} = AlertsModule.actions;
+
 describe('Alerts', () => {
-  let store;
-  let alertID;
+  const store = AlertsModule.asStore({deferred: true, record: true, enforceImmutableState: true});
+  let alertID: string;
   beforeEach(() => {
-    store = AlertsModule.inRecordedStore();
+    store.reload();
     store.dispatch(displayAlert({
       title: 'someTitle',
       message: 'someMessage',
       type: 'success'
     }));
-    alertID = store.getState().recording.actions[1].payload.id;
+    alertID = store.getState().recording.find('@ALERT/DISPLAY')[0].payload.id;
   });
   it('displays alerts with renderer as function', () => {
     const alerts = TestRenderer.create(<Alerts store={store}

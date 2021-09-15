@@ -15,8 +15,9 @@
   "author": "John Collier <john.collier4@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@github1/build-tools": "0.4.3",
+    "@github1/build-tools": "0.4.5",
     "@types/react": "16.9.19",
+    "@types/react-redux": "7.1.18",
     "@types/react-test-renderer": "16.9.2",
     "react-test-renderer": "16.14.0",
     "redux-immutable-state-invariant": "2.1.0",
@@ -26,13 +27,17 @@
     "redux": "4.0.5"
   },
   "dependencies": {
-    "@github1/redux-modules": "0.4.3",
+    "@github1/ajax-service": "0.4.5",
+    "@github1/redux-modules": "0.4.5",
     "history": "4.7.2",
     "prop-by-string": "1.0.1",
+    "utility-types": "3.10.0",
     "react-custom-scrollbars": "4.2.1",
     "react-measure": "2.3.0"
   },
   "peerDependencies": {
+    "@types/react-redux": ">=7.0.1",
+    "@github1/ajax-service": "0.0.0",
     "react-redux": ">=7.0.1",
     "redux": ">=4.0.0"
   },
