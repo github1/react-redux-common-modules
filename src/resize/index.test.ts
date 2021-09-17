@@ -1,4 +1,4 @@
-import resize from '.';
+import { resize } from '.';
 const { resized } = resize.actions;
 
 describe('resize', () => {

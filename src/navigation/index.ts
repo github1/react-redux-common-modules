@@ -605,7 +605,7 @@ const NavigationModule = createModule('navigation', {
     };
   });
 
-export default NavigationModule;
+export const navigation = NavigationModule;
 
 type NavigationModuleStore = ReturnType<
   ReturnType<typeof NavigationModule.initialize>['asStore']

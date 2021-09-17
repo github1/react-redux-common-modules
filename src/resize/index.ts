@@ -4,7 +4,7 @@ function isWindow(w: any): w is Window {
   return typeof w !== 'undefined' && w.location;
 }
 
-export default createModule('resize', {
+export const resize = createModule('resize', {
   initializer(props: { window: Window | 'none' }): { window: Window | 'none' } {
     return {
       window:

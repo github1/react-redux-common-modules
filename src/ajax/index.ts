@@ -442,7 +442,7 @@ function addStubbing(
   return mod as typeof ajaxModule & AjaxStubbing;
 }
 
-export default addStubbing(ajaxModule);
+export const ajax = addStubbing(ajaxModule);
 
 const getCaller = () => {
   try {

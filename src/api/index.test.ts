@@ -1,4 +1,5 @@
-import api, {
+import {
+  api,
   AUTHENTICATE_FAILED,
   AUTHENTICATE_SUCCESS,
   COMMAND_FAILED,
@@ -8,7 +9,7 @@ import api, {
   DATA_FETCH_SUCCESS,
 } from './index';
 import { apiModuleTestHelper } from './test-helper';
-import ajax, { AJAX_CALL_COMPLETE, AJAX_CALL_REQUESTED } from '../ajax';
+import { ajax, AJAX_CALL_COMPLETE, AJAX_CALL_REQUESTED } from '../ajax';
 const {
   executeCommand,
   invalidatePrefetchCache,

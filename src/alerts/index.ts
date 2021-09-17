@@ -61,7 +61,7 @@ const timeouts = {
   remove: {},
 };
 
-const alertsModule = createModule('alerts', {
+export const alerts = createModule('alerts', {
   actionCreators: {
     displayAlert({
       title,
@@ -195,8 +195,6 @@ const alertsModule = createModule('alerts', {
     }
     next(action);
   });
-
-export default alertsModule;
 
 const guidS4 = () =>
   Math.floor((1 + Math.random()) * 0x10000)

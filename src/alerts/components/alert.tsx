@@ -1,5 +1,6 @@
 import React from 'react';
-import alerts, {
+import {
+  alerts,
   AlertModuleAlertState,
   ConfirmAlertAction
 } from '../../alerts';

@@ -1,4 +1,4 @@
-import ajax from './index';
+import { ajax } from './index';
 const { get, post } = ajax.actions;
 
 describe('ajax-module', () => {

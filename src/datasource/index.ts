@@ -94,7 +94,7 @@ type DataSourceModuleState = {
   [k: string]: DataSourceBaseProps;
 };
 
-export default createModule('datasource', {
+export const datasource = createModule('datasource', {
   actionCreators: {
     initDataSource(
       props: Omit<

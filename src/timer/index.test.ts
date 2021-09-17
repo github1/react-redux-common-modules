@@ -1,4 +1,4 @@
-import timer from './index';
+import { timer } from './index';
 const { startTimer, stopTimer, debounce } = timer.actions;
 
 describe('timer', () => {

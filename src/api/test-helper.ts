@@ -1,6 +1,6 @@
 import { createModule } from '@github1/redux-modules';
-import api, { ActionTypes, DATA_FETCH_SUCCESS } from './index';
-import ajax from '../ajax';
+import { api, ActionTypes, DATA_FETCH_SUCCESS } from './index';
+import { ajax } from '../ajax';
 
 export const apiModuleTestHelper = ajax.with(api).with(
   createModule('fetchResults').reduce(

@@ -4,23 +4,23 @@ import { Action } from 'redux';
 
 const timers = {};
 
+function clearTimerInterval(id: string) {
+  if (typeof timers[id] !== 'undefined') {
+    clearInterval(timers[id]);
+  }
+}
+
+function storeTimerInterval(id: string, func: () => void, interval: number) {
+  clearTimerInterval(id);
+  timers[id] = setInterval(func, interval);
+}
+
 export interface TimerDefinition {
   action: Action | Action[];
   interval: number;
   dispatchOnTick: number;
   stopOnDispatch: boolean;
 }
-
-const clearTimerInterval = (id: string) => {
-  if (typeof timers[id] !== 'undefined') {
-    clearInterval(timers[id]);
-  }
-};
-
-const storeTimerInterval = (id: string, func: () => void, interval: number) => {
-  clearTimerInterval(id);
-  timers[id] = setInterval(func, interval);
-};
 
 export type TimerModuleState = {
   [k: string]: {
@@ -29,7 +29,7 @@ export type TimerModuleState = {
   };
 };
 
-export default createModule('timer', {
+export const timer = createModule('timer', {
   actionCreators: {
     startTimer(
       id: string,

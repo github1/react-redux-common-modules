@@ -1,11 +1,11 @@
-import alert from './index';
+import { alerts } from './index';
 const { displayAlert, hideAlert, hideAllAlerts, requestConfirmation } =
-  alert.actions;
+  alerts.actions;
 
 jest.useFakeTimers();
 
 describe('when an alert is displayed', () => {
-  const store = alert.asStore({ enforceImmutableState: true, deferred: true });
+  const store = alerts.asStore({ enforceImmutableState: true, deferred: true });
   beforeEach(() => {
     store.reload();
   });

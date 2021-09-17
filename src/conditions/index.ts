@@ -24,7 +24,7 @@ export interface OnConditionBuilder extends OnConditionAction {
   otherwiseDispatch(...actions: Array<ConditionResult>): OnConditionAction;
 }
 
-export default createModule('conditions', {
+export const conditions = createModule('conditions', {
   actionCreators: {
     waitFor(
       condition: StateCondition,

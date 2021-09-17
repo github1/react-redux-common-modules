@@ -1,7 +1,8 @@
 import { createModule, isAction } from '@github1/redux-modules';
 import { Action, AnyAction } from 'redux';
 import { AjaxServiceResponse } from '@github1/ajax-service';
-import ajax, {
+import {
+  ajax,
   AjaxCallRequestedAction,
   AjaxCallback,
   APPLICATION_AMF,
@@ -254,7 +255,7 @@ export type ApiModuleState = {
   usePrefetchedAlways: boolean;
 };
 
-export default createModule('api', {
+export const api = createModule('api', {
   actionCreators: {
     authenticate(): AuthenticationRequestedAction {
       return { type: AUTHENTICATE_REQUESTED };

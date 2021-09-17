@@ -1,4 +1,4 @@
-import datasource, { sortFunc } from './index';
+import { datasource, sortFunc } from './index';
 const {
   destroyDataSource,
   filterDataSource,

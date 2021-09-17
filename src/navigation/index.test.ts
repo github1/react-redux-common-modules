@@ -1,4 +1,5 @@
-import nav, {
+import {
+  navigation,
   extractQueryParams,
   findSection,
   hiddenSection,
@@ -10,7 +11,7 @@ import nav, {
   clickInterceptorCallback,
 } from './index';
 import { createMemoryHistory } from 'history';
-const { navigate, syncNavigation } = nav.actions;
+const { navigate, syncNavigation } = navigation.actions;
 
 describe('navigation', () => {
   let onBeforeNavigate: OnBeforeNavigate = () => {};
@@ -48,7 +49,7 @@ describe('navigation', () => {
       ),
     ],
   });
-  const store = nav.initialize(container).asStore({
+  const store = navigation.initialize(container).asStore({
     deferred: true,
     record: true,
     enforceImmutableState: true,

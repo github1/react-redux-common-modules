@@ -1,7 +1,7 @@
 import { createModule } from '@github1/redux-modules';
 import { AnyAction } from 'redux';
-import Conditions from './index';
-const { onlyIf, waitFor } = Conditions.actions;
+import { conditions } from './index';
+const { onlyIf, waitFor } = conditions.actions;
 
 describe('conditions', () => {
   const stateManipulator = createModule('someData').reduce(
@@ -14,7 +14,7 @@ describe('conditions', () => {
       }
     }
   );
-  const store = Conditions.with(stateManipulator).asStore({
+  const store = conditions.with(stateManipulator).asStore({
     record: true,
     enforceImmutableState: true,
     deferred: true,

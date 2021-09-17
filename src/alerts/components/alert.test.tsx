@@ -1,16 +1,16 @@
 import React from 'react';
 import TestRenderer from 'react-test-renderer';
-import AlertsModule from '../../alerts';
+import {alerts} from '../../alerts';
 import {Alerts} from './alert';
 import {
   findJson,
   withAttribute
 } from '@github1/build-tools';
 
-const {displayAlert, requestConfirmation} = AlertsModule.actions;
+const {displayAlert, requestConfirmation} = alerts.actions;
 
 describe('Alerts', () => {
-  const store = AlertsModule.asStore({deferred: true, record: true, enforceImmutableState: true});
+  const store = alerts.asStore({deferred: true, record: true, enforceImmutableState: true});
   let alertID: string;
   beforeEach(() => {
     store.reload();

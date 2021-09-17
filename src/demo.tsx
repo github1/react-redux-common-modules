@@ -1,27 +1,34 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
-import {Store} from 'redux';
-import Alerts from './alerts';
-import {Alerts as AlertsContainer} from './alerts/components/alert';
+import { Provider } from 'react-redux'
+import { alerts } from '.';
+import { Alerts as AlertsContainer } from '.';
 import {
   Column,
   ColumnDefaults,
   ColumnSet,
   DataTable,
   Grouping
-} from './data-table';
-import {Provider} from 'react-redux'
-import './index.scss';
+} from '.';
+import { createModule } from '@github1/redux-modules';
+import './demo.scss';
 
-const {
-  displayAlert,
-  hideAllAlerts,
-  requestConfirmation
-} = Alerts.actions;
-
-const store : Store = Alerts.asStore({
+const store = alerts
+  .with(createModule('demo')
+  .intercept(action => {
+    if (action.type === 'SOME_ACTION') {
+      console.log(action);
+    }
+  }))
+  .asStore({
   enforceImmutableState: true, 
   enableReduxDevTools: true});
+
+  const {
+    displayAlert,
+    hideAllAlerts,
+    requestConfirmation
+  } = store.actions.alerts;
 
 store.dispatch(displayAlert({
   title: 'hi',
