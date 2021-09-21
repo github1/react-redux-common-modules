@@ -1,5 +1,6 @@
 import { createModule } from '@github1/redux-modules';
 import { AnyAction, Dispatch } from 'redux';
+import { ReduxModuleStore } from '../../../redux-modules/dist/redux-module-store';
 
 let navigationCounter: number = 0;
 
@@ -607,8 +608,8 @@ const NavigationModule = createModule('navigation', {
 
 export const navigation = NavigationModule;
 
-type NavigationModuleStore = ReturnType<
-  ReturnType<typeof NavigationModule.initialize>['asStore']
+type NavigationModuleStore = ReduxModuleStore<
+  typeof NavigationModule['_types']
 >;
 
 export interface NavigationMatchResult {

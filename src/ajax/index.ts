@@ -142,6 +142,7 @@ function invokeCallback(
 }
 
 let stubbedAjaxSender: AjaxSender;
+let stubLoggingEnabled: boolean = false;
 
 const ajaxModule = createModule('ajax', {
   initializer(opts: AjaxCallOpts = {}) {
@@ -390,6 +391,7 @@ const ajaxModule = createModule('ajax', {
 ajaxModule as any;
 
 type AjaxStubbing = {
+  logStubs(value: boolean): void;
   forceResolve(value: AjaxModuleStubData<Partial<AjaxServiceResponse>>): void;
   forceReject(
     value: AjaxModuleStubData<Partial<AjaxServiceResponse | Error>>
@@ -400,14 +402,21 @@ type AjaxStubbing = {
 function addStubbing(
   mod: typeof ajaxModule & Partial<AjaxStubbing>
 ): typeof ajaxModule & AjaxStubbing {
+  mod.logStubs = (value: boolean) => {
+    stubLoggingEnabled = value;
+  };
   mod.forceResolve = (
     value: AjaxModuleStubData<Partial<AjaxServiceResponse>>
   ) => {
     const description = [value, '\nfrom:', getCaller()];
-    console.log('Setting forceResolve:\n', ...description);
+    if (stubLoggingEnabled) {
+      console.log('Setting forceResolve:\n', ...description);
+    }
     stubbedAjaxSender = {
       send: (opts: AjaxServiceRequestOptions) => {
-        console.log('Running forceResolve:\n', ...description);
+        if (stubLoggingEnabled) {
+          console.log('Running forceResolve:\n', ...description);
+        }
         return Promise.resolve(
           (typeof value === 'function'
             ? value(opts as AjaxServiceRequestOptions)
@@ -420,10 +429,14 @@ function addStubbing(
     value: AjaxModuleStubData<Partial<AjaxServiceResponse | Error>>
   ) => {
     const description = [value, '\nfrom:', getCaller()];
-    console.log('Setting forceReject:\n', ...description);
+    if (stubLoggingEnabled) {
+      console.log('Setting forceReject:\n', ...description);
+    }
     stubbedAjaxSender = {
       send: (opts: AjaxServiceRequestOptions) => {
-        console.log('Running forceReject:\n', ...description);
+        if (stubLoggingEnabled) {
+          console.log('Running forceReject:\n', ...description);
+        }
         try {
           return Promise.reject(
             (typeof value === 'function'

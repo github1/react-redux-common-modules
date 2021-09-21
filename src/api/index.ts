@@ -35,64 +35,63 @@ export type ActionsOrThunks = AnyAction | ((...args: any[]) => any);
 
 // Action Types
 
-export interface AuthenticationRequestedAction
-  extends Action<typeof AUTHENTICATE_REQUESTED> {
+export type AuthenticationRequestedAction = Action<
+  typeof AUTHENTICATE_REQUESTED
+> & {
   username?: string;
   password?: string;
-}
+};
 
-export interface AuthenticationSuccessAction
-  extends Action<typeof AUTHENTICATE_SUCCESS> {
+export type AuthenticationSuccessAction = Action<
+  typeof AUTHENTICATE_SUCCESS
+> & {
   mode: string;
   claims: any;
-}
+};
 
-export interface AuthenticationFailedAction
-  extends Action<typeof AUTHENTICATE_FAILED> {
+export type AuthenticationFailedAction = Action<typeof AUTHENTICATE_FAILED> & {
   mode: string;
   error: Error & { status?: any };
-}
+};
 
-export interface AuthorizationFailedAction
-  extends Action<typeof AUTHENTICATE_AUTHORIZATION_FAILED> {}
+export type AuthorizationFailedAction = Action<
+  typeof AUTHENTICATE_AUTHORIZATION_FAILED
+>;
 
-export interface SignoutRequestedAction
-  extends Action<typeof SIGNOUT_REQUESTED> {}
+export type SignoutRequestedAction = Action<typeof SIGNOUT_REQUESTED>;
 
-export interface SignoutSuccessAction extends Action<typeof SIGNOUT_SUCCESS> {}
+export type SignoutSuccessAction = Action<typeof SIGNOUT_SUCCESS>;
 
-export interface InvalidatePrefetchCacheAction
-  extends Action<typeof INVALIDATE_PREFETCH_CACHE> {
+export type InvalidatePrefetchCacheAction = Action<
+  typeof INVALIDATE_PREFETCH_CACHE
+> & {
   key?: string;
-}
+};
 
-export interface DataFetchRequestedAction
-  extends Action<typeof DATA_FETCH_REQUESTED> {
+export type DataFetchRequestedAction = Action<typeof DATA_FETCH_REQUESTED> & {
   queryName: string;
   dataFetchId?: string;
   url?: string;
   queryResultName?: string;
   tag?: string;
   staticData?: any;
-  graphQuery?: any;
+  graphQuery?: DataFetchQueryDefinition;
   postProcessor?: (data: any, state?: any) => any;
-}
+};
 
-export interface DataFetchSuccessAction
-  extends Action<typeof DATA_FETCH_SUCCESS> {
+export type DataFetchSuccessAction = Action<typeof DATA_FETCH_SUCCESS> & {
   dataFetchId: string;
   queryName: string;
   queryResultName: string;
   data: any;
-}
+};
 
-export interface DataFetchFailedAction
-  extends Action<typeof DATA_FETCH_FAILED> {
+export type DataFetchFailedAction = Action<typeof DATA_FETCH_FAILED> & {
   dataFetchId: string;
   queryName: string;
   queryResultName: string;
   error: Error & { status?: any };
-}
+};
 
 type CommandResponseHandler =
   | ((data: any) => ActionsOrThunks)
@@ -112,87 +111,153 @@ type CommandResponseResultItem = {
   args: any[];
 };
 
-export interface CommandExecutionRequestedAction
-  extends Action<typeof COMMAND_REQUESTED> {
+type CommandExecutionRequestedAction = Action<typeof COMMAND_REQUESTED> & {
   name: string;
   payload: any;
   responseHandler: CommandResponseHandler;
   errorHandler: CommandErrorHandler;
   callCountName: string;
-}
+};
 
-export interface CommandExecutionSuccessAction
-  extends Action<typeof COMMAND_SUCCESS>,
-    Omit<CommandExecutionRequestedAction, 'type'> {
-  response: AjaxServiceResponse;
-  callCountName: string;
-}
+export type CommandExecutionSuccessAction = Action<typeof COMMAND_SUCCESS> &
+  Omit<CommandExecutionRequestedAction, 'type'> & {
+    response: AjaxServiceResponse;
+    callCountName: string;
+  };
 
-export interface CommandExecutionFailedAction
-  extends Action<typeof COMMAND_FAILED>,
-    Omit<CommandExecutionRequestedAction, 'type'> {
-  error: Error & { status?: any };
-}
+export type CommandExecutionFailedAction = Action<typeof COMMAND_FAILED> &
+  Omit<CommandExecutionRequestedAction, 'type'> & {
+    error: Error & { status?: any };
+  };
 
-export interface AuthenticateOptions {
+export type AuthenticateOptions = {
   username: string;
   password: string;
-}
+};
 
-export interface DataFetchSuccessHandler {
+export type DataFetchSuccessHandler = {
   (result: DataFetchSuccessAction, state: any): ActionsOrThunks | void;
-}
+};
 
-export interface DataFetchFailedHandler {
+export type DataFetchFailedHandler = {
   (result: DataFetchFailedAction, state: any): ActionsOrThunks | void;
-}
+};
 
-export interface DataFetchHandler {
+export type DataFetchHandler = {
   onSuccess?: DataFetchSuccessHandler;
   onFailed?: DataFetchFailedHandler;
-}
+};
 
 const dataFetchHandlers: { [key: string]: Array<DataFetchHandler> } = {};
 
-export interface DataFetchPostProcessor<T, S = any> {
-  (data: T[], state?: S): any;
-}
-
-type DataFetchQueryRoot<K extends string, T, A = any> = {
-  [k in K]: Partial<T> | [A, Partial<T>];
+export type DataFetchContext<
+  TKey extends string,
+  TSchema,
+  TArgs,
+  TStoreState
+> = {
+  _keyType: TKey;
+  _schemaType: TSchema;
+  _argsType: TArgs;
+  _storeStateType: TStoreState;
 };
 
-export interface DataFetchQueryNamedDefinition<K extends string, T, A = any> {
-  name?: string;
-  schema: DataFetchQueryRoot<K, T, A>;
-  postProcessor?: DataFetchPostProcessor<T>;
-}
+export type DataFetchContextAny = DataFetchContext<string, any, any, any>;
 
-export type DataFetchQueryDefinition<T, A = any, K extends string = string> =
-  | DataFetchQueryNamedDefinition<K, T, A>
-  | DataFetchQueryRoot<K, T, A>;
+export type DataFetchPostProcessor<
+  TDataFetchContext extends DataFetchContextAny
+> = {
+  (
+    data: TDataFetchContext['_schemaType'][],
+    state?: TDataFetchContext['_storeStateType']
+  ): any;
+};
 
-export interface DataFetchRequestBuilder<T, A = any, K extends string = string>
-  extends DataFetchRequestedAction {
-  fromQuery(
-    graphQueryDefinition: DataFetchQueryDefinition<T, A, K>
-  ): DataFetchRequestBuilder<T, A, K>;
+export type DataFetchQueryDefinition<
+  TDataFetchContext extends DataFetchContextAny = DataFetchContextAny
+> = Record<
+  TDataFetchContext['_keyType'],
+  {
+    args?: TDataFetchContext['_argsType'];
+    schema: Partial<TDataFetchContext['_schemaType']>;
+    postProcessor?: DataFetchPostProcessor<TDataFetchContext>;
+  }
+>;
 
-  fromStaticData(data: any): DataFetchRequestBuilder<T, A, K>;
+// DataFetchContext<TKey, TSchema, undefined, any>
 
-  fromUrl(url: string): DataFetchRequestBuilder<T, A, K>;
+export type DataFetchContextFromQuery<TType> = TType extends Record<
+  infer TKey,
+  infer TBody
+>
+  ? TKey extends string
+    ? TBody extends { args?: infer TArgs; schema: infer TSchema }
+      ? unknown extends TArgs
+        ? DataFetchContext<TKey, TSchema, undefined, any>
+        : DataFetchContext<TKey, TSchema, TArgs, any>
+      : never
+    : never
+  : never;
 
-  withName(name: string): DataFetchRequestBuilder<T, A, K>;
+type DataFetchContextWithResultType<
+  TDataFetchContext extends DataFetchContextAny,
+  TSchema
+> = DataFetchContext<
+  TDataFetchContext['_keyType'],
+  TSchema,
+  undefined,
+  TDataFetchContext['_storeStateType']
+>;
 
-  withTag(tag: string): DataFetchRequestBuilder<T, A, K>;
+type DataFetchRequestBuilderFromQueryReturnType<
+  TDataFetchQueryDefinition extends DataFetchQueryDefinition<DataFetchContextAny>
+> = DataFetchRequestBuilder<
+  DataFetchContextFromQuery<TDataFetchQueryDefinition>
+>;
+
+type DataFetchRequestBuilderFromStaticDataReturnType<
+  TDataFetchContext extends DataFetchContextAny,
+  TSchema
+> = DataFetchRequestBuilder<
+  DataFetchContextWithResultType<TDataFetchContext, TSchema>
+>;
+
+export interface DataFetchRequestBuilder<
+  TDataFetchContext extends DataFetchContextAny
+> extends DataFetchRequestedAction {
+  fromQuery<
+    TDataFetchQueryDefinition extends DataFetchQueryDefinition<
+      DataFetchContext<TDataFetchContext['_keyType'], any, any, any>
+    >
+  >(
+    graphQueryDefinition: TDataFetchQueryDefinition
+  ): DataFetchRequestBuilderFromQueryReturnType<TDataFetchQueryDefinition>;
+
+  // TODO - validate if the 'name' of the static data matches the key?
+  fromStaticData<TStaticDataType>(
+    data: TStaticDataType
+  ): DataFetchRequestBuilderFromStaticDataReturnType<
+    TDataFetchContext,
+    TStaticDataType
+  >;
+
+  fromUrl(url: string): DataFetchRequestBuilder<TDataFetchContext>;
+
+  withName(name: string): DataFetchRequestBuilder<TDataFetchContext>;
+
+  withTag(tag: string): DataFetchRequestBuilder<TDataFetchContext>;
 
   withPostProcessor(
-    postProcessor: DataFetchPostProcessor<T>
-  ): DataFetchRequestBuilder<T, A, K>;
+    postProcessor: DataFetchPostProcessor<TDataFetchContext>
+  ): DataFetchRequestBuilder<TDataFetchContext>;
 
-  onSuccess(handler: DataFetchSuccessHandler): DataFetchRequestBuilder<T, A, K>;
+  onSuccess(
+    handler: DataFetchSuccessHandler
+  ): DataFetchRequestBuilder<TDataFetchContext>;
 
-  onFailure(handler: DataFetchFailedHandler): DataFetchRequestBuilder<T, A, K>;
+  onFailure(
+    handler: DataFetchFailedHandler
+  ): DataFetchRequestBuilder<TDataFetchContext>;
 }
 
 function applyDataFetchPostProcessor(
@@ -228,22 +293,7 @@ function toBase64(value: string) {
   return btoa(value);
 }
 
-export type ActionTypes =
-  | AuthenticationFailedAction
-  | AuthenticationRequestedAction
-  | AuthenticationSuccessAction
-  | AuthorizationFailedAction
-  | CommandExecutionRequestedAction
-  | CommandExecutionSuccessAction
-  | CommandExecutionFailedAction
-  | DataFetchFailedAction
-  | DataFetchRequestedAction
-  | DataFetchSuccessAction
-  | SignoutRequestedAction
-  | SignoutSuccessAction
-  | InvalidatePrefetchCacheAction;
-
-export type ApiModuleState = {
+type ApiModuleState = {
   numCallsInProgress: number;
   callsInProgress: string[];
   callInProgress: boolean;
@@ -307,11 +357,21 @@ export const api = createModule('api', {
         key,
       };
     },
-    dataFetch<T, A = any, K extends string = string>(
-      name?: string
-    ): DataFetchRequestBuilder<T, A, K> {
+    dataFetch<
+      TSchema,
+      TArgs,
+      TKey extends string = undefined,
+      TDataFetchContext extends DataFetchContextAny = DataFetchContext<
+        TKey,
+        TSchema,
+        TArgs,
+        any
+      >
+    >(
+      name?: TKey
+    ): DataFetchRequestBuilder<DataFetchContext<TKey, TSchema, TArgs, any>> {
       const fetchId: string = generateDataFetchID();
-      const dataFetch: DataFetchRequestBuilder<T, A, K> = {
+      const dataFetch: DataFetchRequestBuilder<TDataFetchContext> = {
         type: DATA_FETCH_REQUESTED,
         dataFetchId: fetchId,
         graphQuery: undefined,
@@ -320,35 +380,38 @@ export const api = createModule('api', {
         queryResultName: name || fetchId,
         staticData: undefined,
         url: undefined,
-        fromQuery(
-          graphQueryDefinition: DataFetchQueryDefinition<T, A, K>
-        ): DataFetchRequestBuilder<T, A, K> {
-          const dataFetchQueryNamedDefinition: DataFetchQueryNamedDefinition<
-            K,
-            T,
-            A
-          > = graphQueryDefinition as DataFetchQueryNamedDefinition<K, T, A>;
-          dataFetch.graphQuery = dataFetchQueryNamedDefinition.schema
-            ? dataFetchQueryNamedDefinition.schema
-            : graphQueryDefinition;
+        fromQuery<
+          TDataFetchQueryDefinition extends DataFetchQueryDefinition<
+            DataFetchContext<TDataFetchContext['_keyType'], any, any, any>
+          >
+        >(
+          graphQueryDefinition: TDataFetchQueryDefinition
+        ): DataFetchRequestBuilderFromQueryReturnType<TDataFetchQueryDefinition> {
+          const queryKey = Object.keys(graphQueryDefinition)[0];
+          const queryBody = graphQueryDefinition[queryKey];
+          dataFetch.graphQuery = graphQueryDefinition;
           dataFetch.postProcessor =
-            dataFetchQueryNamedDefinition.postProcessor as DataFetchPostProcessor<any>;
-          dataFetch.queryResultName = Object.keys(dataFetch.graphQuery)[0];
-          dataFetch.queryName = (dataFetchQueryNamedDefinition.name ||
-            dataFetch.queryResultName) as string;
-          return dataFetch;
+            queryBody.postProcessor as DataFetchPostProcessor<any>;
+          dataFetch.queryResultName = queryKey;
+          dataFetch.queryName = dataFetch.queryResultName;
+          return dataFetch as any;
         },
-        fromStaticData(data: any): DataFetchRequestBuilder<T, A, K> {
+        fromStaticData<TStaticDataType>(
+          data: TStaticDataType
+        ): DataFetchRequestBuilderFromStaticDataReturnType<
+          TDataFetchContext,
+          TStaticDataType
+        > {
           dataFetch.staticData = data;
-          return dataFetch;
+          return dataFetch as any;
         },
-        fromUrl(url: string): DataFetchRequestBuilder<T, A, K> {
+        fromUrl(url: string): DataFetchRequestBuilder<TDataFetchContext> {
           dataFetch.url = url;
           return dataFetch;
         },
         onFailure(
           handler: DataFetchFailedHandler
-        ): DataFetchRequestBuilder<T, A, K> {
+        ): DataFetchRequestBuilder<TDataFetchContext> {
           dataFetchHandlers[dataFetch.dataFetchId] =
             dataFetchHandlers[dataFetch.dataFetchId] || [];
           dataFetchHandlers[dataFetch.dataFetchId].push({ onFailed: handler });
@@ -356,28 +419,28 @@ export const api = createModule('api', {
         },
         onSuccess(
           handler: DataFetchSuccessHandler
-        ): DataFetchRequestBuilder<T, A, K> {
+        ): DataFetchRequestBuilder<TDataFetchContext> {
           dataFetchHandlers[dataFetch.dataFetchId] =
             dataFetchHandlers[dataFetch.dataFetchId] || [];
           dataFetchHandlers[dataFetch.dataFetchId].push({ onSuccess: handler });
           return dataFetch;
         },
-        withName(name: string): DataFetchRequestBuilder<T, A, K> {
+        withName(name: string): DataFetchRequestBuilder<TDataFetchContext> {
           dataFetch.queryName = name;
           return dataFetch;
         },
-        withTag(tag: string): DataFetchRequestBuilder<T, A, K> {
+        withTag(tag: string): DataFetchRequestBuilder<TDataFetchContext> {
           dataFetch.tag = tag;
           return dataFetch;
         },
         withPostProcessor(
-          postProcessor: DataFetchPostProcessor<T>
-        ): DataFetchRequestBuilder<T, A, K> {
+          postProcessor: DataFetchPostProcessor<TDataFetchContext>
+        ): DataFetchRequestBuilder<TDataFetchContext> {
           dataFetch.postProcessor = postProcessor;
           return dataFetch;
         },
       };
-      return dataFetch;
+      return dataFetch as any;
     },
     dataFetchSuccess({
       dataFetchId,
@@ -444,7 +507,7 @@ export const api = createModule('api', {
     },
   },
 })
-  .reduce((state: ApiModuleState, action: ActionTypes) => {
+  .reduce((state: ApiModuleState, action) => {
     if (isAction(action, '@API/*_REQUESTED')) {
       const fetching = {
         fetching: {
@@ -526,7 +589,7 @@ export const api = createModule('api', {
     prefetched: {},
     usePrefetchedAlways: false,
   })
-  .on((store) => (next) => (action: ActionTypes) => {
+  .on((store) => (next) => (action) => {
     if (AUTHENTICATE_REQUESTED === action.type) {
       next(action);
       const headers: { [key: string]: string } = {};
@@ -805,40 +868,44 @@ const doWithPrefetchCheck = (
   return fetchAction;
 };
 
-export const createGraphQuery = (query) => {
-  let obj = query;
-  query = '{ graph ';
-  const print = (obj) => {
-    if (!obj) {
-      return;
+export const createGraphQuery = (query: DataFetchQueryDefinition) => {
+  const printVal = (obj: any, forSchema: boolean): string => {
+    if (obj && typeof obj === 'object') {
+      const keys = Object.keys(obj);
+      let b = '{';
+      if (keys.length > 0) {
+        b += ` ${keys
+          .map((key) => {
+            if (forSchema && typeof obj[key] !== 'object') {
+              return key;
+            }
+            return `${key}: ${printVal(obj[key], forSchema)}`;
+          })
+          .join(', ')} `;
+      }
+      b += '}';
+      return b;
     }
-    if (obj.constructor === Array) {
-      query += '(';
-      query += Object.keys(obj[0])
-        .map((key) => [key, obj[0][key]])
-        .filter((pair) => pair[1])
-        .map((pair) => {
-          let value = pair[1];
-          if (typeof value === 'string') {
-            value = '\\"' + value + '\\"';
-          }
-          return pair[0] + ': ' + value;
-        })
-        .join(', ');
-      query += ') ';
-      print(obj[1]);
-    } else if (typeof obj === 'object') {
-      query += '{ ';
-      Object.keys(obj).forEach((key) => {
-        query += key + ' ';
-        print(obj[key]);
-      });
-      query += '} ';
+    if (forSchema) {
+      return '';
     }
+    if (typeof obj === 'string') {
+      return `\\"${obj}\\"`;
+    }
+    return obj;
   };
-  print(obj);
-  query += '}';
-  return query;
+  const resultKey = Object.keys(query)[0];
+  const { args, schema } = query[resultKey];
+  let gql = `{ graph { ${resultKey} `;
+  if (args) {
+    gql += `(${Object.keys(args)
+      .filter((argName) => args[argName])
+      .map((argName) => `${argName}: ${printVal(args[argName], false)}`)
+      .join(', ')}) `;
+  }
+  gql += printVal(schema || {}, true);
+  gql += ' } }';
+  return gql;
 };
 
 export const commandResponseHandler = (

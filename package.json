@@ -6,7 +6,7 @@
   "main": "src/main.js",
   "scripts": {
     "build": "build-tools-build-lib",
-    "start": "PORT=9999 INLINE_STYLE=true NO_SERVER=true build-tools devserver --entry-main ./src/demo",
+    "serve": "PORT=9999 INLINE_STYLE=true NO_SERVER=true build-tools devserver --entry-main ./src/demo",
     "test": "NO_SERVER=true build-tools test --coverage",
     "test:watch": "NO_SERVER=true build-tools test --watch",
     "prepublishOnly": "npm run build"

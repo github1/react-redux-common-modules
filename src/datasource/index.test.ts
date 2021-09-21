@@ -1,13 +1,6 @@
 import { datasource, sortFunc } from './index';
-const {
-  destroyDataSource,
-  filterDataSource,
-  initDataSource,
-  mapDataSource,
-  sortDataSource,
-  updateDataSource,
-} = datasource.actions;
 import { createModule } from '@github1/redux-modules';
+import { expectType } from 'ts-expect';
 
 const fakeDataModule = createModule('someData').preloadedState({
   value: [
@@ -21,8 +14,40 @@ const fakeDataModule = createModule('someData').preloadedState({
 });
 
 describe('datasource', () => {
+  describe('it can be defined with typed data', () => {
+    const store = datasource<{
+      foo: {
+        something: string;
+      };
+      bar: {
+        somethingElse: number;
+      };
+    }>().asStore();
+    store.dispatch(
+      store.actions.datasource.initDataSource({
+        id: 'foo',
+        sortField: 'something',
+        source: [{ something: 'abc' }],
+      })
+    );
+    const state = store.getState();
+    store.dispatch(
+      store.actions.datasource.mapDataSource('bar', (item) => {
+        expectType<typeof item>({ somethingElse: 123 });
+        return item;
+      })
+    );
+    store.dispatch(
+      store.actions.datasource.sortDataSource({
+        id: 'bar',
+        sortField: 'somethingElse',
+      })
+    );
+    expectType<typeof state.datasource.foo.data[0]>({ something: 'abc' });
+    expectType<typeof state.datasource.bar.data[0]>({ somethingElse: 123 });
+  });
   describe('when it is initialized with an array', () => {
-    const store = datasource
+    const store = datasource<{ someDataSource: { id: string } }>()
       .with(fakeDataModule)
       .asStore({ deferred: true, record: true, enforceImmutableState: true });
     let sourceData: { id: string }[];
@@ -30,7 +55,7 @@ describe('datasource', () => {
       sourceData = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
       store.reload();
       store.dispatch(
-        initDataSource({
+        store.actions.datasource.initDataSource({
           id: 'someDataSource',
           source: sourceData,
         })
@@ -39,7 +64,7 @@ describe('datasource', () => {
     describe('when it is sorted', () => {
       it('has a sort independent from the source data', () => {
         store.dispatch(
-          sortDataSource({
+          store.actions.datasource.sortDataSource({
             id: 'someDataSource',
             sortField: 'id',
             sortDirection: 'desc',
@@ -57,7 +82,7 @@ describe('datasource', () => {
       it('keeps the original sort', () => {
         const updateData = [{ id: 'a' }, { id: 'b' }];
         store.dispatch(
-          updateDataSource({
+          store.actions.datasource.updateDataSource({
             id: 'someDataSource',
             source: updateData,
           })
@@ -67,13 +92,13 @@ describe('datasource', () => {
     });
   });
   describe('when it is initialized with a key', () => {
-    const store = datasource
+    const store = datasource<{ someDataSource: { id: string; name: string } }>()
       .with(fakeDataModule)
       .asStore({ deferred: true, record: true, enforceImmutableState: true });
     beforeEach(() => {
       store.reload();
       store.dispatch(
-        initDataSource({
+        store.actions.datasource.initDataSource({
           id: 'someDataSource',
           source: 'someData.value',
         })
@@ -85,7 +110,7 @@ describe('datasource', () => {
     describe('when it is sorted', () => {
       it('has a sort independent from the source data', () => {
         store.dispatch(
-          sortDataSource({
+          store.actions.datasource.sortDataSource({
             id: 'someDataSource',
             sortField: 'id',
             sortDirection: 'desc',
@@ -103,13 +128,13 @@ describe('datasource', () => {
     });
   });
   describe('when it is initialized with sort', () => {
-    const store = datasource
+    const store = datasource<{ someDataSource: { id: string; name: string } }>()
       .with(fakeDataModule)
       .asStore({ deferred: true, record: true, enforceImmutableState: true });
     beforeEach(() => {
       store.reload();
       store.dispatch(
-        initDataSource({
+        store.actions.datasource.initDataSource({
           id: 'someDataSource',
           source: 'someData.value',
           sortField: 'id',
@@ -126,13 +151,18 @@ describe('datasource', () => {
     });
   });
   describe('when it is initialized with filters', () => {
-    const store = datasource
+    const store = datasource<{
+      initWithFiltersDataSource: {
+        field1: string;
+        field2: { subField: string };
+      };
+    }>()
       .with(fakeDataModule)
       .asStore({ deferred: true, record: true, enforceImmutableState: true });
     beforeEach(() => {
       store.reload();
       store.dispatch(
-        initDataSource({
+        store.actions.datasource.initDataSource({
           id: 'initWithFiltersDataSource',
           source: [
             { field1: 'd', field2: { subField: 'b' } },
@@ -158,11 +188,13 @@ describe('datasource', () => {
   });
   describe('destruction', () => {
     it('can destroy datasources', () => {
-      const store = datasource
+      const store = datasource<{
+        destroyedDataSource: { field1: string; field2: string };
+      }>()
         .with(fakeDataModule)
         .asStore({ deferred: true, record: true, enforceImmutableState: true });
       store.dispatch(
-        initDataSource({
+        store.actions.datasource.initDataSource({
           id: 'destroyedDataSource',
           source: [
             { field1: 'd', field2: 'b' },
@@ -173,15 +205,28 @@ describe('datasource', () => {
       expect(
         store.getState().datasource.destroyedDataSource.data[0].field1
       ).toBe('d');
-      store.dispatch(destroyDataSource());
+      store.dispatch(store.actions.datasource.destroyDataSource());
       expect(store.getState().datasource.destroyedDataSource).not.toBeDefined();
     });
   });
   describe('filtering', () => {
-    const store = datasource
+    const store = datasource<{
+      someDataSource: { search_value: string };
+      fieldFilterDataSource: { field1: string; field2: string };
+      nestedFieldFilterDataSource: {
+        field1: string;
+        field2: { subField: string };
+      };
+      equalsOperatorFilterDataSource: { search_value: string };
+      softFilterDataSource: {
+        search_value: string;
+        other_value: string;
+        __exclude?: boolean;
+      };
+    }>()
       .with(fakeDataModule)
       .asStore({ deferred: true, record: true, enforceImmutableState: true });
-    let sourceData;
+    let sourceData: { search_value: string }[];
     beforeEach(() => {
       store.reload();
       sourceData = [
@@ -190,7 +235,7 @@ describe('datasource', () => {
         { search_value: 'charlie' },
       ];
       store.dispatch(
-        initDataSource({
+        store.actions.datasource.initDataSource({
           id: 'someDataSource',
           source: sourceData,
         })
@@ -203,7 +248,7 @@ describe('datasource', () => {
     });
     it('can filter the values', () => {
       store.dispatch(
-        filterDataSource({
+        store.actions.datasource.filterDataSource({
           id: 'someDataSource',
           textFilter: 'r',
         })
@@ -214,7 +259,7 @@ describe('datasource', () => {
     });
     it('can filter on a field', () => {
       store.dispatch(
-        initDataSource({
+        store.actions.datasource.initDataSource({
           id: 'fieldFilterDataSource',
           source: [
             { field1: 'd', field2: 'b' },
@@ -223,7 +268,7 @@ describe('datasource', () => {
         })
       );
       store.dispatch(
-        filterDataSource({
+        store.actions.datasource.filterDataSource({
           id: 'fieldFilterDataSource',
           field: 'field2',
           textFilter: 'd',
@@ -235,7 +280,7 @@ describe('datasource', () => {
     });
     it('can filter on a nested field', () => {
       store.dispatch(
-        initDataSource({
+        store.actions.datasource.initDataSource({
           id: 'nestedFieldFilterDataSource',
           source: [
             { field1: 'd', field2: { subField: 'b' } },
@@ -247,7 +292,7 @@ describe('datasource', () => {
         })
       );
       store.dispatch(
-        filterDataSource({
+        store.actions.datasource.filterDataSource({
           id: 'nestedFieldFilterDataSource',
           field: 'field2.subField',
           textFilter: 'd',
@@ -260,7 +305,7 @@ describe('datasource', () => {
     });
     it('can filter with equals operator', () => {
       store.dispatch(
-        initDataSource({
+        store.actions.datasource.initDataSource({
           id: 'equalsOperatorFilterDataSource',
           source: [
             { search_value: 'alpha31' },
@@ -270,7 +315,7 @@ describe('datasource', () => {
         })
       );
       store.dispatch(
-        filterDataSource({
+        store.actions.datasource.filterDataSource({
           id: 'equalsOperatorFilterDataSource',
           textFilter: 'alpha3',
           operator: 'equals',
@@ -283,7 +328,7 @@ describe('datasource', () => {
     });
     it('can filter with a function', () => {
       store.dispatch(
-        initDataSource({
+        store.actions.datasource.initDataSource({
           id: 'equalsOperatorFilterDataSource',
           source: [
             { search_value: 'alpha31' },
@@ -293,7 +338,7 @@ describe('datasource', () => {
         })
       );
       store.dispatch(
-        filterDataSource({
+        store.actions.datasource.filterDataSource({
           id: 'equalsOperatorFilterDataSource',
           textFilter: (item) => /([0-9]+)/.exec(item.search_value)[1] === '3',
         })
@@ -305,7 +350,7 @@ describe('datasource', () => {
     });
     it('can perform a "soft" filter', () => {
       store.dispatch(
-        initDataSource({
+        store.actions.datasource.initDataSource({
           id: 'softFilterDataSource',
           source: [
             {
@@ -321,14 +366,14 @@ describe('datasource', () => {
         })
       );
       store.dispatch(
-        filterDataSource({
+        store.actions.datasource.filterDataSource({
           id: 'softFilterDataSource',
           textFilter: 'alpha',
           softFilter: true,
         })
       );
       store.dispatch(
-        filterDataSource({
+        store.actions.datasource.filterDataSource({
           id: 'softFilterDataSource',
           field: 'other_value',
           textFilter: '32',
@@ -342,7 +387,7 @@ describe('datasource', () => {
         store.getState().datasource.softFilterDataSource.data[0].__exclude
       ).toBe(true);
       store.dispatch(
-        filterDataSource({
+        store.actions.datasource.filterDataSource({
           id: 'softFilterDataSource',
           textFilter: '',
           softFilter: true,
@@ -353,7 +398,7 @@ describe('datasource', () => {
         store.getState().datasource.softFilterDataSource.data[0].__exclude
       ).toBe(true);
       store.dispatch(
-        filterDataSource({
+        store.actions.datasource.filterDataSource({
           id: 'softFilterDataSource',
           field: 'other_value',
           textFilter: '',
@@ -366,7 +411,7 @@ describe('datasource', () => {
     });
   });
   describe('filtering and sorting behavior', () => {
-    const store = datasource
+    const store = datasource<{ someDataSource: { search_value: string } }>()
       .with(fakeDataModule)
       .asStore({ deferred: true, record: true, enforceImmutableState: true });
     let sourceData;
@@ -378,7 +423,7 @@ describe('datasource', () => {
         { search_value: 'charlie' },
       ];
       store.dispatch(
-        initDataSource({
+        store.actions.datasource.initDataSource({
           id: 'someDataSource',
           source: sourceData,
         })
@@ -386,14 +431,14 @@ describe('datasource', () => {
     });
     it('it retains the sort when filtering', () => {
       store.dispatch(
-        sortDataSource({
+        store.actions.datasource.sortDataSource({
           id: 'someDataSource',
           sortField: 'search_value',
           sortDirection: 'desc',
         })
       );
       store.dispatch(
-        filterDataSource({
+        store.actions.datasource.filterDataSource({
           id: 'someDataSource',
           textFilter: 'alpha',
         })
@@ -402,7 +447,7 @@ describe('datasource', () => {
         store.getState().datasource.someDataSource.data[0].search_value
       ).toBe('alpha');
       store.dispatch(
-        filterDataSource({
+        store.actions.datasource.filterDataSource({
           id: 'someDataSource',
           textFilter: '',
         })
@@ -413,13 +458,15 @@ describe('datasource', () => {
     });
   });
   describe('updateDataSource', () => {
-    const store = datasource
+    const store = datasource<{
+      someDataSource: { id: string; value: number };
+    }>()
       .with(fakeDataModule)
       .asStore({ deferred: true, record: true, enforceImmutableState: true });
     beforeEach(() => {
       store.reload();
       store.dispatch(
-        initDataSource({
+        store.actions.datasource.initDataSource({
           id: 'someDataSource',
           source: [
             { value: 1, id: 'a' },
@@ -431,14 +478,14 @@ describe('datasource', () => {
     });
     it('can update the data source without sorting', () => {
       store.dispatch(
-        sortDataSource({
+        store.actions.datasource.sortDataSource({
           id: 'someDataSource',
           sortField: 'value',
           sortDirection: 'asc',
         })
       );
       store.dispatch(
-        updateDataSource({
+        store.actions.datasource.updateDataSource({
           id: 'someDataSource',
           source: [
             { value: 999, id: 'a' },
@@ -460,7 +507,7 @@ describe('datasource', () => {
       expect(initTime).toBeGreaterThan(0);
       await delay(1);
       store.dispatch(
-        updateDataSource({
+        store.actions.datasource.updateDataSource({
           id: 'someDataSource',
           source: [],
         })
@@ -474,7 +521,7 @@ describe('datasource', () => {
     });
     it('can update the data source without filter', () => {
       store.dispatch(
-        filterDataSource({
+        store.actions.datasource.filterDataSource({
           id: 'someDataSource',
           field: 'id',
           textFilter: 'a',
@@ -482,7 +529,7 @@ describe('datasource', () => {
       );
       expect(store.getState().datasource.someDataSource.data[0].id).toBe('a');
       store.dispatch(
-        updateDataSource({
+        store.actions.datasource.updateDataSource({
           id: 'someDataSource',
           source: [{ value: 1, id: 'b' }],
           filter: false,
@@ -492,7 +539,7 @@ describe('datasource', () => {
     });
     it('can update the source and data', () => {
       store.dispatch(
-        updateDataSource({
+        store.actions.datasource.updateDataSource({
           id: 'someDataSource',
           data: [{ value: 1, id: 'a' }],
         })
@@ -501,10 +548,12 @@ describe('datasource', () => {
     });
   });
   describe('mapDataSource', () => {
-    const store = datasource
+    const store = datasource<{
+      someDataSource: { id: string; value: number; prop?: string };
+    }>()
       .with(fakeDataModule)
       .asStore({ deferred: true, record: true, enforceImmutableState: true });
-    let sourceData;
+    let sourceData: any[];
     beforeEach(() => {
       store.reload();
       sourceData = [
@@ -517,7 +566,7 @@ describe('datasource', () => {
         { value: 3, id: 'c', prop: 'keep' },
       ];
       store.dispatch(
-        initDataSource({
+        store.actions.datasource.initDataSource({
           id: 'someDataSource',
           source: sourceData,
         })
@@ -525,7 +574,7 @@ describe('datasource', () => {
     });
     it('update records in the data source', () => {
       store.dispatch(
-        mapDataSource('someDataSource', (record) => {
+        store.actions.datasource.mapDataSource('someDataSource', (record) => {
           record.value++;
           return record;
         })
@@ -534,14 +583,14 @@ describe('datasource', () => {
     });
     it('can map over data without re-sorting', () => {
       store.dispatch(
-        sortDataSource({
+        store.actions.datasource.sortDataSource({
           id: 'someDataSource',
           sortField: 'value',
           sortDirection: 'desc',
         })
       );
       store.dispatch(
-        filterDataSource({
+        store.actions.datasource.filterDataSource({
           id: 'someDataSource',
           textFilter: 'keep',
           field: 'prop',
@@ -549,7 +598,7 @@ describe('datasource', () => {
       );
       expect(store.getState().datasource.someDataSource.data[0].id).toBe('c');
       store.dispatch(
-        mapDataSource('someDataSource', (record) => {
+        store.actions.datasource.mapDataSource('someDataSource', (record) => {
           if (record.value === 3) {
             record.value = -1;
           }
@@ -576,5 +625,5 @@ describe('datasource', () => {
   });
 });
 
-const delay = (ms) =>
+const delay = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(() => resolve(), ms));
