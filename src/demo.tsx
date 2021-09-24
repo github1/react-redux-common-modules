@@ -31,11 +31,6 @@ type GroupedDataRecord = {
   children: DataRecord[];
 };
 
-const appDataSource = datasource<{
-  records: DataRecord;
-  groupedRecords: GroupedDataRecord;
-}>();
-
 const demo = createModule('demo', {
   actionCreators: {
     loadData(filter?: string): { type: 'LOAD_DATA'; filter: string } {
@@ -44,7 +39,12 @@ const demo = createModule('demo', {
   },
 })
   .with(alerts)
-  .with(appDataSource)
+  .with(
+    datasource<{
+      records: DataRecord;
+      groupedRecords: GroupedDataRecord;
+    }>()
+  )
   .with(api)
   .intercept((action, { actions, state }) => {
     if (action.type === 'LOAD_DATA') {
@@ -127,9 +127,6 @@ store.dispatch(
 const root: HTMLDivElement = document.createElement('div');
 document.body.appendChild(root);
 
-// TODO provide a way to get a typed module reference like:
-// store.module.datasource
-
 const handleInputChange = (evt: ChangeEvent<HTMLInputElement>) => {
   console.log(evt.target.value);
   store.dispatch(store.actions.demo.loadData(evt.target.value));
@@ -138,7 +135,7 @@ const handleInputChange = (evt: ChangeEvent<HTMLInputElement>) => {
 store.dispatch(store.actions.demo.loadData());
 
 const DataRecordTable = connectModule(
-  appDataSource,
+  store.module.modules.datasource,
   ({ records, sortDataSource }) => {
     if (!records) {
       return <div></div>;
@@ -211,7 +208,7 @@ const DataRecordTable = connectModule(
 );
 
 const GroupedDataRecordTable = connectModule(
-  appDataSource,
+  store.module.modules.datasource,
   ({ groupedRecords }) => {
     if (!groupedRecords) {
       return <div></div>;

@@ -1,6 +1,6 @@
 import {
   ReduxModule,
-  ReduxModuleAny,
+  ReduxModuleTypeContainerAny,
   ReduxModuleMayRequireInitialization,
   ReduxModuleTypeContainer,
 } from '@github1/redux-modules';
@@ -60,7 +60,7 @@ type AllTypesWithName<
   N extends string,
   T extends AllTypes
 > = T extends ReduxModule<infer TReduxModuleTypeContainer>
-  ? TReduxModuleTypeContainer extends ReduxModuleAny
+  ? TReduxModuleTypeContainer extends ReduxModuleTypeContainerAny
     ? N extends TReduxModuleTypeContainer['_nameType']
       ? T
       : never
@@ -72,7 +72,7 @@ type ModuleInitializerPropsTypeOfTypes<T extends AllTypes> =
 
 type StoreStateOfTypes<T extends AllTypes> = UnionToIntersection<
   T extends ReduxModule<infer TReduxModuleTypeContainer>
-    ? TReduxModuleTypeContainer extends ReduxModuleAny
+    ? TReduxModuleTypeContainer extends ReduxModuleTypeContainerAny
       ? unknown extends TReduxModuleTypeContainer['_storeStateType']
         ? never
         : TReduxModuleTypeContainer['_storeStateType']
@@ -84,10 +84,7 @@ export function commonModules<
   TName extends AllTypes['_types']['_nameType'],
   TTypes extends AllTypes = AllTypesWithName<TName, AllTypes>,
   TStoreState = StoreStateOfTypes<TTypes>,
-  TInitializerPropsType = ModuleInitializerPropsTypeOfTypes<TTypes>,
-  TInitializer extends (props: any) => any = (
-    props: TInitializerPropsType
-  ) => TInitializerPropsType
+  TInitializerPropsType = ModuleInitializerPropsTypeOfTypes<TTypes>
 >(
   ...name: TName[]
 ): ReduxModuleMayRequireInitialization<
@@ -96,8 +93,7 @@ export function commonModules<
     {},
     TTypes['_types']['_actionType'],
     {},
-    TInitializer,
-    TStoreState
+    TInitializerPropsType
   >
 > {
   return name

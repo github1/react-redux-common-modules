@@ -1,29 +1,18 @@
-import { ReduxModuleAny, ReduxModule } from '@github1/redux-modules';
+import {
+  ReduxModuleTypeContainerAny,
+  ReduxModule,
+} from '@github1/redux-modules';
 import { ComponentType } from 'react';
 import { bindActionCreators, Store } from 'redux';
-import {
-  connect,
-  Connect,
-  ConnectedComponent,
-  MapStateToProps,
-} from 'react-redux';
+import { connect, ConnectedComponent, MapStateToProps } from 'react-redux';
 
-export interface ConnectModuleOptions<TMapStateToProps = undefined> {
-  connect?: Connect;
+export type ConnectModuleOptions<TMapStateToProps = undefined> = {
   mapStateToProps: TMapStateToProps;
-}
+};
 
-// <TPath extends string, TState, TAction extends Action | unknown, TActionCreators, TInitializer extends ModuleInitializer<any>, TStoreState = StoreStateAtPath<TState, TPath>>
-
-// TMapDispatchToProps extends MapDispatchToProps<TActions, TOwnProps> = MapDispatchToProps<TActions, TOwnProps>,
-
-// <IMapStateToProps, IMapDispatchToProps, IOwnProps, IReduxState>
-
-// ConnectedComponent<C, DistributiveOmit<GetLibraryManagedProps<C>, keyof Shared<TInjectedProps, GetLibraryManagedProps<C>>> & TNeedsProps>
-
-type ActionCreatorsBound<TActionCreators> = TActionCreators extends {
-  [k: string]: (...args: any[]) => any;
-}
+type ActionCreatorsBound<TActionCreators> = TActionCreators extends undefined
+  ? {}
+  : TActionCreators extends Record<string, (...args: any[]) => any>
   ? {
       [k in keyof TActionCreators]: (
         ...args: Parameters<TActionCreators[k]>
@@ -31,15 +20,20 @@ type ActionCreatorsBound<TActionCreators> = TActionCreators extends {
     }
   : {};
 
-type ReduxModuleState<TReduxModule extends ReduxModule<ReduxModuleAny>> =
-  TReduxModule extends ReduxModule<infer TReduxModule>
-    ? TReduxModule['_stateType']
-    : {};
+type ReduxModuleState<
+  TReduxModuleTypeContainer extends ReduxModule<ReduxModuleTypeContainerAny>
+> = TReduxModuleTypeContainer extends ReduxModule<
+  infer TReduxModuleTypeContainer
+>
+  ? TReduxModuleTypeContainer['_stateType']
+  : {};
 
 type ReduxModuleActionCreators<
-  TReduxModule extends ReduxModule<ReduxModuleAny>
-> = TReduxModule extends ReduxModule<infer TReduxModule>
-  ? TReduxModule['_actionCreatorType']
+  TReduxModuleTypeContainer extends ReduxModule<ReduxModuleTypeContainerAny>
+> = TReduxModuleTypeContainer extends ReduxModule<
+  infer TReduxModuleTypeContainer
+>
+  ? TReduxModuleTypeContainer['_actionCreatorType']
   : {};
 
 type ComponentState<TComponentType> = TComponentType extends ComponentType<
@@ -49,12 +43,12 @@ type ComponentState<TComponentType> = TComponentType extends ComponentType<
   : {};
 
 type ComponentTypeConformingToReduxModule<
-  TReduxModule extends ReduxModule<ReduxModuleAny>,
+  TReduxModuleTypeContainer extends ReduxModule<ReduxModuleTypeContainerAny>,
   TComponentOwnProps = {}
 > = ComponentType<
-  ReduxModuleState<TReduxModule> &
+  ReduxModuleState<TReduxModuleTypeContainer> &
     TComponentOwnProps &
-    ActionCreatorsBound<ReduxModuleActionCreators<TReduxModule>>
+    ActionCreatorsBound<ReduxModuleActionCreators<TReduxModuleTypeContainer>>
 >;
 
 type ReduxModuleConnectedComponent<TState, TActionCreators> =
@@ -63,44 +57,59 @@ type ReduxModuleConnectedComponent<TState, TActionCreators> =
     Partial<TState & TActionCreators & { store: Store }>
   >;
 
+export function connectModule(
+  module: any,
+  component: () => JSX.Element
+): ReduxModuleConnectedComponent<unknown, unknown>;
 export function connectModule<
   TComponentOwnProps,
-  TReduxModule extends ReduxModule<ReduxModuleAny>,
+  TReduxModuleTypeContainer extends ReduxModule<ReduxModuleTypeContainerAny>,
   TComponentType extends ComponentTypeConformingToReduxModule<
-    TReduxModule,
+    TReduxModuleTypeContainer,
     TComponentOwnProps
-  > = ComponentTypeConformingToReduxModule<TReduxModule, TComponentOwnProps>
+  > = ComponentTypeConformingToReduxModule<
+    TReduxModuleTypeContainer,
+    TComponentOwnProps
+  >
 >(
-  module: TReduxModule,
-  component: TComponentType,
-  opts?: Omit<ConnectModuleOptions, 'mapStateToProps'>
+  module: TReduxModuleTypeContainer,
+  component: TComponentType
 ): ReduxModuleConnectedComponent<
-  ReduxModuleState<TReduxModule> & TComponentOwnProps,
-  ActionCreatorsBound<ReduxModuleActionCreators<TReduxModule>>
+  ReduxModuleState<TReduxModuleTypeContainer> & TComponentOwnProps,
+  ActionCreatorsBound<ReduxModuleActionCreators<TReduxModuleTypeContainer>>
 >;
 export function connectModule<
   TComponent extends ComponentType<any>,
-  TReduxModule extends ReduxModule<ReduxModuleAny>,
+  TReduxModuleTypeContainer extends ReduxModule<ReduxModuleTypeContainerAny>,
   TMapStateToProps extends MapStateToProps<
     TComponent extends ComponentType<infer TOwnProps> ? TOwnProps : never,
     TComponent extends ComponentType<infer TOwnProps> ? TOwnProps : never,
-    TReduxModule extends ReduxModule<infer TReduxModule>
-      ? TReduxModule['_storeStateType']
+    TReduxModuleTypeContainer extends ReduxModule<
+      infer TReduxModuleTypeContainer
+    >
+      ? TReduxModuleTypeContainer['_storeStateType']
       : never
   >,
   TConnectModuleOptions extends ConnectModuleOptions<TMapStateToProps>
 >(
-  module: TReduxModule,
-  component: TComponent,
-  opts: TConnectModuleOptions
+  module: TReduxModuleTypeContainer,
+  opts: TConnectModuleOptions,
+  component: TComponent
 ): ReduxModuleConnectedComponent<ComponentState<TComponent>, {}>;
 export function connectModule(
-  module: ReduxModule<ReduxModuleAny>,
-  component: ComponentType,
-  opts: any
+  module: ReduxModule<ReduxModuleTypeContainerAny>,
+  componentOrOpts: ComponentType | Partial<ConnectModuleOptions>,
+  component?: ComponentType
 ) {
-  const reduxConnect: Connect = opts?.connect || connect;
-  const enhancer = reduxConnect(
+  const opts: Partial<ConnectModuleOptions> = isConnectModuleOptions(
+    componentOrOpts
+  )
+    ? componentOrOpts
+    : {};
+  component = isConnectModuleOptions(componentOrOpts)
+    ? component
+    : componentOrOpts;
+  const enhancer = connect(
     opts?.mapStateToProps ||
       ((state: any, ownProps: any) => {
         let keys: string[] = [...module.path];
@@ -109,8 +118,13 @@ export function connectModule(
         }
         return { ...state, ...module.actions, ...ownProps };
       }),
-    (dispatch) =>
-      bindActionCreators(opts?.actions || module.actions || {}, dispatch)
+    (dispatch) => bindActionCreators(module.actions || {}, dispatch)
   );
   return enhancer(component);
+}
+
+function isConnectModuleOptions(
+  maybeOpts: any
+): maybeOpts is Partial<ConnectModuleOptions> {
+  return maybeOpts.connect || maybeOpts.mapStateToProps;
 }
