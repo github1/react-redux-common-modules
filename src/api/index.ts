@@ -9,6 +9,7 @@ import {
   APPLICATION_JSON,
   TEXT_PLAIN,
 } from '../ajax';
+import { GetElementType, MustOnlyHaveKeys } from '../type-helpers/utils';
 
 const { get, del, post } = ajax.actions;
 
@@ -79,11 +80,13 @@ export type DataFetchRequestedAction = Action<typeof DATA_FETCH_REQUESTED> & {
   postProcessor?: (data: any, state?: any) => any;
 };
 
-export type DataFetchSuccessAction = Action<typeof DATA_FETCH_SUCCESS> & {
+export type DataFetchSuccessAction<TResultType = any> = Action<
+  typeof DATA_FETCH_SUCCESS
+> & {
   dataFetchId: string;
   queryName: string;
   queryResultName: string;
-  data: any;
+  data: TResultType;
 };
 
 export type DataFetchFailedAction = Action<typeof DATA_FETCH_FAILED> & {
@@ -135,42 +138,40 @@ export type AuthenticateOptions = {
   password: string;
 };
 
-export type DataFetchSuccessHandler = {
-  (result: DataFetchSuccessAction, state: any): ActionsOrThunks | void;
+export type DataFetchSuccessHandler<
+  TDataFetchContext extends DataFetchContextAny = DataFetchContextAny
+> = {
+  (
+    result: DataFetchSuccessAction<TDataFetchContext['_schemaType']>,
+    state: any
+  ): ActionsOrThunks | void;
 };
 
 export type DataFetchFailedHandler = {
   (result: DataFetchFailedAction, state: any): ActionsOrThunks | void;
 };
 
-export type DataFetchHandler = {
-  onSuccess?: DataFetchSuccessHandler;
+export type DataFetchHandler<
+  TDataFetchContext extends DataFetchContextAny = DataFetchContextAny
+> = {
+  onSuccess?: DataFetchSuccessHandler<TDataFetchContext>;
   onFailed?: DataFetchFailedHandler;
 };
 
-const dataFetchHandlers: { [key: string]: Array<DataFetchHandler> } = {};
+const dataFetchHandlers: Record<string, DataFetchHandler[]> = {};
 
-export type DataFetchContext<
-  TKey extends string,
-  TSchema,
-  TArgs,
-  TStoreState
-> = {
+export type DataFetchContext<TKey extends string, TSchema, TArgs> = {
   _keyType: TKey;
   _schemaType: TSchema;
   _argsType: TArgs;
-  _storeStateType: TStoreState;
 };
 
-export type DataFetchContextAny = DataFetchContext<string, any, any, any>;
+export type DataFetchContextAny = DataFetchContext<string, any, any>;
 
 export type DataFetchPostProcessor<
   TDataFetchContext extends DataFetchContextAny
 > = {
-  (
-    data: TDataFetchContext['_schemaType'][],
-    state?: TDataFetchContext['_storeStateType']
-  ): any;
+  (data: GetElementType<TDataFetchContext['_schemaType']>[], state?: any): any;
 };
 
 export type DataFetchQueryDefinition<
@@ -193,8 +194,8 @@ export type DataFetchContextFromQuery<TType> = TType extends Record<
   ? TKey extends string
     ? TBody extends { args?: infer TArgs; schema: infer TSchema }
       ? unknown extends TArgs
-        ? DataFetchContext<TKey, TSchema, undefined, any>
-        : DataFetchContext<TKey, TSchema, TArgs, any>
+        ? DataFetchContext<TKey, TSchema, undefined>
+        : DataFetchContext<TKey, TSchema, TArgs>
       : never
     : never
   : never;
@@ -202,18 +203,7 @@ export type DataFetchContextFromQuery<TType> = TType extends Record<
 type DataFetchContextWithResultType<
   TDataFetchContext extends DataFetchContextAny,
   TSchema
-> = DataFetchContext<
-  TDataFetchContext['_keyType'],
-  TSchema,
-  undefined,
-  TDataFetchContext['_storeStateType']
->;
-
-type DataFetchRequestBuilderFromQueryReturnType<
-  TDataFetchQueryDefinition extends DataFetchQueryDefinition<DataFetchContextAny>
-> = DataFetchRequestBuilder<
-  DataFetchContextFromQuery<TDataFetchQueryDefinition>
->;
+> = DataFetchContext<TDataFetchContext['_keyType'], TSchema, undefined>;
 
 type DataFetchRequestBuilderFromStaticDataReturnType<
   TDataFetchContext extends DataFetchContextAny,
@@ -225,13 +215,14 @@ type DataFetchRequestBuilderFromStaticDataReturnType<
 export interface DataFetchRequestBuilder<
   TDataFetchContext extends DataFetchContextAny
 > extends DataFetchRequestedAction {
-  fromQuery<
-    TDataFetchQueryDefinition extends DataFetchQueryDefinition<
-      DataFetchContext<TDataFetchContext['_keyType'], any, any, any>
+  fromQuery<TDataFetchQueryDefinition extends DataFetchQueryDefinition>(
+    graphQueryDefinition: MustOnlyHaveKeys<
+      TDataFetchQueryDefinition,
+      DataFetchQueryDefinition
     >
-  >(
-    graphQueryDefinition: TDataFetchQueryDefinition
-  ): DataFetchRequestBuilderFromQueryReturnType<TDataFetchQueryDefinition>;
+  ): DataFetchRequestBuilder<
+    DataFetchContextFromQuery<TDataFetchQueryDefinition>
+  >;
 
   // TODO - validate if the 'name' of the static data matches the key?
   fromStaticData<TStaticDataType>(
@@ -243,7 +234,15 @@ export interface DataFetchRequestBuilder<
 
   fromUrl(url: string): DataFetchRequestBuilder<TDataFetchContext>;
 
-  withName(name: string): DataFetchRequestBuilder<TDataFetchContext>;
+  withName<TName extends string>(
+    name: TName
+  ): DataFetchRequestBuilder<
+    DataFetchContext<
+      TName,
+      TDataFetchContext['_schemaType'],
+      TDataFetchContext['_argsType']
+    >
+  >;
 
   withTag(tag: string): DataFetchRequestBuilder<TDataFetchContext>;
 
@@ -252,7 +251,7 @@ export interface DataFetchRequestBuilder<
   ): DataFetchRequestBuilder<TDataFetchContext>;
 
   onSuccess(
-    handler: DataFetchSuccessHandler
+    handler: DataFetchSuccessHandler<TDataFetchContext>
   ): DataFetchRequestBuilder<TDataFetchContext>;
 
   onFailure(
@@ -364,12 +363,11 @@ export const api = createModule('api', {
       TDataFetchContext extends DataFetchContextAny = DataFetchContext<
         TKey,
         TSchema,
-        TArgs,
-        any
+        TArgs
       >
     >(
       name?: TKey
-    ): DataFetchRequestBuilder<DataFetchContext<TKey, TSchema, TArgs, any>> {
+    ): DataFetchRequestBuilder<DataFetchContext<TKey, TSchema, TArgs>> {
       const fetchId: string = generateDataFetchID();
       const dataFetch: DataFetchRequestBuilder<TDataFetchContext> = {
         type: DATA_FETCH_REQUESTED,
@@ -382,18 +380,20 @@ export const api = createModule('api', {
         url: undefined,
         fromQuery<
           TDataFetchQueryDefinition extends DataFetchQueryDefinition<
-            DataFetchContext<TDataFetchContext['_keyType'], any, any, any>
+            DataFetchContext<TDataFetchContext['_keyType'], any, any>
           >
         >(
           graphQueryDefinition: TDataFetchQueryDefinition
-        ): DataFetchRequestBuilderFromQueryReturnType<TDataFetchQueryDefinition> {
+        ): DataFetchRequestBuilder<
+          DataFetchContextFromQuery<TDataFetchQueryDefinition>
+        > {
           const queryKey = Object.keys(graphQueryDefinition)[0];
           const queryBody = graphQueryDefinition[queryKey];
           dataFetch.graphQuery = graphQueryDefinition;
           dataFetch.postProcessor =
             queryBody.postProcessor as DataFetchPostProcessor<any>;
           dataFetch.queryResultName = queryKey;
-          dataFetch.queryName = dataFetch.queryResultName;
+          dataFetch.queryName = this.queyName || dataFetch.queryResultName;
           return dataFetch as any;
         },
         fromStaticData<TStaticDataType>(
@@ -418,16 +418,24 @@ export const api = createModule('api', {
           return dataFetch;
         },
         onSuccess(
-          handler: DataFetchSuccessHandler
+          handler: DataFetchSuccessHandler<TDataFetchContext>
         ): DataFetchRequestBuilder<TDataFetchContext> {
           dataFetchHandlers[dataFetch.dataFetchId] =
             dataFetchHandlers[dataFetch.dataFetchId] || [];
           dataFetchHandlers[dataFetch.dataFetchId].push({ onSuccess: handler });
           return dataFetch;
         },
-        withName(name: string): DataFetchRequestBuilder<TDataFetchContext> {
+        withName<TName extends string>(
+          name: TName
+        ): DataFetchRequestBuilder<
+          DataFetchContext<
+            TName,
+            TDataFetchContext['_schemaType'],
+            TDataFetchContext['_argsType']
+          >
+        > {
           dataFetch.queryName = name;
-          return dataFetch;
+          return dataFetch as any;
         },
         withTag(tag: string): DataFetchRequestBuilder<TDataFetchContext> {
           dataFetch.tag = tag;
@@ -871,7 +879,7 @@ const doWithPrefetchCheck = (
 export const createGraphQuery = (query: DataFetchQueryDefinition) => {
   const printVal = (obj: any, forSchema: boolean): string => {
     if (obj && typeof obj === 'object') {
-      const keys = Object.keys(obj);
+      const keys = Object.keys(Array.isArray(obj) ? obj[0] : obj);
       let b = '{';
       if (keys.length > 0) {
         b += ` ${keys

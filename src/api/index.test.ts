@@ -204,7 +204,6 @@ describe('api', () => {
             _keyType: 'graphOfObjects';
             _argsType: undefined;
             _schemaType: { something: string };
-            _storeStateType: any;
           }
         >
       >(true);
@@ -221,7 +220,6 @@ describe('api', () => {
             _keyType: 'graphOfObjects';
             _argsType: { criteria: number };
             _schemaType: { name: string };
-            _storeStateType: any;
           }
         >
       >(true);
@@ -301,8 +299,11 @@ describe('api', () => {
   describe('dataFetch.onSuccess', () => {
     it('runs the onSuccess handler', async () => {
       const action = dataFetch('foos')
-        .fromStaticData('theFoosStatic')
-        .onSuccess(() => {
+        .fromStaticData([{ someData: 'abc' }])
+        .onSuccess((action) => {
+          expectType<TypeEqual<typeof action.data, { someData: string }[]>>(
+            true
+          );
           return {
             type: 'SUCCESS_ACTION',
           };
@@ -370,13 +371,14 @@ describe('api', () => {
           args: {
             criteria: 1,
           },
-          schema: { name: '' },
+          schema: [{ name: '' }],
         },
       });
       dataFetchRequest.withPostProcessor((res) => {
-        expectType<TypeEqual<typeof res[0], { name: string }>>(true);
+        expectType<TypeEqual<typeof res[number], { name: string }>>(true);
       });
       store.dispatch(dataFetchRequest);
+      console.log(store.getState().recording.actions);
       expect(
         store.getState().recording.find(DATA_FETCH_SUCCESS)[0].queryName
       ).toBe('graphObjects');
@@ -386,12 +388,12 @@ describe('api', () => {
       store.dispatch(invalidatePrefetchCache());
       store.dispatch(
         dataFetch().fromQuery({
-          graphObjects: [
-            {
+          graphObjects: {
+            args: {
               criteria: 1,
             },
-            { name: '' },
-          ],
+            schema: { name: '' },
+          },
         })
       );
       expect(store.getState().recording.find(AJAX_CALL_REQUESTED).length).toBe(
@@ -414,16 +416,15 @@ describe('api', () => {
           },
         },
       });
-      store.dispatch(
-        dataFetch().fromQuery({
-          graphObjects: {
-            args: {
-              criteria: 1,
-            },
-            schema: { name: '' },
+      const df = dataFetch().fromQuery({
+        graphObjects: {
+          args: {
+            criteria: 1,
           },
-        })
-      );
+          schema: { name: '' },
+        },
+      });
+      store.dispatch(df);
       const dataFetchFailedAction = store
         .getState()
         .recording.find(DATA_FETCH_FAILED)[0];
