@@ -1,6 +1,7 @@
 import { createModule } from '@github1/redux-modules';
 import { Action, Dispatch, MiddlewareAPI } from 'redux';
-import AjaxService, {
+import {
+  init as AjaxService,
   AjaxServiceRequestOptions,
   AjaxServiceResponse,
 } from '@github1/ajax-service';
