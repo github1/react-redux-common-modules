@@ -662,4 +662,4 @@ export const sortFunc = (
   return sortFuncs[key];
 };
 
-const clone = (data: any[]) => data.slice();
+const clone = (data: any[]) => (data ? data.slice() : []);

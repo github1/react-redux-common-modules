@@ -19,9 +19,9 @@ export interface OnConditionAction extends Action<'@conditions/on_condition'> {
 }
 
 export interface OnConditionBuilder extends OnConditionAction {
-  thenDispatch(...actions: Array<ConditionResult>): OnConditionAction;
+  thenDispatch(...actions: Array<ConditionResult>): OnConditionBuilder;
 
-  otherwiseDispatch(...actions: Array<ConditionResult>): OnConditionAction;
+  otherwiseDispatch(...actions: Array<ConditionResult>): OnConditionBuilder;
 }
 
 export const conditions = createModule('conditions', {

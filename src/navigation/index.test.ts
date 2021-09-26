@@ -383,7 +383,7 @@ describe('navigation', () => {
       const a = document.createElement('a');
       a.setAttribute('href', '/visible/123');
       document.body.appendChild(a);
-      clickInterceptorCallback(store);
+      clickInterceptorCallback(store as any);
       const evt = document.createEvent('MouseEvents');
       evt.initEvent('click', true, true);
       a.dispatchEvent(evt);
