@@ -1,6 +1,5 @@
-import { createModule } from '@github1/redux-modules';
+import { createModule, ReduxModuleStore } from '@github1/redux-modules';
 import { AnyAction, Dispatch } from 'redux';
-import { ReduxModuleStore } from '../../../redux-modules/dist/redux-module-store';
 
 let navigationCounter: number = 0;
 
