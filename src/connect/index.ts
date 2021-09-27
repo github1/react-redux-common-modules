@@ -1,6 +1,7 @@
 import {
   ReduxModuleTypeContainerAny,
   ReduxModule,
+  ReduxModuleTypeContainerStoreState,
 } from '@github1/redux-modules';
 import { ComponentType } from 'react';
 import { bindActionCreators, Store } from 'redux';
@@ -87,7 +88,7 @@ export function connectModule<
     TReduxModuleTypeContainer extends ReduxModule<
       infer TReduxModuleTypeContainer
     >
-      ? TReduxModuleTypeContainer['_storeStateType']
+      ? ReduxModuleTypeContainerStoreState<TReduxModuleTypeContainer>
       : never
   >,
   TConnectModuleOptions extends ConnectModuleOptions<TMapStateToProps>

@@ -70,20 +70,9 @@ type AllTypesWithName<
 type ModuleInitializerPropsTypeOfTypes<T extends AllTypes> =
   UnionToIntersection<T['_types']['_initializerPropsType']>;
 
-type StoreStateOfTypes<T extends AllTypes> = UnionToIntersection<
-  T extends ReduxModule<infer TReduxModuleTypeContainer>
-    ? TReduxModuleTypeContainer extends ReduxModuleTypeContainerAny
-      ? unknown extends TReduxModuleTypeContainer['_storeStateType']
-        ? never
-        : TReduxModuleTypeContainer['_storeStateType']
-      : never
-    : never
->;
-
 export function commonModules<
   TName extends AllTypes['_types']['_nameType'],
   TTypes extends AllTypes = AllTypesWithName<TName, AllTypes>,
-  TStoreState = StoreStateOfTypes<TTypes>,
   TInitializerPropsType = ModuleInitializerPropsTypeOfTypes<TTypes>
 >(
   ...name: TName[]
