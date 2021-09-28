@@ -1,6 +1,6 @@
 import {
   createModule,
-  ReduxModuleMayRequireInitialization,
+  ReduxModuleFullyInitialized,
   ReduxModuleTypeContainer,
 } from '@github1/redux-modules';
 import { Optional } from 'utility-types';
@@ -139,19 +139,19 @@ export type DataSourceFilterCompleteAction<
 type DataSourceModuleType<
   TDataSourceTypes extends Record<string, any> = Record<string, any>,
   TDataSourceKeys extends string = StringKeys<TDataSourceTypes>
-> = ReduxModuleMayRequireInitialization<
+> = ReduxModuleFullyInitialized<
   ReduxModuleTypeContainer<
     'datasource',
-    DataSourceModuleState<TDataSourceTypes>,
-    | DataSourceFilterAction
-    | DataSourceFilterCompleteAction
-    | DataSourceInitAction
+    any,
+    | DataSourceInitAction<string, any>
     | Action<'@DATASOURCE/DESTROY'>
-    | DataSourceUpdateAction
-    | DataSourceUpdatedAction
-    | DataSourceMapAction
-    | DataSourceSortAction
-    | DataSourceSortCompleteAction,
+    | DataSourceUpdateAction<string, any>
+    | DataSourceUpdatedAction<string, any>
+    | DataSourceMapAction<string, any>
+    | DataSourceSortAction<string, any>
+    | DataSourceSortCompleteAction<string, any>
+    | DataSourceFilterAction<string, any>
+    | DataSourceFilterCompleteAction<string, any>,
     {
       initDataSource<TDataSourceKey extends TDataSourceKeys>(
         props: Omit<
@@ -202,7 +202,7 @@ type DataSourceModuleType<
         >
       ): DataSourceUpdatedAction;
       mapDataSource<TDataSourceKey extends TDataSourceKeys>(
-        id: TDataSourceKey,
+        id: DataSourceMapAction['id'],
         func: DataSourceMapAction<
           TDataSourceKey,
           TDataSourceTypes[TDataSourceKey]
@@ -259,7 +259,130 @@ type DataSourceModuleType<
         'type'
       >): DataSourceFilterCompleteAction;
     },
-    undefined
+    never,
+    ['datasource']
+  >,
+  ReduxModuleTypeContainer<
+    'datasource',
+    any,
+    | DataSourceInitAction<string, any>
+    | Action<'@DATASOURCE/DESTROY'>
+    | DataSourceUpdateAction<string, any>
+    | DataSourceUpdatedAction<string, any>
+    | DataSourceMapAction<string, any>
+    | DataSourceSortAction<string, any>
+    | DataSourceSortCompleteAction<string, any>
+    | DataSourceFilterAction<string, any>
+    | DataSourceFilterCompleteAction<string, any>,
+    {
+      initDataSource<TDataSourceKey extends TDataSourceKeys>(
+        props: Omit<
+          Optional<
+            DataSourceInitAction<
+              TDataSourceKey,
+              TDataSourceTypes[TDataSourceKey]
+            >,
+            | 'baseSortField'
+            | 'sortField'
+            | 'sortDirection'
+            | 'textFilters'
+            | 'updateTime'
+            | 'inBrowser'
+          >,
+          'type' | 'master' | 'data'
+        >
+      ): DataSourceInitAction;
+      destroyDataSource(): Action<typeof DATASOURCE_DESTROY>;
+      updateDataSource<TDataSourceKey extends TDataSourceKeys>(
+        props: Omit<
+          Optional<
+            DataSourceUpdateAction<
+              TDataSourceKey,
+              TDataSourceTypes[TDataSourceKey]
+            >,
+            | 'source'
+            | 'data'
+            | 'baseSortField'
+            | 'sortField'
+            | 'sortDirection'
+            | 'textFilters'
+            | 'sort'
+            | 'filter'
+            | 'updateTime'
+            | 'inBrowser'
+          >,
+          'type' | 'master'
+        >
+      ): DataSourceUpdateAction;
+      dateSourceUpdated<TDataSourceKey extends TDataSourceKeys>(
+        props: Omit<
+          DataSourceUpdatedAction<
+            TDataSourceKey,
+            TDataSourceTypes[TDataSourceKey]
+          >,
+          'type'
+        >
+      ): DataSourceUpdatedAction;
+      mapDataSource<TDataSourceKey extends TDataSourceKeys>(
+        id: DataSourceMapAction['id'],
+        func: DataSourceMapAction<
+          TDataSourceKey,
+          TDataSourceTypes[TDataSourceKey]
+        >['func']
+      ): DataSourceMapAction;
+      sortDataSource<TDataSourceKey extends TDataSourceKeys>(
+        props: Omit<
+          Optional<
+            DataSourceSortAction<
+              TDataSourceKey,
+              TDataSourceTypes[TDataSourceKey]
+            >,
+            'sortField' | 'sortDirection'
+          >,
+          'type'
+        >
+      ): DataSourceSortAction;
+      sortDataSourceComplete<TDataSourceKey extends TDataSourceKeys>(
+        props: Omit<
+          DataSourceSortCompleteAction<
+            TDataSourceKey,
+            TDataSourceTypes[TDataSourceKey]
+          >,
+          'type'
+        >
+      ): DataSourceSortCompleteAction;
+      filterDataSource<TDataSourceKey extends TDataSourceKeys>({
+        id,
+        textFilter,
+        field,
+        operator,
+        softFilter,
+      }: Omit<
+        Optional<
+          DataSourceFilterAction<
+            TDataSourceKey,
+            TDataSourceTypes[TDataSourceKey]
+          >,
+          'textFilter' | 'field' | 'operator' | 'softFilter'
+        >,
+        'type'
+      >): DataSourceFilterAction;
+      filterDataSourceComplete<TDataSourceKey extends TDataSourceKeys>({
+        id,
+        textFilter,
+        field,
+        operator,
+        softFilter,
+      }: Omit<
+        DataSourceFilterAction<
+          TDataSourceKey,
+          TDataSourceTypes[TDataSourceKey]
+        >,
+        'type'
+      >): DataSourceFilterCompleteAction;
+    },
+    never,
+    ['datasource']
   >
 >;
 

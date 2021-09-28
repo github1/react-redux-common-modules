@@ -1,8 +1,8 @@
 import {
-  ReduxModule,
   ReduxModuleTypeContainerAny,
   ReduxModuleMayRequireInitialization,
   ReduxModuleTypeContainer,
+  ReduxModuleBase,
 } from '@github1/redux-modules';
 
 export * from './ajax';
@@ -59,7 +59,7 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
 type AllTypesWithName<
   N extends string,
   T extends AllTypes
-> = T extends ReduxModule<infer TReduxModuleTypeContainer>
+> = T extends ReduxModuleBase<infer TReduxModuleTypeContainer>
   ? TReduxModuleTypeContainer extends ReduxModuleTypeContainerAny
     ? N extends TReduxModuleTypeContainer['_nameType']
       ? T

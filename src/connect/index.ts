@@ -1,7 +1,7 @@
 import {
   ReduxModuleTypeContainerAny,
-  ReduxModule,
   ReduxModuleTypeContainerStoreState,
+  ReduxModuleBase,
 } from '@github1/redux-modules';
 import { ComponentType } from 'react';
 import { bindActionCreators, Store } from 'redux';
@@ -22,16 +22,16 @@ type ActionCreatorsBound<TActionCreators> = TActionCreators extends undefined
   : {};
 
 type ReduxModuleState<
-  TReduxModuleTypeContainer extends ReduxModule<ReduxModuleTypeContainerAny>
-> = TReduxModuleTypeContainer extends ReduxModule<
+  TReduxModuleTypeContainer extends ReduxModuleBase<ReduxModuleTypeContainerAny>
+> = TReduxModuleTypeContainer extends ReduxModuleBase<
   infer TReduxModuleTypeContainer
 >
   ? TReduxModuleTypeContainer['_stateType']
   : {};
 
 type ReduxModuleActionCreators<
-  TReduxModuleTypeContainer extends ReduxModule<ReduxModuleTypeContainerAny>
-> = TReduxModuleTypeContainer extends ReduxModule<
+  TReduxModuleTypeContainer extends ReduxModuleBase<ReduxModuleTypeContainerAny>
+> = TReduxModuleTypeContainer extends ReduxModuleBase<
   infer TReduxModuleTypeContainer
 >
   ? TReduxModuleTypeContainer['_actionCreatorType']
@@ -44,7 +44,7 @@ type ComponentState<TComponentType> = TComponentType extends ComponentType<
   : {};
 
 type ComponentTypeConformingToReduxModule<
-  TReduxModuleTypeContainer extends ReduxModule<ReduxModuleTypeContainerAny>,
+  TReduxModuleTypeContainer extends ReduxModuleBase<ReduxModuleTypeContainerAny>,
   TComponentOwnProps = {}
 > = ComponentType<
   ReduxModuleState<TReduxModuleTypeContainer> &
@@ -64,7 +64,7 @@ export function connectModule(
 ): ReduxModuleConnectedComponent<unknown, unknown>;
 export function connectModule<
   TComponentOwnProps,
-  TReduxModuleTypeContainer extends ReduxModule<ReduxModuleTypeContainerAny>,
+  TReduxModuleTypeContainer extends ReduxModuleBase<ReduxModuleTypeContainerAny>,
   TComponentType extends ComponentTypeConformingToReduxModule<
     TReduxModuleTypeContainer,
     TComponentOwnProps
@@ -81,11 +81,11 @@ export function connectModule<
 >;
 export function connectModule<
   TComponent extends ComponentType<any>,
-  TReduxModuleTypeContainer extends ReduxModule<ReduxModuleTypeContainerAny>,
+  TReduxModuleTypeContainer extends ReduxModuleBase<ReduxModuleTypeContainerAny>,
   TMapStateToProps extends MapStateToProps<
     TComponent extends ComponentType<infer TOwnProps> ? TOwnProps : never,
     TComponent extends ComponentType<infer TOwnProps> ? TOwnProps : never,
-    TReduxModuleTypeContainer extends ReduxModule<
+    TReduxModuleTypeContainer extends ReduxModuleBase<
       infer TReduxModuleTypeContainer
     >
       ? ReduxModuleTypeContainerStoreState<TReduxModuleTypeContainer>
@@ -98,7 +98,7 @@ export function connectModule<
   component: TComponent
 ): ReduxModuleConnectedComponent<ComponentState<TComponent>, {}>;
 export function connectModule(
-  module: ReduxModule<ReduxModuleTypeContainerAny>,
+  module: ReduxModuleBase<ReduxModuleTypeContainerAny>,
   componentOrOpts: ComponentType | Partial<ConnectModuleOptions>,
   component?: ComponentType
 ) {
