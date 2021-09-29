@@ -58,6 +58,7 @@ describe('when connecting modules', () => {
     type TestComponentProps = {
       componentProp: string;
       anotherComponentProp?: string;
+      someActionCreator: () => { type: 'SOME_ACTION' };
     };
     const TestComponent: React.FC<TestComponentProps> = (props) => {
       return React.createElement(
@@ -77,11 +78,17 @@ describe('when connecting modules', () => {
       TestModule,
       {
         mapStateToProps: (state, ownProps) => {
+          // should not need to map props to action creators from component props type
           expectType<TypeEqual<typeof state, { root: { test: string } }>>(true);
           return {
             componentProp: state.root.test,
             anotherComponentProp: `another-${ownProps.anotherComponentProp}`,
           };
+        },
+        actions: {
+          someActionCreator() {
+            return { type: 'SOME_ACTION' };
+          },
         },
       },
       TestComponent
