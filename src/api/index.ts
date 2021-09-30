@@ -9,7 +9,11 @@ import {
   APPLICATION_JSON,
   TEXT_PLAIN,
 } from '../ajax';
-import { GetElementType, MustOnlyHaveKeys } from '../type-helpers/utils';
+import {
+  GetElementType,
+  MustOnlyHaveKeys,
+  PartialMaybeArray,
+} from '../type-helpers/utils';
 
 const { get, del, post } = ajax.actions;
 
@@ -166,7 +170,7 @@ export type DataFetchContext<TKey extends string, TSchema, TArgs> = {
   _argsType: TArgs;
 };
 
-export type DataFetchContextAny = DataFetchContext<string, any, any>;
+export type DataFetchContextAny = DataFetchContext<any, any, any>;
 
 export type DataFetchPostProcessor<
   TDataFetchContext extends DataFetchContextAny
@@ -180,7 +184,7 @@ export type DataFetchQueryDefinition<
   TDataFetchContext['_keyType'],
   {
     args?: TDataFetchContext['_argsType'];
-    schema: Partial<TDataFetchContext['_schemaType']>;
+    schema: PartialMaybeArray<TDataFetchContext['_schemaType']>;
     postProcessor?: DataFetchPostProcessor<TDataFetchContext>;
   }
 >;
@@ -355,6 +359,36 @@ export const api = createModule('api', {
         type: INVALIDATE_PREFETCH_CACHE,
         key,
       };
+    },
+    graphQuery<TDataFetchQueryDefinition extends DataFetchQueryDefinition>(
+      key: DataFetchContextFromQuery<TDataFetchQueryDefinition>['_keyType'],
+      schema: DataFetchContextFromQuery<TDataFetchQueryDefinition>['_schemaType']
+    ): DataFetchContextFromQuery<TDataFetchQueryDefinition>['_argsType'] extends undefined
+      ? DataFetchRequestBuilder<
+          DataFetchContextFromQuery<TDataFetchQueryDefinition>
+        >
+      : (
+          args: DataFetchContextFromQuery<TDataFetchQueryDefinition>['_argsType']
+        ) => DataFetchRequestBuilder<
+          DataFetchContextFromQuery<TDataFetchQueryDefinition>
+        > {
+      const withoutArgs = this.dataFetch().fromQuery({
+        [key]: {
+          schema,
+        },
+      });
+      const withArgs = (
+        args: DataFetchContextFromQuery<TDataFetchQueryDefinition>['_argsType']
+      ) => {
+        return this.dataFetch().fromQuery({
+          [key]: {
+            args,
+            schema,
+          },
+        });
+      };
+      Object.assign(withArgs, withoutArgs);
+      return withArgs as any;
     },
     dataFetch<
       TSchema,

@@ -190,6 +190,33 @@ describe('api', () => {
       expect(query).toBe('{ graph { graphObjects (c3: 1) { name } } }');
     });
   });
+  describe('graphQuery', () => {
+    it('creates a dataFetch builder', () => {
+      type TestQueryNoArgs = DataFetchQueryDefinition<
+        DataFetchContextFromQuery<{
+          test: {
+            schema: { name: string };
+          };
+        }>
+      >;
+      expect(
+        api.actions.graphQuery<TestQueryNoArgs>('test', { name: '' }).type
+      ).toBe('@API/DATA_FETCH_REQUESTED');
+      type TestQueryWithArgs = DataFetchQueryDefinition<
+        DataFetchContextFromQuery<{
+          test: {
+            args: { id: number };
+            schema: { name: string };
+          };
+        }>
+      >;
+      expect(
+        api.actions.graphQuery<TestQueryWithArgs>('test', { name: '' })({
+          id: 123,
+        }).type
+      ).toBe('@API/DATA_FETCH_REQUESTED');
+    });
+  });
   describe('dataFetch.fromQuery', () => {
     it('determines DataFetchContext from query', () => {
       const query = {
