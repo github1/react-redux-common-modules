@@ -41,3 +41,7 @@ export type MustOnlyHaveKeys<T, K> = {} extends Omit<T, keyof K>
   : K;
 
 export type GetElementType<T extends any[]> = T extends (infer U)[] ? U : T;
+
+export type PartialMaybeArray<T> = T extends (infer U)[]
+  ? Partial<U>[]
+  : Partial<T>;
