@@ -37,7 +37,7 @@ export type DataSourceModuleState<
 // Action types
 
 export type DataSourceSortProps<TDataType = any> = {
-  sortField: StringKeys<TDataType>;
+  sortField: Leaves<TDataType>;
   sortDirection: 'asc' | 'desc';
 };
 
@@ -96,7 +96,7 @@ export type DataSourceSortAction<
   TDataType = any
 > = Action<typeof DATASOURCE_SORT_REQUESTED> & {
   id: TDataKey;
-  sortField: StringKeys<TDataType>;
+  sortField: Leaves<TDataType>;
   sortDirection: 'asc' | 'desc' | 'reverse';
 };
 
