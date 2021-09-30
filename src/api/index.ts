@@ -84,18 +84,20 @@ export type DataFetchRequestedAction = Action<typeof DATA_FETCH_REQUESTED> & {
   postProcessor?: (data: any, state?: any) => any;
 };
 
-export type DataFetchSuccessAction<TResultType = any> = Action<
-  typeof DATA_FETCH_SUCCESS
-> & {
+export type DataFetchSuccessAction<
+  TDataFetchContext extends DataFetchContextAny = DataFetchContextAny
+> = Action<typeof DATA_FETCH_SUCCESS> & {
   dataFetchId: string;
-  queryName: string;
+  queryName: TDataFetchContext['_keyType'];
   queryResultName: string;
-  data: TResultType;
+  data: TDataFetchContext['_schemaType'];
 };
 
-export type DataFetchFailedAction = Action<typeof DATA_FETCH_FAILED> & {
+export type DataFetchFailedAction<
+  TDataFetchContext extends DataFetchContextAny = DataFetchContextAny
+> = Action<typeof DATA_FETCH_FAILED> & {
   dataFetchId: string;
-  queryName: string;
+  queryName: TDataFetchContext['_keyType'];
   queryResultName: string;
   error: Error & { status?: any };
 };
@@ -146,13 +148,18 @@ export type DataFetchSuccessHandler<
   TDataFetchContext extends DataFetchContextAny = DataFetchContextAny
 > = {
   (
-    result: DataFetchSuccessAction<TDataFetchContext['_schemaType']>,
+    result: DataFetchSuccessAction<TDataFetchContext>,
     state: any
   ): ActionsOrThunks | void;
 };
 
-export type DataFetchFailedHandler = {
-  (result: DataFetchFailedAction, state: any): ActionsOrThunks | void;
+export type DataFetchFailedHandler<
+  TDataFetchContext extends DataFetchContextAny = DataFetchContextAny
+> = {
+  (
+    result: DataFetchFailedAction<TDataFetchContext>,
+    state: any
+  ): ActionsOrThunks | void;
 };
 
 export type DataFetchHandler<

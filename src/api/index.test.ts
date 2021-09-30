@@ -199,9 +199,18 @@ describe('api', () => {
           };
         }>
       >;
-      expect(
-        api.actions.graphQuery<TestQueryNoArgs>('test', { name: '' }).type
-      ).toBe('@API/DATA_FETCH_REQUESTED');
+      const fetchNoArgs = api.actions.graphQuery<TestQueryNoArgs>('test', {
+        name: '',
+      });
+      expectType<
+        TypeEqual<
+          Parameters<
+            Parameters<typeof fetchNoArgs.onSuccess>[0]
+          >[0]['queryName'],
+          'test'
+        >
+      >(true);
+      expect(fetchNoArgs.type).toBe('@API/DATA_FETCH_REQUESTED');
       type TestQueryWithArgs = DataFetchQueryDefinition<
         DataFetchContextFromQuery<{
           test: {
@@ -210,11 +219,20 @@ describe('api', () => {
           };
         }>
       >;
-      expect(
-        api.actions.graphQuery<TestQueryWithArgs>('test', { name: '' })({
-          id: 123,
-        }).type
-      ).toBe('@API/DATA_FETCH_REQUESTED');
+      const fetchWithArgs = api.actions.graphQuery<TestQueryWithArgs>('test', {
+        name: '',
+      })({
+        id: 123,
+      });
+      expectType<
+        TypeEqual<
+          Parameters<
+            Parameters<typeof fetchWithArgs.onSuccess>[0]
+          >[0]['queryName'],
+          'test'
+        >
+      >(true);
+      expect(fetchWithArgs.type).toBe('@API/DATA_FETCH_REQUESTED');
     });
   });
   describe('dataFetch.fromQuery', () => {
