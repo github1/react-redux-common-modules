@@ -9,11 +9,7 @@ import {
   APPLICATION_JSON,
   TEXT_PLAIN,
 } from '../ajax';
-import {
-  GetElementType,
-  MustOnlyHaveKeys,
-  PartialMaybeArray,
-} from '../type-helpers/utils';
+import { MustOnlyHaveKeys, PartialMaybeArray } from '../type-helpers/utils';
 
 const { get, del, post } = ajax.actions;
 
@@ -180,9 +176,13 @@ export type DataFetchContext<TKey extends string, TSchema, TArgs> = {
 export type DataFetchContextAny = DataFetchContext<any, any, any>;
 
 export type DataFetchPostProcessor<
-  TDataFetchContext extends DataFetchContextAny
+  TDataFetchContext extends DataFetchContextAny,
+  TTargetDataFetchContext extends DataFetchContextAny = TDataFetchContext
 > = {
-  (data: GetElementType<TDataFetchContext['_schemaType']>[], state?: any): any;
+  (
+    data: TDataFetchContext['_schemaType'],
+    state?: any
+  ): TTargetDataFetchContext['_schemaType'];
 };
 
 export type DataFetchQueryDefinition<
@@ -257,9 +257,17 @@ export interface DataFetchRequestBuilder<
 
   withTag(tag: string): DataFetchRequestBuilder<TDataFetchContext>;
 
-  withPostProcessor(
-    postProcessor: DataFetchPostProcessor<TDataFetchContext>
-  ): DataFetchRequestBuilder<TDataFetchContext>;
+  withPostProcessor<
+    TTargetSchemaType = TDataFetchContext['_schemaType'],
+    TTargetDataFetchContext extends DataFetchContextAny = TTargetSchemaType extends TDataFetchContext['_schemaType']
+      ? TDataFetchContext
+      : DataFetchContextWithResultType<TDataFetchContext, TTargetSchemaType>
+  >(
+    postProcessor: DataFetchPostProcessor<
+      TDataFetchContext,
+      TTargetDataFetchContext
+    >
+  ): DataFetchRequestBuilder<TTargetDataFetchContext>;
 
   onSuccess(
     handler: DataFetchSuccessHandler<TDataFetchContext>
@@ -276,13 +284,7 @@ function applyDataFetchPostProcessor(
   state: any
 ): any {
   if (data && postProcessor) {
-    const wasArray = Array.isArray(data);
-    const result = postProcessor(wasArray ? data : [data], state);
-    const resultIsArray = Array.isArray(result);
-    if (!wasArray && resultIsArray) {
-      return result[0];
-    }
-    return result;
+    return postProcessor(data, state);
   }
   return data;
 }
@@ -482,11 +484,22 @@ export const api = createModule('api', {
           dataFetch.tag = tag;
           return dataFetch;
         },
-        withPostProcessor(
-          postProcessor: DataFetchPostProcessor<TDataFetchContext>
-        ): DataFetchRequestBuilder<TDataFetchContext> {
+        withPostProcessor<
+          TTargetSchemaType = TDataFetchContext['_schemaType'],
+          TTargetDataFetchContext extends DataFetchContextAny = TTargetSchemaType extends TDataFetchContext['_schemaType']
+            ? TDataFetchContext
+            : DataFetchContextWithResultType<
+                TDataFetchContext,
+                TTargetSchemaType
+              >
+        >(
+          postProcessor: DataFetchPostProcessor<
+            TDataFetchContext,
+            TTargetDataFetchContext
+          >
+        ): DataFetchRequestBuilder<TTargetDataFetchContext> {
           dataFetch.postProcessor = postProcessor;
-          return dataFetch;
+          return dataFetch as any;
         },
       };
       return dataFetch as any;

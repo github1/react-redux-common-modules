@@ -328,6 +328,16 @@ describe('api', () => {
         .recording.waitFor(DATA_FETCH_SUCCESS);
       expect(success[0].data).toBe('theFoosStatic-processed');
     });
+    it('can convert the data to a different type', async () => {
+      const action = dataFetch('foos')
+        .fromStaticData('theFoosStatic')
+        .withPostProcessor<number[]>((data) => [data.length]);
+      store.dispatch(action);
+      const success = await store
+        .getState()
+        .recording.waitFor(DATA_FETCH_SUCCESS);
+      expect(success[0].data[0]).toBe('theFoosStatic'.length);
+    });
   });
   describe('dataFetch.withName', () => {
     it('uses the name', async () => {
@@ -421,6 +431,7 @@ describe('api', () => {
       });
       dataFetchRequest.withPostProcessor((res) => {
         expectType<TypeEqual<typeof res[number], { name: string }>>(true);
+        return res;
       });
       store.dispatch(dataFetchRequest);
       console.log(store.getState().recording.actions);
