@@ -1,6 +1,6 @@
-import { datasource, sortFunc } from './index';
+import { datasource, DataSourceModuleState, sortFunc } from './index';
 import { createModule } from '@github1/redux-modules';
-import { expectType } from 'ts-expect';
+import { expectType, TypeEqual } from 'ts-expect';
 
 const fakeDataModule = createModule('someData').preloadedState({
   value: [
@@ -106,6 +106,14 @@ describe('datasource', () => {
     });
     it('initializes the data from the store', () => {
       expect(store.getState().datasource.someDataSource.data[0].name).toBe('a');
+      expectType<
+        TypeEqual<
+          ReturnType<typeof store.getState>['datasource'],
+          DataSourceModuleState<{
+            someDataSource: { id: string; name: string };
+          }>
+        >
+      >(true);
     });
     describe('when it is sorted', () => {
       it('has a sort independent from the source data', () => {
