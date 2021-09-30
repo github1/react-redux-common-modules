@@ -50,12 +50,14 @@ export type DataSourceBaseProps<
   data: TDataType[];
   master: TDataType[];
   baseSortField: StringKeys<TDataType>;
-  textFilters: Record<
-    string,
-    {
-      value: DataSourceTextFilter<TDataType>;
-      operator?: 'contains' | 'equals';
-    }
+  textFilters: Partial<
+    Record<
+      Leaves<TDataType>,
+      {
+        value: DataSourceTextFilter<TDataType>;
+        operator?: 'contains' | 'equals';
+      }
+    >
   >;
   updateTime: number;
   inBrowser: boolean;
