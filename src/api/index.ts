@@ -535,8 +535,8 @@ export const api = createModule('api', {
     executeCommand(
       name: string,
       payload: any,
-      responseHandler: CommandResponseHandler,
-      errorHandler: CommandErrorHandler
+      responseHandler?: CommandResponseHandler,
+      errorHandler?: CommandErrorHandler
     ): CommandExecutionRequestedAction {
       return {
         type: COMMAND_REQUESTED,
