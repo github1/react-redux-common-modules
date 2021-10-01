@@ -558,6 +558,7 @@ describe('datasource', () => {
   describe('mapDataSource', () => {
     const store = datasource<{
       someDataSource: { id: string; value: number; prop?: string };
+      anotherDataSource: { something: boolean };
     }>()
       .with(fakeDataModule)
       .asStore({ deferred: true, record: true, enforceImmutableState: true });

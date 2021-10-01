@@ -204,7 +204,7 @@ type DataSourceModuleType<
         >
       ): DataSourceUpdatedAction;
       mapDataSource<TDataSourceKey extends TDataSourceKeys>(
-        id: DataSourceMapAction['id'],
+        id: TDataSourceKey,
         func: DataSourceMapAction<
           TDataSourceKey,
           TDataSourceTypes[TDataSourceKey]
