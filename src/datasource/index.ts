@@ -260,9 +260,7 @@ type DataSourceModuleType<
         >,
         'type'
       >): DataSourceFilterCompleteAction;
-    },
-    never,
-    ['datasource']
+    }
   >
 >;
 
