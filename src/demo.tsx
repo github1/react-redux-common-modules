@@ -31,6 +31,11 @@ type GroupedDataRecord = {
   children: DataRecord[];
 };
 
+const datasourceModule = datasource<{
+  records: DataRecord;
+  groupedRecords: GroupedDataRecord;
+}>();
+
 const demo = createModule('demo', {
   actionCreators: {
     loadData(filter?: string): { type: 'LOAD_DATA'; filter: string } {
@@ -39,12 +44,7 @@ const demo = createModule('demo', {
   },
 })
   .with(alerts)
-  .with(
-    datasource<{
-      records: DataRecord;
-      groupedRecords: GroupedDataRecord;
-    }>()
-  )
+  .with(datasourceModule)
   .with(api)
   .intercept((action, { actions, state }) => {
     if (action.type === 'LOAD_DATA') {
@@ -135,7 +135,7 @@ const handleInputChange = (evt: ChangeEvent<HTMLInputElement>) => {
 store.dispatch(store.actions.demo.loadData());
 
 const DataRecordTable = connectModule(
-  store.module.modules.datasource,
+  datasourceModule,
   ({ records, sortDataSource }) => {
     if (!records) {
       return <div></div>;
@@ -208,7 +208,7 @@ const DataRecordTable = connectModule(
 );
 
 const GroupedDataRecordTable = connectModule(
-  store.module.modules.datasource,
+  datasourceModule,
   ({ groupedRecords }) => {
     if (!groupedRecords) {
       return <div></div>;
