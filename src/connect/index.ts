@@ -1,6 +1,7 @@
 import {
   ReduxModuleTypeContainerAny,
   ReduxModuleTypeContainerStoreState,
+  ReduxModuleTypeContainerStoreActionCreatorDispatchBound,
   ReduxModuleBase,
 } from '@github1/redux-modules';
 import { ComponentType } from 'react';
@@ -15,30 +16,14 @@ export type ConnectModuleOptions<
   actions?: TActionCreators;
 };
 
-type ActionCreatorsBound<TActionCreators> = TActionCreators extends undefined
-  ? {}
-  : TActionCreators extends Record<string, (...args: any[]) => any>
-  ? {
-      [k in keyof TActionCreators]: (
-        ...args: Parameters<TActionCreators[k]>
-      ) => void;
-    }
-  : {};
-
 type ReduxModuleState<
   TReduxModuleTypeContainer extends ReduxModuleBase<ReduxModuleTypeContainerAny>
 > = TReduxModuleTypeContainer extends ReduxModuleBase<
   infer TReduxModuleTypeContainer
 >
-  ? TReduxModuleTypeContainer['_stateType']
-  : {};
-
-type ReduxModuleActionCreators<
-  TReduxModuleTypeContainer extends ReduxModuleBase<ReduxModuleTypeContainerAny>
-> = TReduxModuleTypeContainer extends ReduxModuleBase<
-  infer TReduxModuleTypeContainer
->
-  ? TReduxModuleTypeContainer['_actionCreatorType']
+  ? TReduxModuleTypeContainer['_stateType'] extends undefined
+    ? {}
+    : TReduxModuleTypeContainer['_stateType']
   : {};
 
 type ComponentState<TComponentType> = TComponentType extends ComponentType<
@@ -47,13 +32,21 @@ type ComponentState<TComponentType> = TComponentType extends ComponentType<
   ? TState
   : {};
 
+type ReduxModuleTypeContainerStoreActionCreatorDispatchBoundForComponent<
+  TReduxModuleTypeContainer extends ReduxModuleTypeContainerAny
+> = {
+  actions: ReduxModuleTypeContainerStoreActionCreatorDispatchBound<TReduxModuleTypeContainer>;
+};
+
 type ComponentTypeConformingToReduxModule<
   TReduxModuleTypeContainer extends ReduxModuleBase<ReduxModuleTypeContainerAny>,
   TComponentOwnProps = {}
 > = ComponentType<
   ReduxModuleState<TReduxModuleTypeContainer> &
     TComponentOwnProps &
-    ActionCreatorsBound<ReduxModuleActionCreators<TReduxModuleTypeContainer>>
+    ReduxModuleTypeContainerStoreActionCreatorDispatchBoundForComponent<
+      TReduxModuleTypeContainer['_types']
+    >
 >;
 
 type ReduxModuleConnectedComponent<TState, TActionCreators> =
@@ -66,6 +59,8 @@ type IsActionCreator<T> = T extends (...args: any) => infer R
   ? R extends Action
     ? true
     : false
+  : T extends Record<string, infer TRecordItemType>
+  ? IsActionCreator<TRecordItemType>
   : false;
 
 type PropsWhichAreActionCreators<TProps> = TProps extends Record<any, any>
@@ -84,10 +79,6 @@ type PropsOnlyActionCreators<TProps> = Omit<
   Exclude<keyof TProps, PropsWhichAreActionCreators<TProps>>
 >;
 
-export function connectModule(
-  module: any,
-  component: () => JSX.Element
-): ReduxModuleConnectedComponent<unknown, unknown>;
 export function connectModule<
   TComponentOwnProps,
   TReduxModuleTypeContainer extends ReduxModuleBase<ReduxModuleTypeContainerAny>,
@@ -103,9 +94,10 @@ export function connectModule<
   component: TComponentType
 ): ReduxModuleConnectedComponent<
   ReduxModuleState<TReduxModuleTypeContainer> & TComponentOwnProps,
-  ActionCreatorsBound<ReduxModuleActionCreators<TReduxModuleTypeContainer>>
+  ReduxModuleTypeContainerStoreActionCreatorDispatchBoundForComponent<
+    TReduxModuleTypeContainer['_types']
+  >
 >;
-// PropsExcludingActionCreators
 export function connectModule<
   TComponent extends ComponentType<any>,
   TReduxModuleTypeContainer extends ReduxModuleBase<ReduxModuleTypeContainerAny>,
@@ -153,8 +145,27 @@ export function connectModule(
         }
         return { ...state, ...ownProps };
       }),
-    (dispatch) =>
-      bindActionCreators(opts?.actions || module.actions || {}, dispatch)
+    (dispatch) => {
+      if (opts?.actions) {
+        return bindActionCreators(opts?.actions, dispatch);
+      } else {
+        const combinedActionCreators = (
+          module as any
+        ).getCombinedActionCreators();
+        return {
+          actions: Object.keys(combinedActionCreators).reduce(
+            (creators, key) => {
+              const bound = bindActionCreators(
+                combinedActionCreators[key],
+                dispatch
+              );
+              return { ...creators, [key]: bound };
+            },
+            {}
+          ),
+        };
+      }
+    }
   );
   return enhancer(component);
 }

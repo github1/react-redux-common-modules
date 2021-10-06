@@ -136,7 +136,7 @@ store.dispatch(store.actions.demo.loadData());
 
 const DataRecordTable = connectModule(
   datasourceModule,
-  ({ records, sortDataSource }) => {
+  ({ records, actions }) => {
     if (!records) {
       return <div></div>;
     }
@@ -162,7 +162,7 @@ const DataRecordTable = connectModule(
             sortable={true}
             sortIcons={[<b>Asc</b>, <b>Desc</b>]}
             onHeaderClick={(column) => {
-              sortDataSource({
+              actions.datasource.sortDataSource({
                 id: 'records',
                 sortDirection: 'reverse',
                 sortField: column.sortField as any,
@@ -244,12 +244,12 @@ const GroupedDataRecordTable = connectModule(
   }
 );
 
-const Main = connectModule(demo, () => {
+const Main = connectModule(demo, ({ actions }) => {
   return (
     <div>
       <button
         onClick={() => {
-          store.dispatch(store.actions.alerts.hideAllAlerts());
+          store.dispatch(actions.alerts.hideAllAlerts());
         }}
       >
         Hide Alerts

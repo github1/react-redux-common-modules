@@ -59,6 +59,9 @@ describe('when connecting modules', () => {
       componentProp: string;
       anotherComponentProp?: string;
       someActionCreator: () => { type: 'SOME_ACTION' };
+      actions: {
+        something: () => { type: 'SOMETHING' };
+      };
     };
     const TestComponent: React.FC<TestComponentProps> = (props) => {
       return React.createElement(
@@ -67,7 +70,13 @@ describe('when connecting modules', () => {
         `${props.componentProp}-${props.anotherComponentProp}`
       );
     };
-    const TestModule = createModule('root')
+    const TestModule = createModule('root', {
+      actionCreators: {
+        something(): { type: 'SOMETHING' } {
+          return { type: 'SOMETHING' };
+        },
+      },
+    })
       .reduce((state: { test: string }) => {
         return state;
       })
@@ -88,6 +97,11 @@ describe('when connecting modules', () => {
         actions: {
           someActionCreator() {
             return { type: 'SOME_ACTION' };
+          },
+          actions: {
+            something() {
+              return TestModule.actions.something();
+            },
           },
         },
       },
@@ -112,12 +126,18 @@ describe('when connecting modules', () => {
   it('can be map dispatch to actions', () => {
     const TestComponentConformsToModuleState: React.FC<{
       test: string;
-      doSomething: (val: number) => void;
+      actions: {
+        root: {
+          doSomething: (val: number) => void;
+        };
+      };
     }> = (props) => {
       return React.createElement(
         'div',
         {},
-        `${props.test}-${props.doSomething.toString().replace(/\n|[ ]+/g, '')}`
+        `${props.test}-${props.actions.root.doSomething
+          .toString()
+          .replace(/\n|[ ]+/g, '')}`
       );
     };
     const TestModule = createModule('root', {
@@ -141,13 +161,17 @@ describe('when connecting modules', () => {
       TestModule,
       TestComponentConformsToModuleState
     );
-    expectType<
-      typeof TestComponentConnected['WrappedComponent']['defaultProps']
-    >({
+    type DefaultPropsType =
+      typeof TestComponentConnected['WrappedComponent']['defaultProps'];
+    expectType<DefaultPropsType>({
       test: 'string',
-      doSomething: (val: number) => {
-        if (val) {
-        }
+      actions: {
+        root: {
+          doSomething: (val: number) => {
+            if (val) {
+            }
+          },
+        },
       },
     });
     const res = TestRenderer.create(
@@ -155,6 +179,44 @@ describe('when connecting modules', () => {
     );
     expect(res.toJSON().children[0]).toContain(
       'from-store-state-function(){returndispatch(actionCreator.apply(this,arguments));}'
+    );
+  });
+  it('exposes actions of combined modules', () => {
+    const TestModule = createModule('root', {
+      actionCreators: {
+        rootAction(): { type: 'ROOT1' } {
+          return { type: 'ROOT1' };
+        },
+      },
+    })
+      .reduce((state: { test: number }) => {
+        return { ...state, test: 100 };
+      })
+      .with(
+        createModule('sub1', {
+          actionCreators: {
+            sub1Action(): { type: 'SUB1' } {
+              return { type: 'SUB1' };
+            },
+          },
+        })
+      );
+    const TestComponentConnected = connectModule(TestModule, (props) => {
+      return (
+        <div>
+          {`${
+            props.actions.root.rootAction.toString() +
+            '|' +
+            props.actions.sub1.sub1Action.toString()
+          }`.replace(/\n/g, '')}
+        </div>
+      );
+    });
+    const res = TestRenderer.create(
+      createElement(TestComponentConnected, { store: TestModule.asStore() })
+    );
+    expect(res.toJSON().children[0]).toMatch(
+      /actionCreator\.apply.*actionCreator\.apply/
     );
   });
 });
