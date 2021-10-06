@@ -941,7 +941,7 @@ export const createGraphQuery = (query: DataFetchQueryDefinition) => {
             if (forSchema && typeof obj[key] !== 'object') {
               return key;
             }
-            return `${key}: ${printVal(obj[key], forSchema)}`;
+            return `${key} ${printVal(obj[key], forSchema)}`;
           })
           .join(', ')} `;
       }
