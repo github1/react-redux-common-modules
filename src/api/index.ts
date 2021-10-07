@@ -933,7 +933,12 @@ const doWithPrefetchCheck = (
 export const createGraphQuery = (query: DataFetchQueryDefinition) => {
   const printVal = (obj: any, forSchema: boolean): string => {
     if (obj && typeof obj === 'object') {
-      const keys = Object.keys(Array.isArray(obj) ? obj[0] : obj);
+      obj = Array.isArray(obj) ? obj[0] : obj;
+      if (!obj) {
+        console.warn('Encountered undefined object in query', query);
+        return '';
+      }
+      const keys = Object.keys(obj);
       let b = '{';
       if (keys.length > 0) {
         b += ` ${keys

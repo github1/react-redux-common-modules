@@ -587,18 +587,19 @@ const updateSortFilter = (
           if (typeof filterRawValue === 'function') {
             return filter(filterSession, softFilter, filtered, filterRawValue);
           } else {
+            const filterRawValueStr = `${filterRawValue}`;
             const operator = state[id].textFilters[key].operator;
             return filter(filterSession, softFilter, filtered, (item) => {
-              const propValue = (propByString.get(key, item) || '') + '';
+              const propValue = `${propByString.get(key, item) || ''}`;
               if (operator === 'equals') {
                 return (
-                  propValue.toLowerCase() === filterRawValue.toLowerCase() ||
-                  filterRawValue === '0'
+                  propValue.toLowerCase() === filterRawValueStr.toLowerCase()
                 );
               }
               return (
-                propValue.toLowerCase().indexOf(filterRawValue.toLowerCase()) >
-                -1
+                propValue
+                  .toLowerCase()
+                  .indexOf(filterRawValueStr.toLowerCase()) > -1
               );
             });
           }

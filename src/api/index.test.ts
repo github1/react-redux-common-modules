@@ -174,6 +174,20 @@ describe('api', () => {
         '{ graph { graphObjects (criteria: 1) { something { foo } } } }'
       );
     });
+    it('creates graph queries with sub-selection from array type', () => {
+      const queryDef: DataFetchQueryDefinition = {
+        graphObjects: {
+          args: {
+            criteria: 1,
+          },
+          schema: { something: [{ foo: '_' }] },
+        },
+      };
+      const query = createGraphQuery(queryDef);
+      expect(query).toBe(
+        '{ graph { graphObjects (criteria: 1) { something { foo } } } }'
+      );
+    });
     it('creates graph queries with multiple criteria', () => {
       const queryDef: DataFetchQueryDefinition = {
         graphObjects: {
