@@ -65,7 +65,7 @@ describe('navigation', () => {
     });
     it('has navigation entries', () => {
       expect(store.getState().navigation).toBeDefined();
-      expect(getNavSections().length).toBe(5);
+      expect(getNavSections().length).toBe(7);
     });
     it('has a tasks section', () => {
       expect(getNavSection(0).title).toBe('VisibleSection');
@@ -80,6 +80,13 @@ describe('navigation', () => {
         store.getState().recording.find('@NAVIGATION/REQUESTED')[0].section
           .title
       ).toBe('VisibleSection');
+    });
+    it('can navigate to hidden sections', () => {
+      store.dispatch(navigate('hidden'));
+      const navRequestedAction = store
+        .getState()
+        .recording.find('@NAVIGATION/REQUESTED')[0];
+      expect(navRequestedAction.section.title).toBe('HiddenSection');
     });
     it('is able to locate a section with query string parameters', () => {
       store.dispatch(navigate('visible?foo=bar'));

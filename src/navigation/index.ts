@@ -146,7 +146,6 @@ function prepareSections<TSection extends NavigationSection>(
       section.index = index;
       return section;
     })
-    .filter((section) => section.visibility === 'visible')
     .map((section) => section.register() as TSection);
 }
 
