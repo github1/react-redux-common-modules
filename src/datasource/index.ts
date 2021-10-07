@@ -590,6 +590,9 @@ const updateSortFilter = (
             const filterRawValueStr = `${filterRawValue}`;
             const operator = state[id].textFilters[key].operator;
             return filter(filterSession, softFilter, filtered, (item) => {
+              if (filterRawValueStr === '') {
+                return true;
+              }
               const propValue = `${propByString.get(key, item) || ''}`;
               if (operator === 'equals') {
                 return (
