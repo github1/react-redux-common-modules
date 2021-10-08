@@ -9,10 +9,18 @@ import { Action, bindActionCreators, Store } from 'redux';
 import { connect, ConnectedComponent, MapStateToProps } from 'react-redux';
 
 export type ConnectModuleOptions<
-  TMapStateToProps = undefined,
-  TActionCreators = undefined
+  TMapStateToProps extends MapStateToProps<any, any> = MapStateToProps<
+    any,
+    any
+  >,
+  TMapActionsToProps extends MapStateToProps<any, any> = MapStateToProps<
+    any,
+    any
+  >,
+  TActionCreators = any
 > = {
   mapStateToProps?: TMapStateToProps;
+  mapActionsToProps?: TMapActionsToProps;
   actions?: TActionCreators;
 };
 
@@ -69,14 +77,31 @@ type PropsWhichAreActionCreators<TProps> = TProps extends Record<any, any>
     }[keyof TProps]
   : never;
 
-type PropsExcludingActionCreators<TProps> = Omit<
-  TProps,
-  PropsWhichAreActionCreators<TProps>
->;
-
 type PropsOnlyActionCreators<TProps> = Omit<
   TProps,
   Exclude<keyof TProps, PropsWhichAreActionCreators<TProps>>
+>;
+
+type IsFunction<T> = T extends (...args: any) => any
+  ? true
+  : T extends Record<string, infer TRecordItemType>
+  ? IsFunction<TRecordItemType>
+  : false;
+
+type PropsWhichAreFunctions<TProps> = TProps extends Record<any, any>
+  ? {
+      [k in keyof TProps]: true extends IsFunction<TProps[k]> ? k : never;
+    }[keyof TProps]
+  : never;
+
+type PropsExcludingFunctions<TProps> = Omit<
+  TProps,
+  PropsWhichAreFunctions<TProps>
+>;
+
+type PropsOnlyFunctions<TProps> = Omit<
+  TProps,
+  Exclude<keyof TProps, PropsWhichAreFunctions<TProps>>
 >;
 
 export function connectModule<
@@ -104,20 +129,33 @@ export function connectModule<
   TMapStateToProps extends MapStateToProps<
     TMapStateToPropsState,
     TMapStateToPropsState,
-    TReduxModuleTypeContainer extends ReduxModuleBase<
-      infer TReduxModuleTypeContainer
-    >
-      ? ReduxModuleTypeContainerStoreState<TReduxModuleTypeContainer>
-      : never
+    TReduxModuleTypeContainerStoreState
+  >,
+  TMapActionsToProps extends MapStateToProps<
+    TMapActionsToPropsState,
+    TMapActionsToPropsState,
+    TReduxModuleTypeContainerStoreActionsDispatchBound
   >,
   TConnectModuleOptions extends ConnectModuleOptions<
     TMapStateToProps,
+    TMapActionsToProps,
     PropsOnlyActionCreators<TComponentOwnProps>
   >,
   TComponentOwnProps = TComponent extends ComponentType<infer TOwnProps>
     ? TOwnProps
     : never,
-  TMapStateToPropsState = PropsExcludingActionCreators<TComponentOwnProps>
+  TMapActionsToPropsState = PropsOnlyFunctions<TComponentOwnProps>,
+  TMapStateToPropsState = PropsExcludingFunctions<TComponentOwnProps>,
+  TReduxModuleTypeContainerStoreActionsDispatchBound = TReduxModuleTypeContainer extends ReduxModuleBase<
+    infer TReduxModuleTypeContainer
+  >
+    ? ReduxModuleTypeContainerStoreActionCreatorDispatchBound<TReduxModuleTypeContainer>
+    : never,
+  TReduxModuleTypeContainerStoreState = TReduxModuleTypeContainer extends ReduxModuleBase<
+    infer TReduxModuleTypeContainer
+  >
+    ? ReduxModuleTypeContainerStoreState<TReduxModuleTypeContainer>
+    : never
 >(
   module: TReduxModuleTypeContainer,
   opts: TConnectModuleOptions,
@@ -145,25 +183,29 @@ export function connectModule(
         }
         return { ...state, ...ownProps };
       }),
-    (dispatch) => {
+    (dispatch, ownProps) => {
       if (opts?.actions) {
         return bindActionCreators(opts?.actions, dispatch);
       } else {
         const combinedActionCreators = (
           module as any
         ).getCombinedActionCreators();
-        return {
-          actions: Object.keys(combinedActionCreators).reduce(
-            (creators, key) => {
-              const bound = bindActionCreators(
-                combinedActionCreators[key],
-                dispatch
-              );
-              return { ...creators, [key]: bound };
-            },
-            {}
-          ),
-        };
+        if (opts?.mapActionsToProps) {
+          return opts.mapActionsToProps(combinedActionCreators, ownProps);
+        } else {
+          return {
+            actions: Object.keys(combinedActionCreators).reduce(
+              (creators, key) => {
+                const bound = bindActionCreators(
+                  combinedActionCreators[key],
+                  dispatch
+                );
+                return { ...creators, [key]: bound };
+              },
+              {}
+            ),
+          };
+        }
       }
     }
   );
@@ -173,5 +215,9 @@ export function connectModule(
 function isConnectModuleOptions(
   maybeOpts: any
 ): maybeOpts is Partial<ConnectModuleOptions> {
-  return maybeOpts.connect || maybeOpts.mapStateToProps;
+  return (
+    maybeOpts.mapStateToProps ||
+    maybeOpts.mapActionsToProps ||
+    maybeOpts.actions
+  );
 }

@@ -123,6 +123,45 @@ describe('when connecting modules', () => {
       'from-store-state-another-from-own-props'
     );
   });
+  it('can be provided a mapActionsToProps function', () => {
+    let actionCalled = false;
+    const TestModule = createModule('root', {
+      actionCreators: {
+        something(): { type: 'SOMETHING' } {
+          actionCalled = true;
+          return { type: 'SOMETHING' };
+        },
+      },
+    });
+    const TestComponentConnected = connectModule(
+      TestModule,
+      {
+        mapStateToProps: () => {
+          return {
+            foo: 'something',
+          };
+        },
+        mapActionsToProps: (actions) => {
+          return {
+            doSomethingBlah: () => {
+              actions.root.something();
+            },
+          };
+        },
+      },
+      (props: { foo: string; doSomethingBlah: () => void }) => {
+        props.doSomethingBlah();
+        return <div>{props.foo}</div>;
+      }
+    );
+    const res = TestRenderer.create(
+      createElement(TestComponentConnected, {
+        store: TestModule.asStore(),
+      })
+    );
+    expect(res.toJSON().children[0]).toBe('something');
+    expect(actionCalled).toBeTruthy();
+  });
   it('can be map dispatch to actions', () => {
     const TestComponentConformsToModuleState: React.FC<{
       test: string;
