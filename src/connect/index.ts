@@ -128,12 +128,12 @@ export function connectModule<
   TReduxModuleTypeContainer extends ReduxModuleBase<ReduxModuleTypeContainerAny>,
   TMapStateToProps extends MapStateToProps<
     TMapStateToPropsState,
-    TMapStateToPropsState,
+    PropsExcludingFunctions<TComponentOwnProps>,
     TReduxModuleTypeContainerStoreState
   >,
   TMapActionsToProps extends MapStateToProps<
     TMapActionsToPropsState,
-    TMapActionsToPropsState,
+    PropsExcludingFunctions<TComponentOwnProps>,
     TReduxModuleTypeContainerStoreActionsDispatchBound
   >,
   TConnectModuleOptions extends ConnectModuleOptions<

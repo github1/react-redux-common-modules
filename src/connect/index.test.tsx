@@ -141,9 +141,10 @@ describe('when connecting modules', () => {
             foo: 'something',
           };
         },
-        mapActionsToProps: (actions) => {
+        mapActionsToProps: (actions, ownProps) => {
           return {
             doSomethingBlah: () => {
+              expectType<TypeEqual<typeof ownProps, { foo: string }>>(true);
               actions.root.something();
             },
           };
