@@ -190,20 +190,20 @@ export function connectModule(
         const combinedActionCreators = (
           module as any
         ).getCombinedActionCreators();
+        const combinedActionCreatorsBound = Object.keys(
+          combinedActionCreators
+        ).reduce((creators, key) => {
+          const bound = bindActionCreators(
+            combinedActionCreators[key],
+            dispatch
+          );
+          return { ...creators, [key]: bound };
+        }, {});
         if (opts?.mapActionsToProps) {
-          return opts.mapActionsToProps(combinedActionCreators, ownProps);
+          return opts.mapActionsToProps(combinedActionCreatorsBound, ownProps);
         } else {
           return {
-            actions: Object.keys(combinedActionCreators).reduce(
-              (creators, key) => {
-                const bound = bindActionCreators(
-                  combinedActionCreators[key],
-                  dispatch
-                );
-                return { ...creators, [key]: bound };
-              },
-              {}
-            ),
+            actions: combinedActionCreatorsBound,
           };
         }
       }
