@@ -5,7 +5,7 @@ import {
   ReduxModuleBase,
   ReduxModuleTypeContainerStoreActionCreator,
 } from '@github1/redux-modules';
-import React, { ComponentType } from 'react';
+import { ComponentType } from 'react';
 import { Action, bindActionCreators, Store } from 'redux';
 import { connect, ConnectedComponent, MapStateToProps } from 'react-redux';
 import { ThunkAction } from 'redux-thunk';
@@ -18,7 +18,9 @@ type ReduxModuleActionCreatorizedFunctions<
   [k in keyof TOwnPropsWhichAreFunctions]: TOwnPropsWhichAreFunctions[k] extends (
     ...args: infer TArgs
   ) => infer TReturn
-    ? (...args: TArgs) => ThunkAction<TReturn, TStoreState, {}, TAction>
+    ? (
+        ...args: TArgs
+      ) => ThunkAction<TReturn, TStoreState, {}, TAction> | TAction
     : never;
 };
 
@@ -171,7 +173,7 @@ export function connectModule<
   TComponent extends ComponentType<any>,
   TReduxModule extends ReduxModuleBase<ReduxModuleTypeContainerAny>,
   TMapStateToProps extends MapStateToProps<
-    PropsExcludingFunctions<TComponentOwnProps>,
+    Partial<PropsExcludingFunctions<TComponentOwnProps>>,
     Partial<PropsExcludingFunctions<TComponentOwnProps>>,
     ReduxModuleStoreState<TReduxModule>
   >,
