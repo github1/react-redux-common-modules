@@ -187,7 +187,11 @@ export function connectModule<
     TMapActionsToProps,
     PropsOnlyActionCreators<TComponentOwnProps>
   >,
-  TComponentOwnProps = React.ComponentProps<TComponent>
+  TComponentOwnProps = TComponent extends ComponentType<
+    infer TComponentOwnProps
+  >
+    ? TComponentOwnProps
+    : {}
 >(
   module: TReduxModule,
   opts: TConnectModuleOptions,
