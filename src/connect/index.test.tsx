@@ -145,14 +145,16 @@ describe('when connecting modules', () => {
           return {
             doSomethingBlah: () => {
               expectType<TypeEqual<typeof ownProps, { foo: string }>>(true);
-              actions.root.something();
+              return (dispatch) => {
+                dispatch(actions.root.something());
+                return 'hello';
+              };
             },
           };
         },
       },
-      (props: { foo: string; doSomethingBlah: () => void }) => {
-        props.doSomethingBlah();
-        return <div>{props.foo}</div>;
+      (props: { foo: string; doSomethingBlah: () => string }) => {
+        return <div>{props.foo + ' ' + props.doSomethingBlah()}</div>;
       }
     );
     const res = TestRenderer.create(
@@ -160,7 +162,7 @@ describe('when connecting modules', () => {
         store: TestModule.asStore(),
       })
     );
-    expect(res.toJSON().children[0]).toBe('something');
+    expect(res.toJSON().children[0]).toBe('something hello');
     expect(actionCalled).toBeTruthy();
   });
   it('can be map dispatch to actions', () => {

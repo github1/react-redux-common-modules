@@ -40,7 +40,8 @@
     "@types/react-redux": ">=7.0.1",
     "@github1/ajax-service": "0.0.0",
     "react-redux": ">=7.0.1",
-    "redux": ">=4.0.0"
+    "redux": ">=4.0.0",
+    "redux-thunk": "2.3.0"
   },
   "publishConfig": {
     "access": "public"

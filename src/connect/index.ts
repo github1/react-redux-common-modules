@@ -3,20 +3,64 @@ import {
   ReduxModuleTypeContainerStoreState,
   ReduxModuleTypeContainerStoreActionCreatorDispatchBound,
   ReduxModuleBase,
+  ReduxModuleTypeContainerStoreActionCreator,
 } from '@github1/redux-modules';
-import { ComponentType } from 'react';
+import React, { ComponentType } from 'react';
 import { Action, bindActionCreators, Store } from 'redux';
 import { connect, ConnectedComponent, MapStateToProps } from 'react-redux';
+import { ThunkAction } from 'redux-thunk';
+
+type ReduxModuleActionCreatorizedFunctions<
+  TOwnPropsWhichAreFunctions,
+  TStoreState,
+  TAction extends Action
+> = {
+  [k in keyof TOwnPropsWhichAreFunctions]: TOwnPropsWhichAreFunctions[k] extends (
+    ...args: infer TArgs
+  ) => infer TReturn
+    ? (...args: TArgs) => ThunkAction<TReturn, TStoreState, {}, TAction>
+    : never;
+};
+
+type ReduxModuleMapActionsToProps<
+  TStateProps,
+  TOwnPropsExcludingFunctions,
+  TStoreActionCreators extends Record<string, (...args: any) => Action>,
+  TStoreState,
+  TAction extends Action
+> = (
+  actions: TStoreActionCreators,
+  ownProps: TOwnPropsExcludingFunctions
+) => ReduxModuleActionCreatorizedFunctions<TStateProps, TStoreState, TAction>;
+
+type ReduxModuleStoreState<TReduxModule> = TReduxModule extends ReduxModuleBase<
+  infer TReduxModuleTypeContainer
+>
+  ? ReduxModuleTypeContainerStoreState<TReduxModuleTypeContainer>
+  : never;
+
+type ReduxModuleStoreActionCreator<TReduxModule> =
+  TReduxModule extends ReduxModuleBase<infer TReduxModuleTypeContainer>
+    ? ReduxModuleTypeContainerStoreActionCreator<TReduxModuleTypeContainer>
+    : never;
+
+type ReduxModuleStoreActionType<TReduxModule> =
+  TReduxModule extends ReduxModuleBase<infer TReduxModuleTypeContainer>
+    ? TReduxModuleTypeContainer['_actionType']
+    : never;
 
 export type ConnectModuleOptions<
   TMapStateToProps extends MapStateToProps<any, any> = MapStateToProps<
     any,
     any
   >,
-  TMapActionsToProps extends MapStateToProps<any, any> = MapStateToProps<
+  TMapActionsToProps extends ReduxModuleMapActionsToProps<
+    any,
+    any,
+    any,
     any,
     any
-  >,
+  > = ReduxModuleMapActionsToProps<any, any, any, any, any>,
   TActionCreators = any
 > = {
   mapStateToProps?: TMapStateToProps;
@@ -125,39 +169,27 @@ export function connectModule<
 >;
 export function connectModule<
   TComponent extends ComponentType<any>,
-  TReduxModuleTypeContainer extends ReduxModuleBase<ReduxModuleTypeContainerAny>,
+  TReduxModule extends ReduxModuleBase<ReduxModuleTypeContainerAny>,
   TMapStateToProps extends MapStateToProps<
-    TMapStateToPropsState,
-    Partial<PropsExcludingFunctions<TComponentOwnProps>>,
-    TReduxModuleTypeContainerStoreState
-  >,
-  TMapActionsToProps extends MapStateToProps<
-    TMapActionsToPropsState,
     PropsExcludingFunctions<TComponentOwnProps>,
-    TReduxModuleTypeContainerStoreActionsDispatchBound
+    Partial<PropsExcludingFunctions<TComponentOwnProps>>,
+    ReduxModuleStoreState<TReduxModule>
+  >,
+  TMapActionsToProps extends ReduxModuleMapActionsToProps<
+    PropsOnlyFunctions<TComponentOwnProps>,
+    PropsExcludingFunctions<TComponentOwnProps>,
+    ReduxModuleStoreActionCreator<TReduxModule>,
+    ReduxModuleStoreState<TReduxModule>,
+    ReduxModuleStoreActionType<TReduxModule>
   >,
   TConnectModuleOptions extends ConnectModuleOptions<
     TMapStateToProps,
     TMapActionsToProps,
     PropsOnlyActionCreators<TComponentOwnProps>
   >,
-  TComponentOwnProps = TComponent extends ComponentType<infer TOwnProps>
-    ? TOwnProps
-    : never,
-  TMapActionsToPropsState = PropsOnlyFunctions<TComponentOwnProps>,
-  TMapStateToPropsState = PropsExcludingFunctions<TComponentOwnProps>,
-  TReduxModuleTypeContainerStoreActionsDispatchBound = TReduxModuleTypeContainer extends ReduxModuleBase<
-    infer TReduxModuleTypeContainer
-  >
-    ? ReduxModuleTypeContainerStoreActionCreatorDispatchBound<TReduxModuleTypeContainer>
-    : never,
-  TReduxModuleTypeContainerStoreState = TReduxModuleTypeContainer extends ReduxModuleBase<
-    infer TReduxModuleTypeContainer
-  >
-    ? ReduxModuleTypeContainerStoreState<TReduxModuleTypeContainer>
-    : never
+  TComponentOwnProps = React.ComponentProps<TComponent>
 >(
-  module: TReduxModuleTypeContainer,
+  module: TReduxModule,
   opts: TConnectModuleOptions,
   component: TComponent
 ): ReduxModuleConnectedComponent<ComponentState<TComponent>, {}>;
@@ -190,18 +222,22 @@ export function connectModule(
         const combinedActionCreators = (
           module as any
         ).getCombinedActionCreators();
-        const combinedActionCreatorsBound = Object.keys(
-          combinedActionCreators
-        ).reduce((creators, key) => {
-          const bound = bindActionCreators(
-            combinedActionCreators[key],
-            dispatch
-          );
-          return { ...creators, [key]: bound };
-        }, {});
         if (opts?.mapActionsToProps) {
-          return opts.mapActionsToProps(combinedActionCreatorsBound, ownProps);
+          const mappedActions = opts.mapActionsToProps(
+            combinedActionCreators,
+            ownProps
+          );
+          return bindActionCreators(mappedActions, dispatch);
         } else {
+          const combinedActionCreatorsBound = Object.keys(
+            combinedActionCreators
+          ).reduce((creators, key) => {
+            const bound = bindActionCreators(
+              combinedActionCreators[key],
+              dispatch
+            );
+            return { ...creators, [key]: bound };
+          }, {});
           return {
             actions: combinedActionCreatorsBound,
           };
