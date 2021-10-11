@@ -2,11 +2,11 @@ import React from 'react';
 import {
   alerts,
   AlertModuleAlertState,
-  ConfirmAlertAction,
+  ConfirmAlertOption,
 } from '../../alerts';
 import { connectModule } from '../../connect';
 
-export interface ConfirmAlertActionProps extends ConfirmAlertAction {
+export interface ConfirmAlertActionProps extends ConfirmAlertOption {
   trigger(): void;
 }
 
@@ -35,10 +35,10 @@ export const Alerts = connectModule<AlertsProps, typeof alerts>(
       const alertProps: AlertProps = {
         ...alert,
         hide: alert.hide,
-        actions: (alert.actions || []).map((action) => {
+        actions: (alert.options || []).map((option) => {
           return {
-            ...action,
-            trigger: () => actions.alerts.triggerAlertAction(alert.id, action),
+            ...option,
+            trigger: () => actions.alerts.triggerAlertAction(alert.id, option),
           };
         }),
         dismiss: () => actions.alerts.dismissAlert(alert.id),

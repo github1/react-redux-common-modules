@@ -8,20 +8,28 @@ export const REMOVE_ALERT = '@ALERT/REMOVE';
 export const TRIGGER_ALERT_ACTION = '@ALERT/TRIGGER_ALERT_ACTION';
 const CONFIRMATION_ALERT_TYPE = 'confirmation';
 
-export interface DisplayAlertOptions {
+export interface AlertInfo {
   id: string;
   title: string;
   message: string;
   timeout: number;
   type: string;
-  actions: ConfirmAlertAction[];
 }
 
-export interface ConfirmAlertAction {
+export type ConfirmAlertOptionAction =
+  | ((alertId: string) => AnyAction | AnyAction[])
+  | AnyAction
+  | AnyAction[];
+
+export interface ConfirmAlertOption {
   [key: string]: any;
   label: string;
   className?: string;
-  action?: AnyAction;
+  action?: ConfirmAlertOptionAction;
+}
+
+export interface DisplayAlertOptions extends AlertInfo {
+  options: ConfirmAlertOption[];
 }
 
 export type AlertModuleAlertState = DisplayAlertOptions & { hide?: boolean };
@@ -52,7 +60,7 @@ export interface TriggerAlertAction
   extends Action<typeof TRIGGER_ALERT_ACTION> {
   payload: {
     id: string;
-    action: ConfirmAlertAction;
+    option: ConfirmAlertOption;
   };
 }
 
@@ -73,17 +81,17 @@ export const alerts = createModule('alerts', {
       id = id || guid();
       return {
         type: DISPLAY_ALERT,
-        payload: { title, message, type, timeout, id, actions: [] },
+        payload: { title, message, type, timeout, id, options: [] },
       };
     },
     requestConfirmation({
       title,
       message,
-      actions = [],
+      options = [],
     }: Partial<DisplayAlertOptions>): DisplayAlertAction {
       const id = guid();
-      if (actions.length === 0) {
-        actions.push({ label: 'Ok' });
+      if (options.length === 0) {
+        options.push({ label: 'Ok', action: (id) => this.dismissAlert(id) });
       }
       return {
         type: DISPLAY_ALERT,
@@ -93,7 +101,7 @@ export const alerts = createModule('alerts', {
           type: CONFIRMATION_ALERT_TYPE,
           timeout: -1,
           id,
-          actions,
+          options,
         },
       };
     },
@@ -111,13 +119,13 @@ export const alerts = createModule('alerts', {
     },
     triggerAlertAction(
       id: string,
-      action: ConfirmAlertAction
+      option: ConfirmAlertOption
     ): TriggerAlertAction {
       return {
         type: TRIGGER_ALERT_ACTION,
         payload: {
           id,
-          action,
+          option,
         },
       };
     },
@@ -190,8 +198,19 @@ export const alerts = createModule('alerts', {
         store.dispatch(store.actions.removeAlert(alert.id));
       });
     }
-    if (action.type === TRIGGER_ALERT_ACTION && action.payload.action.action) {
-      store.dispatch(action.payload.action.action);
+    if (action.type === TRIGGER_ALERT_ACTION && action.payload.option.action) {
+      const optionAction: ConfirmAlertOptionAction =
+        action.payload.option.action;
+      let actionOrActions: AnyAction | AnyAction[] = [];
+      if (typeof optionAction === 'function') {
+        actionOrActions = optionAction(action.payload.id);
+      } else {
+        actionOrActions = optionAction;
+      }
+      (Array.isArray(actionOrActions)
+        ? actionOrActions
+        : [actionOrActions]
+      ).forEach((action) => store.dispatch(action));
     }
     next(action);
   });
