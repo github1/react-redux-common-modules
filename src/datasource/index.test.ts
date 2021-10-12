@@ -231,6 +231,7 @@ describe('datasource', () => {
         other_value: string;
         __exclude?: boolean;
       };
+      customFilterFuncDataSource: { field1: string };
     }>()
       .with(fakeDataModule)
       .asStore({ deferred: true, record: true, enforceImmutableState: true });
@@ -355,6 +356,32 @@ describe('datasource', () => {
         store.getState().datasource.equalsOperatorFilterDataSource.data[0]
           .search_value
       ).toBe('alpha3');
+    });
+    it('can be initialized with a custom filter func', () => {
+      store.dispatch(
+        store.actions.datasource.initDataSource({
+          id: 'customFilterFuncDataSource',
+          source: [
+            { field1: 'alpha31' },
+            { field1: 'alpha32' },
+            { field1: 'alpha3' },
+          ],
+          filterFunc: (item, field, fieldValue, operator, filterValue) => {
+            return filterValue === 'blah' && fieldValue === 'alpha32';
+          },
+        })
+      );
+      store.dispatch(
+        store.actions.datasource.filterDataSource({
+          id: 'customFilterFuncDataSource',
+          field: 'field1',
+          operator: 'contains',
+          textFilter: 'blah',
+        })
+      );
+      expect(
+        store.getState().datasource.customFilterFuncDataSource.data[0].field1
+      ).toBe('alpha32');
     });
     it('can perform a "soft" filter', () => {
       store.dispatch(

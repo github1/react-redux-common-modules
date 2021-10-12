@@ -41,9 +41,12 @@ export type DataSourceSortProps<TDataType = any> = {
   sortDirection: 'asc' | 'desc';
 };
 
+export type DataSourceFilterOperators = 'contains' | 'equals';
+
 export type DataSourceBaseProps<
   TDataKey extends string = string,
-  TDataType = any
+  TDataType = any,
+  TDataTypeField extends Leaves<TDataType> = Leaves<TDataType>
 > = DataSourceSortProps<TDataType> & {
   id: TDataKey;
   source: TDataType[] | string;
@@ -52,15 +55,22 @@ export type DataSourceBaseProps<
   baseSortField: StringKeys<TDataType>;
   textFilters: Partial<
     Record<
-      Leaves<TDataType>,
+      TDataTypeField,
       {
         value: DataSourceTextFilter<TDataType>;
-        operator?: 'contains' | 'equals';
+        operator?: DataSourceFilterOperators;
       }
     >
   >;
   updateTime: number;
   inBrowser: boolean;
+  filterFunc?: (
+    item: TDataType,
+    field: TDataTypeField,
+    fieldValue: any,
+    operator: DataSourceFilterOperators,
+    value: string
+  ) => boolean;
 };
 
 export type DataSourceInitAction<
@@ -120,7 +130,7 @@ export type DataSourceFilterProps<
   id: TDataKey;
   textFilter: DataSourceTextFilter<TDataType>;
   field: TField;
-  operator: 'equals' | 'contains';
+  operator: DataSourceFilterOperators;
   softFilter: boolean;
 };
 
@@ -410,6 +420,7 @@ function datasourceModuleCreator<
             textFilters: action.textFilters,
             updateTime: action.updateTime,
             inBrowser: action.inBrowser,
+            filterFunc: action.filterFunc,
           };
           const initData: DataSourceModuleState = {
             [action.id]: dataSourceProps,
@@ -594,16 +605,26 @@ const updateSortFilter = (
                 return true;
               }
               const propValue = `${propByString.get(key, item) || ''}`;
-              if (operator === 'equals') {
+              if (state[id].filterFunc) {
+                return state[id].filterFunc(
+                  item,
+                  key,
+                  propValue,
+                  operator,
+                  filterRawValueStr
+                );
+              } else {
+                if (operator === 'equals') {
+                  return (
+                    propValue.toLowerCase() === filterRawValueStr.toLowerCase()
+                  );
+                }
                 return (
-                  propValue.toLowerCase() === filterRawValueStr.toLowerCase()
+                  propValue
+                    .toLowerCase()
+                    .indexOf(filterRawValueStr.toLowerCase()) > -1
                 );
               }
-              return (
-                propValue
-                  .toLowerCase()
-                  .indexOf(filterRawValueStr.toLowerCase()) > -1
-              );
             });
           }
         },
