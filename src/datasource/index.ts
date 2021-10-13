@@ -383,7 +383,7 @@ function datasourceModuleCreator<
           id,
           textFilter,
           field,
-          operator,
+          operator: operator || 'contains',
           softFilter,
         };
       },
@@ -414,7 +414,8 @@ function datasourceModuleCreator<
             source: action.source,
             baseSortField: action.baseSortField,
             data: action.data,
-            master: action.master || state[action.id].master,
+            master:
+              action.master || action.data || state[action.id]?.master || [],
             sortField: action.sortField,
             sortDirection: action.sortDirection,
             textFilters: action.textFilters,
