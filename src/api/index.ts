@@ -289,8 +289,12 @@ function applyDataFetchPostProcessor(
   return data;
 }
 
-const getCallName = (action) => {
-  let callName = action.callCountName;
+const getCallName = (
+  action: CommandExecutionRequestedAction | Action<string>
+) => {
+  let callName = isAction(action, COMMAND_REQUESTED)
+    ? action.callCountName
+    : '';
   if (!callName) {
     callName = action.type.replace(/@API\//g, '');
     callName = callName.substring(0, callName.lastIndexOf('_'));

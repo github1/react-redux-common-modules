@@ -104,7 +104,7 @@ describe('datasource', () => {
         })
       );
     });
-    it('initializes the data from the store', () => {
+    it('can initialize the data from the store', () => {
       expect(store.getState().datasource.someDataSource.data[0].name).toBe('a');
       expectType<
         TypeEqual<
@@ -508,6 +508,8 @@ describe('datasource', () => {
             { value: 2, id: 'b' },
             { value: 3, id: 'c' },
           ],
+          sortField: 'value',
+          sortDirection: 'desc',
         })
       );
     });
@@ -572,14 +574,19 @@ describe('datasource', () => {
       );
       expect(store.getState().datasource.someDataSource.data[0].id).toBe('b');
     });
-    it('can update the source and data', () => {
+    it('can update the source', () => {
       store.dispatch(
         store.actions.datasource.updateDataSource({
           id: 'someDataSource',
-          data: [{ value: 1, id: 'a' }],
+          source: [
+            { value: 1, id: 'a' },
+            { value: 2, id: 'b' },
+          ],
+          sort: true,
         })
       );
-      expect(store.getState().datasource.someDataSource.data[0].id).toBe('a');
+      expect(store.getState().datasource.someDataSource.data[0].value).toBe(2);
+      expect(store.getState().datasource.someDataSource.data[0].id).toBe('b');
     });
   });
   describe('mapDataSource', () => {

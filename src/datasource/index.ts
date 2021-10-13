@@ -191,7 +191,6 @@ type DataSourceModuleType<
               TDataSourceTypes[TDataSourceKey]
             >,
             | 'source'
-            | 'data'
             | 'baseSortField'
             | 'sortField'
             | 'sortDirection'
@@ -201,7 +200,7 @@ type DataSourceModuleType<
             | 'updateTime'
             | 'inBrowser'
           >,
-          'type' | 'master'
+          'type' | 'master' | 'data'
         >
       ): DataSourceUpdateAction;
       dateSourceUpdated<TDataSourceKey extends TDataSourceKeys>(
@@ -273,6 +272,20 @@ type DataSourceModuleType<
     }
   >
 >;
+
+const DATA_SOURCE_BASE_PROPS_KEYS: (keyof DataSourceBaseProps)[] = [
+  'id',
+  'source',
+  'baseSortField',
+  'data',
+  'master',
+  'sortField',
+  'sortDirection',
+  'textFilters',
+  'updateTime',
+  'inBrowser',
+  'filterFunc',
+];
 
 function datasourceModuleCreator<
   TDataSourceTypes extends Record<string, any>
@@ -410,12 +423,13 @@ function datasourceModuleCreator<
         case DATASOURCE_UPDATE:
         case DATASOURCE_INIT: {
           const dataSourceProps: DataSourceBaseProps = {
+            ...state[action.id],
+          } || {
             id: action.id,
             source: action.source,
             baseSortField: action.baseSortField,
-            data: action.data,
-            master:
-              action.master || action.data || state[action.id]?.master || [],
+            data: [],
+            master: [],
             sortField: action.sortField,
             sortDirection: action.sortDirection,
             textFilters: action.textFilters,
@@ -423,6 +437,11 @@ function datasourceModuleCreator<
             inBrowser: action.inBrowser,
             filterFunc: action.filterFunc,
           };
+          for (const propKey of DATA_SOURCE_BASE_PROPS_KEYS) {
+            if (action[propKey]) {
+              (dataSourceProps[propKey] as any) = action[propKey];
+            }
+          }
           const initData: DataSourceModuleState = {
             [action.id]: dataSourceProps,
           };
@@ -529,10 +548,8 @@ function datasourceModuleCreator<
           } else {
             action.master = resolveDataFromKey(store.getState(), action.source);
           }
-        }
-
-        if (!action.data) {
-          action.data = action.master;
+        } else if (action.data && !action.master) {
+          action.master = action.data;
         }
 
         action.updateTime = new Date().getTime();
