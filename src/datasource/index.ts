@@ -585,7 +585,8 @@ Object.keys(datasourceDefault)
     datasourceModuleCreator[k] = datasourceDefault[k];
   });
 
-export const datasource: DataSourceModule = datasourceModuleCreator as any;
+export const datasource: DataSourceModule =
+  datasourceModuleCreator as any as DataSourceModule;
 
 const updateSortFilter = (
   state: typeof datasourceDefault['_types']['_stateType'],

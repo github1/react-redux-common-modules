@@ -814,13 +814,6 @@ export const api = createModule('api', {
                 callbackActions.push(action.errorHandler(err));
               }
             } else {
-              callbackActions.push({
-                type: COMMAND_SUCCESS,
-                name: action.name,
-                payload: action.payload,
-                response: response,
-                callCountName: action.callCountName,
-              });
               callbackActions.push(
                 store.actions.executeCommandSuccess(action, response)
               );
