@@ -831,6 +831,7 @@ export const api = createModule('api', {
         ) as Action
       );
     } else if (SIGNOUT_REQUESTED === action.type) {
+      next(action);
       next(
         del('service/identity', {}, () => {
           return store.actions.signoutSuccess();
