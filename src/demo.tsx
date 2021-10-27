@@ -115,7 +115,7 @@ store.dispatch(
   store.actions.alerts.requestConfirmation({
     title: 'Hello',
     message: 'Test message',
-    actions: [
+    options: [
       {
         label: 'some action',
         action: { type: 'SOME_ACTION' },

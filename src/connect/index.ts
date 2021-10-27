@@ -5,10 +5,16 @@ import {
   ReduxModuleBase,
   ReduxModuleTypeContainerStoreActionCreator,
 } from '@github1/redux-modules';
-import { ComponentType } from 'react';
+import React, { ComponentType, useEffect } from 'react';
 import { Action, bindActionCreators, Store } from 'redux';
-import { connect, ConnectedComponent, MapStateToProps } from 'react-redux';
+import {
+  connect,
+  ConnectedComponent,
+  MapStateToProps,
+  useStore,
+} from 'react-redux';
 import { ThunkAction } from 'redux-thunk';
+import { ReduxActionTarget } from '../../../redux-modules/dist/es5/reloadable-store';
 
 type ReduxModuleActionCreatorizedFunctions<
   TOwnPropsWhichAreFunctions,
@@ -34,6 +40,16 @@ type ReduxModuleMapActionsToProps<
   actions: TStoreActionCreators,
   ownProps: TOwnPropsExcludingFunctions
 ) => ReduxModuleActionCreatorizedFunctions<TStateProps, TStoreState, TAction>;
+
+type ReduxModuleInterceptor<
+  TStoreActionCreators extends Record<string, (...args: any) => Action>,
+  TStoreState,
+  TAction extends Action,
+  TInterceptorContext = { actions: TStoreActionCreators; state: TStoreState }
+> = (
+  action: TAction,
+  context: TInterceptorContext
+) => ThunkAction<any, TStoreState, {}, TAction> | TAction | void;
 
 type ReduxModuleStoreState<TReduxModule> = TReduxModule extends ReduxModuleBase<
   infer TReduxModuleTypeContainer
@@ -63,10 +79,16 @@ export type ConnectModuleOptions<
     any,
     any
   > = ReduxModuleMapActionsToProps<any, any, any, any, any>,
+  TReduxModuleInterceptor extends ReduxModuleInterceptor<
+    any,
+    any,
+    any
+  > = ReduxModuleInterceptor<any, any, any>,
   TActionCreators = any
 > = {
   mapStateToProps?: TMapStateToProps;
   mapActionsToProps?: TMapActionsToProps;
+  interceptor?: TReduxModuleInterceptor;
   actions?: TActionCreators;
 };
 
@@ -184,9 +206,15 @@ export function connectModule<
     ReduxModuleStoreState<TReduxModule>,
     ReduxModuleStoreActionType<TReduxModule>
   >,
+  TInterceptor extends ReduxModuleInterceptor<
+    ReduxModuleStoreActionCreator<TReduxModule>,
+    ReduxModuleStoreState<TReduxModule>,
+    ReduxModuleStoreActionType<TReduxModule>
+  >,
   TConnectModuleOptions extends ConnectModuleOptions<
     TMapStateToProps,
     TMapActionsToProps,
+    TInterceptor,
     PropsOnlyActionCreators<TComponentOwnProps>
   >,
   TComponentOwnProps = TComponent extends ComponentType<
@@ -251,7 +279,31 @@ export function connectModule(
       }
     }
   );
-  return enhancer(component);
+  const wrapped: React.FC = (props) => {
+    const store = (props as any).store || useStore();
+    if (opts.interceptor) {
+      useEffect(() => {
+        const target = store as any as ReduxActionTarget;
+        const listener = (action: Action) => {
+          if (opts.interceptor) {
+            const resultingAction = opts.interceptor(action, {
+              state: store.getState(),
+              actions: (store as any).actions,
+            });
+            if (resultingAction) {
+              store.dispatch(resultingAction);
+            }
+          }
+        };
+        target.addActionListener(listener);
+        return () => {
+          target.removeActionListener(listener);
+        };
+      }, []);
+    }
+    return React.createElement(component as any, props);
+  };
+  return enhancer(wrapped);
 }
 
 function isConnectModuleOptions(
@@ -260,6 +312,7 @@ function isConnectModuleOptions(
   return (
     maybeOpts.mapStateToProps ||
     maybeOpts.mapActionsToProps ||
+    maybeOpts.interceptor ||
     maybeOpts.actions
   );
 }

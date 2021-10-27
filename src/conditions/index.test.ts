@@ -30,8 +30,8 @@ describe('conditions', () => {
             (state) => state.someData.condition_value === true
           ).thenDispatch({ type: 'CONDITION_MET' })
         );
-        store.dispatch({ type: 'SET_CONDITION' });
-        await store.getState().recording.waitFor('CONDITION_MET');
+        store.dispatch({ type: 'SET_CONDITION' } as any);
+        await store.getState().recording.waitFor('CONDITION_MET' as any);
       });
       it('actions can be generated from a function', async () => {
         store.dispatch(
@@ -41,8 +41,8 @@ describe('conditions', () => {
             type: 'CONDITION_MET_' + state.someData.condition_value,
           }))
         );
-        store.dispatch({ type: 'SET_CONDITION' });
-        await store.getState().recording.waitFor('CONDITION_MET_true');
+        store.dispatch({ type: 'SET_CONDITION' } as any);
+        await store.getState().recording.waitFor('CONDITION_MET_true' as any);
       });
       it('dispatches an array of action when the state condition is met', async () => {
         store.dispatch(
@@ -53,9 +53,9 @@ describe('conditions', () => {
             { type: 'CONDITION_MET_2' },
           ])
         );
-        store.dispatch({ type: 'SET_CONDITION' });
-        await store.getState().recording.waitFor('CONDITION_MET_1');
-        await store.getState().recording.waitFor('CONDITION_MET_2');
+        store.dispatch({ type: 'SET_CONDITION' } as any);
+        await store.getState().recording.waitFor('CONDITION_MET_1' as any);
+        await store.getState().recording.waitFor('CONDITION_MET_2' as any);
       });
       it('timesout if condition not met in a period of time', async () => {
         store.dispatch(
@@ -63,7 +63,9 @@ describe('conditions', () => {
             type: 'CONDITION_TIMEOUT',
           })
         );
-        await store.getState().recording.waitFor('CONDITION_TIMEOUT', 1000);
+        await store
+          .getState()
+          .recording.waitFor('CONDITION_TIMEOUT' as any, 1000);
       }, 1000);
     });
     describe('onlyIf', () => {
@@ -71,13 +73,13 @@ describe('conditions', () => {
         store.dispatch(
           onlyIf(() => true).thenDispatch({ type: 'CONDITION_MET' })
         );
-        await store.getState().recording.waitFor('CONDITION_MET');
+        await store.getState().recording.waitFor('CONDITION_MET' as any);
       });
       it('dispatches alternative actions if the state condition is not met at the time of dispatch', async () => {
         store.dispatch(
           onlyIf(() => false).otherwiseDispatch({ type: 'CONDITION_NOT_MET' })
         );
-        await store.getState().recording.waitFor('CONDITION_NOT_MET');
+        await store.getState().recording.waitFor('CONDITION_NOT_MET' as any);
       });
     });
   });
