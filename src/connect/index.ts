@@ -44,9 +44,14 @@ type ReduxModuleMapActionsToProps<
 
 type ReduxModuleInterceptor<
   TStoreActionCreators extends Record<string, (...args: any) => Action>,
+  TProps,
   TStoreState,
   TAction extends Action,
-  TInterceptorContext = { actions: TStoreActionCreators; state: TStoreState }
+  TInterceptorContext = {
+    props: TProps;
+    state: TStoreState;
+    actions: TStoreActionCreators;
+  }
 > = (
   action: TAction,
   context: TInterceptorContext
@@ -83,8 +88,9 @@ export type ConnectModuleOptions<
   TReduxModuleInterceptor extends ReduxModuleInterceptor<
     any,
     any,
+    any,
     any
-  > = ReduxModuleInterceptor<any, any, any>,
+  > = ReduxModuleInterceptor<any, any, any, any>,
   TActionCreators = any
 > = {
   mapStateToProps?: TMapStateToProps;
@@ -209,6 +215,7 @@ export function connectModule<
   >,
   TInterceptor extends ReduxModuleInterceptor<
     ReduxModuleStoreActionCreator<TReduxModule>,
+    TComponentOwnProps,
     ReduxModuleStoreState<TReduxModule>,
     ReduxModuleStoreActionType<TReduxModule>
   >,
@@ -286,6 +293,7 @@ export function connectModule(
       useEffect(() => {
         const listener = (action: Action) => {
           const resultingAction = opts.interceptor(action, {
+            props: this.props,
             state: store.getState(),
             actions: (store as any).actions,
           });
