@@ -244,44 +244,52 @@ const GroupedDataRecordTable = connectModule(
   }
 );
 
-const Main = connectModule(demo, ({ actions }) => {
-  return (
-    <div>
-      <button
-        onClick={() => {
-          store.dispatch(actions.alerts.hideAllAlerts());
-        }}
-      >
-        Hide Alerts
-      </button>
-      <AlertsContainer
-        alertRenderer={(alert, index) => (
-          <div key={index}>
-            <button
-              onClick={() => {
-                alert.dismiss();
-              }}
-            >
-              dismiss
-            </button>
-            <div>{alert.message}</div>
-            {alert.actions.map((action, index) => {
-              return (
-                <button key={index} onClick={() => action.trigger()}>
-                  k{action.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      />
-      <div className="table-container">
-        <DataRecordTable />
-        <GroupedDataRecordTable />
+const Main = connectModule(
+  demo,
+  {
+    interceptor(action) {
+      console.log(action);
+    },
+  },
+  ({ actions }) => {
+    return (
+      <div>
+        <button
+          onClick={() => {
+            store.dispatch(actions.alerts.hideAllAlerts());
+          }}
+        >
+          Hide Alerts
+        </button>
+        <AlertsContainer
+          alertRenderer={(alert, index) => (
+            <div key={index}>
+              <button
+                onClick={() => {
+                  alert.dismiss();
+                }}
+              >
+                dismiss
+              </button>
+              <div>{alert.message}</div>
+              {alert.actions.map((action, index) => {
+                return (
+                  <button key={index} onClick={() => action.trigger()}>
+                    k{action.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        />
+        <div className="table-container">
+          <DataRecordTable />
+          <GroupedDataRecordTable />
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
 ReactDOM.render(
   <Provider store={store}>

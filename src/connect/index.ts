@@ -4,6 +4,8 @@ import {
   ReduxModuleTypeContainerStoreActionCreatorDispatchBound,
   ReduxModuleBase,
   ReduxModuleTypeContainerStoreActionCreator,
+  ADD_ACTION_LISTENER,
+  REMOVE_ACTION_LISTENER,
 } from '@github1/redux-modules';
 import React, { ComponentType, useEffect } from 'react';
 import { Action, bindActionCreators, Store } from 'redux';
@@ -14,7 +16,6 @@ import {
   useStore,
 } from 'react-redux';
 import { ThunkAction } from 'redux-thunk';
-import { ReduxActionTarget } from '../../../redux-modules/dist/es5/reloadable-store';
 
 type ReduxModuleActionCreatorizedFunctions<
   TOwnPropsWhichAreFunctions,
@@ -283,21 +284,18 @@ export function connectModule(
     const store = (props as any).store || useStore();
     if (opts.interceptor) {
       useEffect(() => {
-        const target = store as any as ReduxActionTarget;
         const listener = (action: Action) => {
-          if (opts.interceptor) {
-            const resultingAction = opts.interceptor(action, {
-              state: store.getState(),
-              actions: (store as any).actions,
-            });
-            if (resultingAction) {
-              store.dispatch(resultingAction);
-            }
+          const resultingAction = opts.interceptor(action, {
+            state: store.getState(),
+            actions: (store as any).actions,
+          });
+          if (resultingAction) {
+            store.dispatch(resultingAction);
           }
         };
-        target.addActionListener(listener);
+        store.dispatch({ type: ADD_ACTION_LISTENER, listener });
         return () => {
-          target.removeActionListener(listener);
+          store.dispatch({ type: REMOVE_ACTION_LISTENER, listener });
         };
       }, []);
     }

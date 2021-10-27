@@ -1,7 +1,7 @@
 {
   "name": "@github1/react-redux-common-modules",
   "private": false,
-  "version": "0.4.36",
+  "version": "0.4.37",
   "description": "Useful redux modules built with [redux-modules](https://github.com/github1/redux-modules)",
   "main": "dist/es5/index.ts",
   "scripts": {
@@ -15,7 +15,7 @@
   "author": "John Collier <john.collier4@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@github1/build-tools": "0.4.36",
+    "@github1/build-tools": "0.4.37",
     "@types/react": "16.9.19",
     "@types/react-dom": "16.9.9",
     "@types/react-redux": "7.1.18",
@@ -28,8 +28,8 @@
     "redux": "4.0.5"
   },
   "dependencies": {
-    "@github1/ajax-service": "0.4.36",
-    "@github1/redux-modules": "0.4.36",
+    "@github1/ajax-service": "0.4.37",
+    "@github1/redux-modules": "0.4.37",
     "history": "4.7.2",
     "prop-by-string": "1.0.1",
     "utility-types": "3.10.0",
