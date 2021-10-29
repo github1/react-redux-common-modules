@@ -31,7 +31,12 @@ type ReduxModuleActionCreatorizedFunctions<
     : never;
 };
 
-type ReduxModuleMapActionsToProps<
+type ReduxModuleActionReturnTypes<TStoreState, TAction extends Action> =
+  | ThunkAction<any, TStoreState, {}, TAction>
+  | TAction
+  | void;
+
+type ConnectedModuleMapActionsToProps<
   TStateProps,
   TOwnPropsExcludingFunctions,
   TStoreActionCreators extends Record<string, (...args: any) => Action>,
@@ -42,7 +47,7 @@ type ReduxModuleMapActionsToProps<
   ownProps: TOwnPropsExcludingFunctions
 ) => ReduxModuleActionCreatorizedFunctions<TStateProps, TStoreState, TAction>;
 
-type ReduxModuleInterceptor<
+type ConnectedModuleInterceptor<
   TStoreActionCreators extends Record<string, (...args: any) => Action>,
   TProps,
   TStoreState,
@@ -55,7 +60,24 @@ type ReduxModuleInterceptor<
 > = (
   action: TAction,
   context: TInterceptorContext
-) => ThunkAction<any, TStoreState, {}, TAction> | TAction | void;
+) => ReduxModuleActionReturnTypes<TStoreState, TAction>;
+
+type ConnectedModuleLifeCyclePhase = 'mount' | 'unmount' | 'update';
+
+type ConnectedModuleLifeCycleHook<
+  TStoreActionCreators extends Record<string, (...args: any) => Action>,
+  TProps,
+  TStoreState,
+  TAction extends Action,
+  TLifeCycleHookContext = {
+    props: TProps;
+    state: TStoreState;
+    actions: TStoreActionCreators;
+  }
+> = (
+  phase: ConnectedModuleLifeCyclePhase,
+  context?: TLifeCycleHookContext
+) => ReduxModuleActionReturnTypes<TStoreState, TAction>;
 
 type ReduxModuleStoreState<TReduxModule> = TReduxModule extends ReduxModuleBase<
   infer TReduxModuleTypeContainer
@@ -78,24 +100,31 @@ export type ConnectModuleOptions<
     any,
     any
   >,
-  TMapActionsToProps extends ReduxModuleMapActionsToProps<
+  TConnectedModuleMapActionsToProps extends ConnectedModuleMapActionsToProps<
     any,
     any,
     any,
     any,
     any
-  > = ReduxModuleMapActionsToProps<any, any, any, any, any>,
-  TReduxModuleInterceptor extends ReduxModuleInterceptor<
+  > = ConnectedModuleMapActionsToProps<any, any, any, any, any>,
+  TConnectedModuleInterceptor extends ConnectedModuleInterceptor<
     any,
     any,
     any,
     any
-  > = ReduxModuleInterceptor<any, any, any, any>,
+  > = ConnectedModuleInterceptor<any, any, any, any>,
+  TConnectedModuleLifeCycleHook extends ConnectedModuleLifeCycleHook<
+    any,
+    any,
+    any,
+    any
+  > = ConnectedModuleLifeCycleHook<any, any, any, any>,
   TActionCreators = any
 > = {
   mapStateToProps?: TMapStateToProps;
-  mapActionsToProps?: TMapActionsToProps;
-  interceptor?: TReduxModuleInterceptor;
+  mapActionsToProps?: TConnectedModuleMapActionsToProps;
+  interceptor?: TConnectedModuleInterceptor;
+  lifecycleHook?: TConnectedModuleLifeCycleHook;
   actions?: TActionCreators;
 };
 
@@ -206,14 +235,20 @@ export function connectModule<
     Partial<PropsExcludingFunctions<TComponentOwnProps>>,
     ReduxModuleStoreState<TReduxModule>
   >,
-  TMapActionsToProps extends ReduxModuleMapActionsToProps<
+  TConnectedModuleMapActionsToProps extends ConnectedModuleMapActionsToProps<
     PropsOnlyFunctions<TComponentOwnProps>,
     PropsExcludingFunctions<TComponentOwnProps>,
     ReduxModuleStoreActionCreator<TReduxModule>,
     ReduxModuleStoreState<TReduxModule>,
     ReduxModuleStoreActionType<TReduxModule>
   >,
-  TInterceptor extends ReduxModuleInterceptor<
+  TConnectedModuleInterceptor extends ConnectedModuleInterceptor<
+    ReduxModuleStoreActionCreator<TReduxModule>,
+    TComponentOwnProps,
+    ReduxModuleStoreState<TReduxModule>,
+    ReduxModuleStoreActionType<TReduxModule>
+  >,
+  TConnectedModuleLifeCycleHook extends ConnectedModuleLifeCycleHook<
     ReduxModuleStoreActionCreator<TReduxModule>,
     TComponentOwnProps,
     ReduxModuleStoreState<TReduxModule>,
@@ -221,8 +256,9 @@ export function connectModule<
   >,
   TConnectModuleOptions extends ConnectModuleOptions<
     TMapStateToProps,
-    TMapActionsToProps,
-    TInterceptor,
+    TConnectedModuleMapActionsToProps,
+    TConnectedModuleInterceptor,
+    TConnectedModuleLifeCycleHook,
     PropsOnlyActionCreators<TComponentOwnProps>
   >,
   TComponentOwnProps = TComponent extends ComponentType<
@@ -289,21 +325,54 @@ export function connectModule(
   );
   const wrapped: React.FC = (props) => {
     const store = (props as any).store || useStore();
-    if (opts.interceptor) {
+    if (opts.interceptor || opts.lifecycleHook) {
+      const isFirstRender = React.useRef(true);
       useEffect(() => {
-        const listener = (action: Action) => {
-          const resultingAction = opts.interceptor(action, {
-            props: this.props,
-            state: store.getState(),
-            actions: (store as any).actions,
-          });
-          if (resultingAction) {
-            store.dispatch(resultingAction);
+        let listener: (action: Action) => void;
+        if (opts.interceptor) {
+          listener = (action: Action) => {
+            const resultingAction = opts.interceptor(action, {
+              props,
+              state: store.getState(),
+              actions: (store as any).actions,
+            });
+            if (resultingAction) {
+              store.dispatch(resultingAction);
+            }
+          };
+          store.dispatch({ type: ADD_ACTION_LISTENER, listener });
+        }
+        if (opts.lifecycleHook) {
+          let phase: ConnectedModuleLifeCyclePhase = 'update';
+          if (isFirstRender.current) {
+            isFirstRender.current = false;
+            phase = 'mount';
           }
-        };
-        store.dispatch({ type: ADD_ACTION_LISTENER, listener });
+          const actionReturned: ReduxModuleActionReturnTypes<any, Action> =
+            opts.lifecycleHook(phase, {
+              props,
+              state: store.getState(),
+              actions: (store as any).actions,
+            });
+          if (actionReturned) {
+            store.dispatch(actionReturned);
+          }
+        }
         return () => {
-          store.dispatch({ type: REMOVE_ACTION_LISTENER, listener });
+          if (listener) {
+            store.dispatch({ type: REMOVE_ACTION_LISTENER, listener });
+          }
+          if (opts.lifecycleHook) {
+            const actionReturned: ReduxModuleActionReturnTypes<any, Action> =
+              opts.lifecycleHook('unmount', {
+                props,
+                state: store.getState(),
+                actions: (store as any).actions,
+              });
+            if (actionReturned) {
+              store.dispatch(actionReturned);
+            }
+          }
         };
       }, []);
     }
@@ -319,6 +388,7 @@ function isConnectModuleOptions(
     maybeOpts.mapStateToProps ||
     maybeOpts.mapActionsToProps ||
     maybeOpts.interceptor ||
+    maybeOpts.lifecycleHook ||
     maybeOpts.actions
   );
 }

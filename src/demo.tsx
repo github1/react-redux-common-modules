@@ -247,8 +247,8 @@ const GroupedDataRecordTable = connectModule(
 const Main = connectModule(
   demo,
   {
-    interceptor(action) {
-      console.log(action);
+    lifecycleHook(phase) {
+      console.log('phase', phase);
     },
   },
   ({ actions }) => {
@@ -256,7 +256,7 @@ const Main = connectModule(
       <div>
         <button
           onClick={() => {
-            store.dispatch(actions.alerts.hideAllAlerts());
+            actions.alerts.hideAllAlerts();
           }}
         >
           Hide Alerts
