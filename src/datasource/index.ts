@@ -101,6 +101,7 @@ export type DataSourceMapAction<
 > = Action<typeof DATASOURCE_MAP> & {
   id: TDataKey;
   func: (item: TDataType) => TDataType;
+  selector?: (item: TDataType) => boolean;
 };
 
 export type DataSourceSortAction<
@@ -351,12 +352,14 @@ function datasourceModuleCreator<
       },
       mapDataSource(
         id: DataSourceMapAction['id'],
-        func: DataSourceMapAction['func']
+        func: DataSourceMapAction['func'],
+        selector?: DataSourceMapAction['selector']
       ): DataSourceMapAction {
         return {
           type: DATASOURCE_MAP,
           id,
           func,
+          selector,
         };
       },
       sortDataSource(
@@ -520,9 +523,18 @@ function datasourceModuleCreator<
             const updatedItem = { ...updatedState[action.id] };
             for (const field of ['master', 'data']) {
               if (updatedItem[field]) {
-                updatedItem[field] = JSON.parse(
-                  JSON.stringify(updatedItem[field])
-                ).map(action.func);
+                if (action.selector) {
+                  const idx = updatedItem[field].findIndex(action.selector);
+                  if (idx > -1) {
+                    updatedItem[field][idx] = action.func(
+                      updatedItem[field][idx]
+                    );
+                  }
+                } else {
+                  updatedItem[field] = JSON.parse(
+                    JSON.stringify(updatedItem[field])
+                  ).map(action.func);
+                }
               }
             }
             updatedState = { ...updatedState, ...{ [action.id]: updatedItem } };
