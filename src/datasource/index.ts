@@ -218,7 +218,11 @@ type DataSourceModuleType<
         func: DataSourceMapAction<
           TDataSourceKey,
           TDataSourceTypes[TDataSourceKey]
-        >['func']
+        >['func'],
+        selector?: DataSourceMapAction<
+          TDataSourceKey,
+          TDataSourceTypes[TDataSourceKey]
+        >['selector']
       ): DataSourceMapAction;
       sortDataSource<TDataSourceKey extends TDataSourceKeys>(
         props: Omit<
