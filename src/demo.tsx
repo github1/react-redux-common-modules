@@ -50,7 +50,7 @@ const demo = createModule('demo', {
     if (action.type === 'LOAD_DATA') {
       if (!state.datasource.records) {
         const defaultRecords: DataRecord[] = [];
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 1000; i++) {
           defaultRecords.push({
             id: `${i}`,
             name: 'NIGHT VISION DEVICES',
@@ -154,6 +154,7 @@ const DataRecordTable = connectModule(
         <DataTable
           scrollable={true}
           rowClassName={(record) => (record.id === '3' ? 'row-three' : null)}
+          rowKey={(record) => record.id}
           sortField={records.sortField}
           sortDirection={records.sortDirection}
           data={records.data}

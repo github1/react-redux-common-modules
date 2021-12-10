@@ -12,6 +12,7 @@ import { Store } from 'redux';
 export interface DataRowProps {
   data?: any[];
   rowClassName?: (record?: any, rowIndex?: number) => string;
+  rowKey?: (record?: any, rowIndex?: number) => string | string;
   store: Store<DataTableModuleStoreState>;
 }
 
@@ -20,6 +21,7 @@ interface DataRowPrivateProps {
   data: any[];
   dataProvided: boolean;
   rowClassName: (record?: any, rowIndex?: number) => string;
+  rowKey: (record?: any, rowIndex?: number) => string | string;
   store: Store<DataTableModuleStoreState>;
 }
 
@@ -28,6 +30,7 @@ const _DataRow: React.FC<DataRowPrivateProps> = ({
   data,
   dataProvided,
   rowClassName,
+  rowKey,
   store,
 }) => {
   return (
@@ -58,18 +61,26 @@ const _DataRow: React.FC<DataRowPrivateProps> = ({
             </tr>
           );
         } else {
+          let rowKeyToUse: string = `${rowIdx}`;
+          if (rowKey) {
+            rowKeyToUse = `${
+              typeof rowKey === 'function'
+                ? rowKey(record, rowIdx)
+                : record[rowKey]
+            }`;
+          }
           let includeColumnIndices = null;
           if (record.type === GroupingSummaryDataType) {
             className = (className + ' data-table-summary').trim();
             includeColumnIndices = record.includeColumnIndices;
           }
           rows.push(
-            <tr key={`tr-${rowIdx}`} className={className}>
+            <tr key={`tr-${rowKeyToUse}`} className={className}>
               {columns.map((column, idx) => {
                 if (column.isNotResizable) {
                   return (
                     <td
-                      key={`col${idx}-${rowIdx}`}
+                      key={`col${idx}-${rowKeyToUse}`}
                       className="data-table-borderless-cell"
                     />
                   );
@@ -81,7 +92,7 @@ const _DataRow: React.FC<DataRowPrivateProps> = ({
                 ) {
                   return (
                     <td
-                      key={`col${idx}-${rowIdx}`}
+                      key={`col${idx}-${rowKeyToUse}`}
                       className={`data-table-empty-cell ${
                         column.hideSmall ? ' hide-small' : ''
                       }`}
@@ -90,11 +101,9 @@ const _DataRow: React.FC<DataRowPrivateProps> = ({
                 }
                 return (
                   <DataCell
-                    key={`col${idx}-${rowIdx}-${record._version || ''}`}
-                    columnIndex={idx}
-                    rowIndex={rowIdx}
-                    data={dataProvided ? data : null}
-                    store={store}
+                    key={`col${idx}-${rowKeyToUse}-${record._version || ''}`}
+                    column={column}
+                    record={record}
                   />
                 );
               })}
@@ -117,6 +126,7 @@ export const DataRow = connect(
       data: ownProps.data || state.dataTable.data,
       dataProvided: !!ownProps.data,
       rowClassName: ownProps.rowClassName,
+      rowKey: ownProps.rowKey,
       store: ownProps.store,
     };
   }

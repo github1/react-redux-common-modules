@@ -59,6 +59,7 @@ export interface DataTableProps {
   sortField?: string;
   sortDirection?: string;
   rowClassName?: (record?: any, rowIndex?: number) => string;
+  rowKey?: (record?: any, rowIndex?: number) => string | string;
 }
 
 export interface DataTableModuleState {
@@ -127,15 +128,15 @@ const DATA_CELL_CLICKED = '@DATATABLE/DATA_CELL_CLICKED';
 
 export interface DataCellClickedAction
   extends Action<typeof DATA_CELL_CLICKED> {
-  columnIndex: number;
-  rowIndex: number;
+  column: ColumnProps;
+  record: any;
 }
 
 export function dataCellClicked(
-  columnIndex: number,
-  rowIndex: number
+  column: ColumnProps,
+  record: any
 ): DataCellClickedAction {
-  return { type: DATA_CELL_CLICKED, columnIndex, rowIndex };
+  return { type: DATA_CELL_CLICKED, column, record };
 }
 
 // Utils
@@ -307,6 +308,7 @@ export class DataTable extends React.Component<DataTableProps, any> {
             <DataRow
               store={this.store}
               rowClassName={this.props.rowClassName}
+              rowKey={this.props.rowKey}
             />
           ) : null}
         </table>
