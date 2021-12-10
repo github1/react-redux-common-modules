@@ -322,6 +322,7 @@ export class DataTable extends React.Component<DataTableProps, any> {
               <ColumnGroup {...{ store: this.store }} />
               <DataRow
                 rowClassName={this.props.rowClassName}
+                rowKey={this.props.rowKey}
                 store={this.store}
               />
             </table>
