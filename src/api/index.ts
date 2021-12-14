@@ -716,7 +716,6 @@ export const api = createModule('api', {
                   error: err,
                 });
               } else {
-                console.log(response);
                 const data = applyDataFetchPostProcessor(
                   action.postProcessor,
                   response.data,
