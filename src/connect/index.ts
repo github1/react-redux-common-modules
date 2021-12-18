@@ -327,7 +327,18 @@ export function connectModule(
     const store = (props as any).store || useStore();
     if (opts.interceptor || opts.lifecycleHook) {
       const isFirstRender = React.useRef(true);
-      useEffect(() => {
+      let useEffectToUse = useEffect;
+      if (typeof window === 'undefined') {
+        // SSR
+        useEffectToUse = (cb) => {
+          try {
+            cb();
+          } catch (err) {
+            console.error('Caught error in useEffect', err);
+          }
+        };
+      }
+      useEffectToUse(() => {
         let listener: (action: Action) => void;
         if (opts.interceptor) {
           listener = (action: Action) => {
