@@ -4,7 +4,9 @@ import {
   AUTHENTICATE_FAILED,
   AUTHENTICATE_SUCCESS,
   COMMAND_FAILED,
+  storeCommandResponseHandlerWithDispatch,
   commandResponseHandler,
+  invokeAsyncCallbackHandlerOrFunc,
   createGraphQuery,
   DATA_FETCH_FAILED,
   DATA_FETCH_SUCCESS,
@@ -574,6 +576,31 @@ describe('api', () => {
         });
         expect(handler._).toHaveBeenCalledWith('noMethod', ['arg0']);
         expect(handler.someMethod).toHaveBeenCalledWith('arg0');
+      });
+      it('handles async callbacks', () => {
+        const dispatch = jest.fn();
+        const logger = jest.fn();
+        const handler = {
+          someMethod: jest.fn(() => ({ type: 'SOME_ACTION' })),
+        };
+        storeCommandResponseHandlerWithDispatch('theCommandRequestId', {
+          commandResponseHandler: handler,
+          dispatch,
+        });
+        commandResponseHandler(
+          handler,
+          logger
+        )({
+          data: [{ name: '_asyncCallback', args: ['theCommandRequestId'] }],
+        });
+        invokeAsyncCallbackHandlerOrFunc('theCommandRequestId', {
+          name: 'someMethod',
+          args: ['arg0'],
+        });
+        expect(handler.someMethod).toHaveBeenCalledWith('arg0');
+        expect(dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'SOME_ACTION' })
+        );
       });
       it('warns if no result is returned by the handler', () => {
         const logger = jest.fn();

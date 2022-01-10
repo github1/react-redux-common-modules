@@ -1,5 +1,5 @@
 import { createModule, isAction } from '@github1/redux-modules';
-import { Action, AnyAction } from 'redux';
+import { Action, AnyAction, Dispatch } from 'redux';
 import { AjaxServiceResponse } from '@github1/ajax-service';
 import {
   ajax,
@@ -26,6 +26,7 @@ export const DATA_FETCH_FAILED = '@API/DATA_FETCH_FAILED';
 export const COMMAND_REQUESTED = '@API/COMMAND_REQUESTED';
 export const COMMAND_SUCCESS = '@API/COMMAND_SUCCESS';
 export const COMMAND_FAILED = '@API/COMMAND_FAILED';
+export const ASYNC_CALLBACK_RECEIVED = '@API/ASYNC_CALLBACK_RECEIVED';
 
 export const SIGNOUT_REQUESTED = '@API/SIGNOUT_REQUESTED';
 export const SIGNOUT_SUCCESS = '@API/SIGNOUT_SUCCESS';
@@ -134,6 +135,15 @@ export type CommandExecutionFailedAction = Action<typeof COMMAND_FAILED> &
   Omit<CommandExecutionRequestedAction, 'type'> & {
     error: Error & { status?: any };
   };
+
+export type AsyncCallbackReceivedAction = Action<
+  typeof ASYNC_CALLBACK_RECEIVED
+> & {
+  commandRequestId: string;
+  asyncResponseId: string;
+  name: string;
+  args: any[];
+};
 
 export type AuthenticateOptions = {
   username: string;
@@ -571,6 +581,20 @@ export const api = createModule('api', {
         error,
       };
     },
+    asyncCallbackReceived(
+      commandRequestId: string,
+      asyncResponseId: string,
+      name: string,
+      args: any[]
+    ): AsyncCallbackReceivedAction {
+      return {
+        type: ASYNC_CALLBACK_RECEIVED,
+        commandRequestId,
+        asyncResponseId,
+        name,
+        args,
+      };
+    },
   },
 })
   .reduce((state: ApiModuleState, action) => {
@@ -795,6 +819,18 @@ export const api = createModule('api', {
       delete dataFetchHandlers[action.dataFetchId];
     } else if (COMMAND_REQUESTED === action.type) {
       next(action);
+      // generate a command request id
+      const commandRequestId: string = generateID('cr');
+      // store the response handler so it is available
+      // when any async responses arrive
+      storeCommandResponseHandlerWithDispatch(commandRequestId, {
+        commandResponseHandler: action.responseHandler,
+        dispatch: store.dispatch.bind(store),
+      });
+      setTimeout(() => {
+        // remove stored handler after a minute (i.e. async responses should be within a minute)
+        delete asyncCallbackHandlerOrFuncStore[commandRequestId];
+      }, 60000);
       store.dispatch(
         post(
           'service/' + action.name,
@@ -802,6 +838,9 @@ export const api = createModule('api', {
             data: action.payload,
             accept: APPLICATION_AMF,
             contentType: APPLICATION_AMF,
+            headers: {
+              'x-command-request-id': commandRequestId,
+            },
           },
           (err, response) => {
             const callbackActions = [];
@@ -829,6 +868,12 @@ export const api = createModule('api', {
           }
         ) as Action
       );
+    } else if (ASYNC_CALLBACK_RECEIVED === action.type) {
+      // Invoke the async callback
+      invokeAsyncCallbackHandlerOrFunc(action.commandRequestId, {
+        name: action.name,
+        args: action.args,
+      });
     } else if (SIGNOUT_REQUESTED === action.type) {
       next(action);
       next(
@@ -972,6 +1017,45 @@ export const createGraphQuery = (query: DataFetchQueryDefinition) => {
   return gql;
 };
 
+type CommandResponseHandlerWithDispatch = {
+  commandResponseHandler: CommandResponseHandler;
+  dispatch: Dispatch<Action>;
+};
+
+const asyncCallbackHandlerOrFuncStore: Record<
+  string,
+  CommandResponseHandlerWithDispatch
+> = {};
+
+export function storeCommandResponseHandlerWithDispatch(
+  commandRequestId: string,
+  commandResponseHandlerWithDispatch: CommandResponseHandlerWithDispatch
+) {
+  if (!commandResponseHandlerWithDispatch.commandResponseHandler) {
+    // do not store if commandResponseHandler is undefined
+    return;
+  }
+  // store the handlerOrFunc until the commandResponseResultItem is received
+  asyncCallbackHandlerOrFuncStore[commandRequestId] =
+    commandResponseHandlerWithDispatch;
+}
+
+export function invokeAsyncCallbackHandlerOrFunc(
+  commandRequestId: string,
+  commandResponseResultItem: CommandResponseResultItem
+) {
+  if (asyncCallbackHandlerOrFuncStore[commandRequestId]) {
+    const commandResponseHandlerWithDispatch: CommandResponseHandlerWithDispatch =
+      asyncCallbackHandlerOrFuncStore[commandRequestId];
+    commandResponseHandlerWithDispatch.dispatch(
+      commandResponseHandler(
+        commandResponseHandlerWithDispatch.commandResponseHandler,
+        console.log.bind(console)
+      )({ data: [commandResponseResultItem] })
+    );
+  }
+}
+
 export const commandResponseHandler = (
   handlerOrFunc: CommandResponseHandler,
   logger: (...args: any[]) => void
@@ -990,11 +1074,13 @@ export const commandResponseHandler = (
             // methodCall is a boolean which indicates if the item is
             // intending to invoke a method on the client
             if (item.methodCall || !item.hasOwnProperty('methodCall')) {
+              // check for handler for item name
               let m = handlerOrFunc[item.name];
               if (typeof m === 'undefined') {
-                // check for default handler (denoted by '_')
+                // if named handler not found, check for default handler (denoted by '_')
                 m = handlerOrFunc['_'];
                 if (typeof m === 'undefined') {
+                  // no handler methods found
                   logger(
                     `MethodNotFound : \'${item.name}\' on `,
                     handlerOrFunc
@@ -1004,9 +1090,11 @@ export const commandResponseHandler = (
                   results.push(m.apply(null, [item.name, item.args]));
                 }
               } else {
+                // call named handler
                 results.push(m.apply(null, item.args));
               }
             } else {
+              // if not a methodCall, treat as property setter
               handlerOrFunc[item.name] =
                 item.args.length === 1 ? item.args[0] : item.args;
             }
@@ -1023,6 +1111,12 @@ export const commandResponseHandler = (
   };
 };
 
+const generateID = (prefix?: string): string => {
+  return `${prefix ? `${prefix}-` : ''}${Math.floor(
+    Math.random() * 1000000000
+  )}`;
+};
+
 const generateDataFetchID = (): string => {
-  return `df-${Math.floor(Math.random() * 1000000000)}`;
+  return generateID('df');
 };
