@@ -29,7 +29,7 @@ type StringKeys<TType> = {
 export type DataSourceModuleState<
   TDataSourceTypes extends Record<string, any> = Record<string, any>
 > = {
-  [k in keyof TDataSourceTypes]: k extends string
+  [k in keyof TDataSourceTypes]?: k extends string
     ? DataSourceBaseProps<k, TDataSourceTypes[k]>
     : never;
 };
@@ -425,7 +425,7 @@ function datasourceModuleCreator<
       },
     },
   })
-    .reduce((state: DataSourceModuleState<TDataSourceTypes>, action) => {
+    .reduce((state: DataSourceModuleState<TDataSourceTypes> = {}, action) => {
       switch (action.type) {
         case DATASOURCE_UPDATE:
         case DATASOURCE_INIT: {
