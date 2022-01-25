@@ -15,6 +15,7 @@
   "author": "John Collier <john.collier4@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "@github1/ajax-service": "0.4.39",
     "@github1/build-tools": "0.4.39",
     "@types/react": "16.9.19",
     "@types/react-dom": "16.9.9",
@@ -28,7 +29,6 @@
     "redux": "4.0.5"
   },
   "dependencies": {
-    "@github1/ajax-service": "0.4.39",
     "@github1/redux-modules": "0.4.39",
     "history": "4.7.2",
     "prop-by-string": "1.0.1",
