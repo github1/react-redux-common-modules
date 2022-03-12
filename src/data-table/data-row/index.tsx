@@ -113,19 +113,22 @@ const _DataRow: React.FC<DataRowPrivateProps> = ({
             </tr>
           );
           if (childRowRenderer) {
-            rows.push(
-              <tr
-                key={`tr-${rowKeyToUse}-child`}
-                className={[className, 'data-table-child-row'].join(' ')}
-              >
-                <td
-                  colSpan={columns.length}
-                  className="data-table-child-row-content"
+            const childRowContent = childRowRenderer(record);
+            if (childRowContent) {
+              rows.push(
+                <tr
+                  key={`tr-${rowKeyToUse}-child`}
+                  className={[className, 'data-table-child-row'].join(' ')}
                 >
-                  {childRowRenderer(record)}
-                </td>
-              </tr>
-            );
+                  <td
+                    colSpan={columns.length}
+                    className="data-table-child-row-content"
+                  >
+                    {childRowContent}
+                  </td>
+                </tr>
+              );
+            }
           }
         }
         return rows;
