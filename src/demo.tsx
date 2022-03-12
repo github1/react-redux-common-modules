@@ -158,6 +158,9 @@ const DataRecordTable = connectModule(
           sortField={records.sortField}
           sortDirection={records.sortDirection}
           data={records.data}
+          childRowRenderer={(record) => {
+            return <div>foo</div>;
+          }}
         >
           <ColumnDefaults
             sortable={true}

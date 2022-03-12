@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import {
   ColumnProps,
@@ -13,6 +13,7 @@ export interface DataRowProps {
   data?: any[];
   rowClassName?: (record?: any, rowIndex?: number) => string;
   rowKey?: (record?: any, rowIndex?: number) => string | string;
+  childRowRenderer?: (record?: any, rowIndex?: number) => ReactElement | string;
   store: Store<DataTableModuleStoreState>;
 }
 
@@ -22,6 +23,7 @@ interface DataRowPrivateProps {
   dataProvided: boolean;
   rowClassName: (record?: any, rowIndex?: number) => string;
   rowKey: (record?: any, rowIndex?: number) => string | string;
+  childRowRenderer?: (record?: any, rowIndex?: number) => ReactElement | string;
   store: Store<DataTableModuleStoreState>;
 }
 
@@ -31,6 +33,7 @@ const _DataRow: React.FC<DataRowPrivateProps> = ({
   dataProvided,
   rowClassName,
   rowKey,
+  childRowRenderer,
   store,
 }) => {
   return (
@@ -109,6 +112,21 @@ const _DataRow: React.FC<DataRowPrivateProps> = ({
               })}
             </tr>
           );
+          if (childRowRenderer) {
+            rows.push(
+              <tr
+                key={`tr-${rowKeyToUse}-child`}
+                className={[className, 'data-table-child-row'].join(' ')}
+              >
+                <td
+                  colSpan={columns.length}
+                  className="data-table-child-row-content"
+                >
+                  {childRowRenderer(record)}
+                </td>
+              </tr>
+            );
+          }
         }
         return rows;
       }, [])}
@@ -127,6 +145,7 @@ export const DataRow = connect(
       dataProvided: !!ownProps.data,
       rowClassName: ownProps.rowClassName,
       rowKey: ownProps.rowKey,
+      childRowRenderer: ownProps.childRowRenderer,
       store: ownProps.store,
     };
   }

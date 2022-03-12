@@ -60,6 +60,7 @@ export interface DataTableProps {
   sortDirection?: string;
   rowClassName?: (record?: any, rowIndex?: number) => string;
   rowKey?: (record?: any, rowIndex?: number) => string | string;
+  childRowRenderer?: (record?: any, rowIndex?: number) => ReactElement | string;
 }
 
 export interface DataTableModuleState {
@@ -309,6 +310,7 @@ export class DataTable extends React.Component<DataTableProps, any> {
               store={this.store}
               rowClassName={this.props.rowClassName}
               rowKey={this.props.rowKey}
+              childRowRenderer={this.props.childRowRenderer}
             />
           ) : null}
         </table>
@@ -324,6 +326,7 @@ export class DataTable extends React.Component<DataTableProps, any> {
                 rowClassName={this.props.rowClassName}
                 rowKey={this.props.rowKey}
                 store={this.store}
+                childRowRenderer={this.props.childRowRenderer}
               />
             </table>
           </Scrollbars>
