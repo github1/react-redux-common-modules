@@ -118,7 +118,7 @@ const _DataRow: React.FC<DataRowPrivateProps> = ({
               rows.push(
                 <tr
                   key={`tr-${rowKeyToUse}-child`}
-                  className={[className, 'data-table-child-row'].join(' ')}
+                  className="data-table-child-row"
                 >
                   <td
                     colSpan={columns.length}
