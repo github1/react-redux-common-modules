@@ -1,10 +1,49 @@
 import React, { createElement } from 'react';
 import TestRenderer from 'react-test-renderer';
-import { connectModule } from '.';
+import { connectModule, useModuleDispatch, useModuleSelector } from '.';
 import { createModule } from '@github1/redux-modules';
 import { expectType, TypeEqual } from 'ts-expect';
+import { Provider } from 'react-redux';
+import { ThunkAction } from 'redux-thunk';
 
 describe('when connecting modules', () => {
+  it('provides hooks', () => {
+    const TestModule = createModule('root', {
+      actionCreators: {
+        doSomething(): { type: 'SOMETHING' } {
+          return { type: 'SOMETHING' };
+        },
+      },
+    }).reduce((state: { test: number }) => {
+      return { ...state, test: 100 };
+    });
+    const TestComponentUsingHooks: React.FC<{}> = () => {
+      const val = useModuleSelector(TestModule, (state) => {
+        return state.root.test;
+      });
+      const dispatch = useModuleDispatch(TestModule);
+      expectType<
+        TypeEqual<
+          Parameters<typeof dispatch>,
+          [
+            ThunkAction<
+              unknown,
+              { root: { test: number } },
+              any,
+              { type: 'SOMETHING' }
+            >
+          ]
+        >
+      >(true);
+      return <div>{val}</div>;
+    };
+    const store = TestModule.asStore();
+    TestRenderer.create(
+      <Provider store={store}>
+        <TestComponentUsingHooks />
+      </Provider>
+    );
+  });
   it('uses a default mapStateToProps function', () => {
     const TestComponentConformsToModuleState: React.FC<{ test: number }> = (
       props

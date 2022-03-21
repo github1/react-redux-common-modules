@@ -14,8 +14,10 @@ import {
   ConnectedComponent,
   MapStateToProps,
   useStore,
+  useSelector,
+  useDispatch,
 } from 'react-redux';
-import { ThunkAction } from 'redux-thunk';
+import { ThunkAction, ThunkDispatch } from 'redux-thunk';
 
 type ReduxModuleActionCreatorizedFunctions<
   TOwnPropsWhichAreFunctions,
@@ -402,4 +404,26 @@ function isConnectModuleOptions(
     maybeOpts.lifecycleHook ||
     maybeOpts.actions
   );
+}
+
+export function useModuleSelector<
+  TSelected = unknown,
+  TReduxModule = ReduxModuleBase<ReduxModuleTypeContainerAny>,
+  TReduxModuleStoreState = ReduxModuleStoreState<TReduxModule>
+>(
+  module: TReduxModule,
+  selector: (state: TReduxModuleStoreState) => TSelected,
+  equalityFn?: (left: TSelected, right: TSelected) => boolean
+): TSelected {
+  return useSelector(selector, equalityFn);
+}
+
+export function useModuleDispatch<
+  TReduxModule = ReduxModuleBase<ReduxModuleTypeContainerAny>,
+  TReduxModuleStoreState = ReduxModuleStoreState<TReduxModule>,
+  TReduxModuleActionType extends Action = ReduxModuleStoreActionType<TReduxModule>
+>(
+  module: TReduxModule
+): ThunkDispatch<TReduxModuleStoreState, any, TReduxModuleActionType> {
+  return useDispatch();
 }
