@@ -11,7 +11,6 @@ export * from './alerts/components/alert';
 export * from './api';
 export * from './conditions';
 export * from './connect';
-export * from './data-table';
 export * from './datasource';
 export * from './navigation';
 export * from './resize';

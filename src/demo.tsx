@@ -8,7 +8,6 @@ import {
   datasource,
   Alerts as AlertsContainer,
 } from '.';
-import { Column, ColumnDefaults, ColumnSet, DataTable, Grouping } from '.';
 import { createModule } from '@github1/redux-modules';
 import './demo.scss';
 
@@ -50,7 +49,7 @@ const demo = createModule('demo', {
     if (action.type === 'LOAD_DATA') {
       if (!state.datasource.records) {
         const defaultRecords: DataRecord[] = [];
-        for (let i = 0; i < 1000; i++) {
+        for (let i = 0; i < 100; i++) {
           defaultRecords.push({
             id: `${i}`,
             name: 'NIGHT VISION DEVICES',
@@ -134,119 +133,43 @@ const handleInputChange = (evt: ChangeEvent<HTMLInputElement>) => {
 
 store.dispatch(store.actions.demo.loadData());
 
-const DataRecordTable = connectModule(
-  datasourceModule,
-  ({ records, actions }) => {
-    if (!records) {
-      return <div></div>;
-    }
-    return (
-      <div>
-        <input
-          type="text"
-          onChange={handleInputChange}
-          value={
-            records.textFilters
-              ? `${records.textFilters['category.name'].value}`
-              : ''
-          }
-        />
-        <DataTable
-          scrollable={true}
-          rowClassName={(record) => (record.id === '3' ? 'row-three' : null)}
-          rowKey={(record) => record.id}
-          sortField={records.sortField}
-          sortDirection={records.sortDirection}
-          data={records.data}
-          childRowRenderer={(record) => {
-            return <div>foo</div>;
-          }}
-        >
-          <ColumnDefaults
-            sortable={true}
-            sortIcons={[<b>Asc</b>, <b>Desc</b>]}
-            onHeaderClick={(column) => {
-              actions.datasource.sortDataSource({
-                id: 'records',
-                sortDirection: 'reverse',
-                sortField: column.sortField as any,
-              });
-            }}
-          />
-          <Column label="Id" field="id" width={50} className="blah" />
-          <Column
-            label="Name"
-            field="name"
-            href={(record, column) => `#${record.id}-${column.field}`}
-          />
-          <Column
-            label="Category"
-            field="category.name"
-            sortField="category.id"
-            width={100}
-            className="row-three"
-            hideSmall={true}
-          />
-          <ColumnSet>
-            <Column
-              label="Foo"
-              field="foo"
-              width={100}
-              renderer={(record, column) => {
-                return <b>{record[column.field]}</b>;
+const RecordList = connectModule(datasourceModule, ({ records, actions }) => {
+  if (!records) {
+    return <div></div>;
+  }
+  return (
+    <div>
+      <input
+        type="text"
+        onChange={handleInputChange}
+        value={
+          records.textFilters
+            ? `${records.textFilters['category.name'].value}`
+            : ''
+        }
+      />
+      <ul>
+        {records.data.map((record, idx) => {
+          return (
+            <li
+              key={idx}
+              onClick={() => {
+                actions.datasource.sortDataSource({
+                  id: 'records',
+                  sortDirection: 'reverse',
+                  sortField: 'id',
+                });
               }}
-              hideSmall={true}
-            />
-            <Column
-              label="Bar"
-              field="bar"
-              width={150}
-              labelFunction={(record, field) => `${field}: ${record[field]}`}
-              hideSmall={true}
-            />
-          </ColumnSet>
-        </DataTable>
-      </div>
-    );
-  }
-);
-
-const GroupedDataRecordTable = connectModule(
-  datasourceModule,
-  ({ groupedRecords }) => {
-    if (!groupedRecords) {
-      return <div></div>;
-    }
-    return (
-      <DataTable
-        scrollable={true}
-        sortField={groupedRecords.sortField}
-        sortDirection={groupedRecords.sortDirection}
-        data={groupedRecords.data}
-      >
-        <Grouping
-          by="children"
-          labelFunction={(record) => `${record.id} - ${record.name}`}
-          summaryFields={['count']}
-        />
-        <Column label="Id" field="id" width={50} className="blah" />
-        <Column
-          label="Name"
-          field="name"
-          href={(record, column) => `#${record.id}-${column.field}`}
-          width={200}
-        />
-        <Column
-          label="Bar"
-          field="bar"
-          width={100}
-          labelFunction={(record, field) => `${field}: ${record[field]}`}
-        />
-        <Column label="Count" field="count" width={100} />
-      </DataTable>
-    );
-  }
-);
+            >
+              {record.id} | {record.foo} | {record.category.id} |{' '}
+              {record.category.name} | {record.count}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+});
 
 const Main = connectModule(
   demo,
@@ -287,8 +210,7 @@ const Main = connectModule(
           )}
         />
         <div className="table-container">
-          <DataRecordTable />
-          <GroupedDataRecordTable />
+          <RecordList />
         </div>
       </div>
     );
