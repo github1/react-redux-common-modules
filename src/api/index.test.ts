@@ -147,7 +147,7 @@ describe('api', () => {
       };
       const query = createGraphQuery(queryDef);
       expect(query).toBe(
-        '{ graph { graphObjects (criteria: \\"someValue\\") { name } } }'
+        '{ graph { graphObjects (criteria: "someValue") { name } } }'
       );
     });
     it('creates graph queries', () => {

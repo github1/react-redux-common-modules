@@ -926,7 +926,7 @@ const doGraphQuery = (
     post(
       `graph?${queryParams.join('&')}`,
       {
-        data: '"' + renderedQuery + '"',
+        data: renderedQuery,
         accept: APPLICATION_AMF,
         contentType: TEXT_PLAIN,
       },
@@ -999,7 +999,7 @@ export const createGraphQuery = (query: DataFetchQueryDefinition) => {
       return '';
     }
     if (typeof obj === 'string') {
-      return `\\"${obj}\\"`;
+      return `"${obj}"`;
     }
     return obj;
   };
