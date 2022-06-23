@@ -204,7 +204,7 @@ type DataSourceModuleType<
           'type' | 'master' | 'data'
         >
       ): DataSourceUpdateAction;
-      dateSourceUpdated<TDataSourceKey extends TDataSourceKeys>(
+      dataSourceUpdated<TDataSourceKey extends TDataSourceKeys>(
         props: Omit<
           DataSourceUpdatedAction<
             TDataSourceKey,
@@ -346,7 +346,7 @@ function datasourceModuleCreator<
           type: DATASOURCE_UPDATE,
         };
       },
-      dateSourceUpdated(
+      dataSourceUpdated(
         props: Omit<DataSourceUpdatedAction, 'type'>
       ): DataSourceUpdatedAction {
         return {
@@ -577,7 +577,7 @@ function datasourceModuleCreator<
           action.textFilters = existingDataSource.textFilters;
         }
         next(action);
-        store.dispatch(store.actions.dateSourceUpdated(action));
+        store.dispatch(store.actions.dataSourceUpdated(action));
       } else if (DATASOURCE_SORT_REQUESTED === action.type) {
         next(action);
         next(store.actions.sortDataSourceComplete({ ...action }));
