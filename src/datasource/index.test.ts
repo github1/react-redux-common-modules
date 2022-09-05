@@ -624,6 +624,18 @@ describe('datasource', () => {
       );
       expect(store.getState().datasource.someDataSource.data[0].value).toBe(2);
     });
+    it('can remove records in the data source', () => {
+      expect(store.getState().datasource.someDataSource.data[0].id).toBe('a');
+      store.dispatch(
+        store.actions.datasource.mapDataSource('someDataSource', (record) => {
+          if (record.id === 'a') {
+            return { __delete: true };
+          }
+          return record;
+        })
+      );
+      expect(store.getState().datasource.someDataSource.data[0].id).toBe('b');
+    });
     it('can map over data without re-sorting', () => {
       store.dispatch(
         store.actions.datasource.sortDataSource({

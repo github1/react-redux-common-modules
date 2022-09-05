@@ -100,7 +100,7 @@ export type DataSourceMapAction<
   TDataType = any
 > = Action<typeof DATASOURCE_MAP> & {
   id: TDataKey;
-  func: (item: TDataType) => TDataType;
+  func: (item: TDataType) => TDataType | { __delete: boolean };
   selector?: (item: TDataType) => boolean;
 };
 
@@ -530,14 +530,20 @@ function datasourceModuleCreator<
                 if (action.selector) {
                   const idx = updatedItem[field].findIndex(action.selector);
                   if (idx > -1) {
-                    updatedItem[field][idx] = action.func(
+                    const funcResult = action.func(
                       updatedItem[field][idx]
                     );
+                    if (funcResult?.__delete) {
+                      updatedItem[field].splice(idx, 1);
+                    } else {
+                      updatedItem[field][idx] = funcResult;
+                    }
                   }
                 } else {
                   updatedItem[field] = JSON.parse(
                     JSON.stringify(updatedItem[field])
-                  ).map(action.func);
+                  ).map(action.func)
+                   .filter(item => item?.__delete !== true);
                 }
               }
             }
