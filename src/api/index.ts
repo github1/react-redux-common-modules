@@ -9,7 +9,6 @@ import {
   APPLICATION_JSON,
   TEXT_PLAIN,
 } from '../ajax';
-import { MustOnlyHaveKeys, PartialMaybeArray } from '../type-helpers/utils';
 
 const { get, del, post } = ajax.actions;
 
@@ -77,17 +76,17 @@ export type DataFetchRequestedAction = Action<typeof DATA_FETCH_REQUESTED> & {
   queryResultName?: string;
   tag?: string;
   staticData?: any;
-  graphQuery?: DataFetchQueryDefinition;
+  graphQuery?: any;
   postProcessor?: (data: any, state?: any) => any;
 };
 
-export type DataFetchSuccessAction<
-  TDataFetchContext extends DataFetchContextAny = DataFetchContextAny
-> = Action<typeof DATA_FETCH_SUCCESS> & {
+export type DataFetchSuccessAction<R = any> = Action<
+  typeof DATA_FETCH_SUCCESS
+> & {
   dataFetchId: string;
-  queryName: TDataFetchContext['_keyType'];
+  queryName: string;
   queryResultName: string;
-  data: TDataFetchContext['_schemaType'];
+  data: R;
 };
 
 export type DataFetchFailedAction<
@@ -150,13 +149,8 @@ export type AuthenticateOptions = {
   password: string;
 };
 
-export type DataFetchSuccessHandler<
-  TDataFetchContext extends DataFetchContextAny = DataFetchContextAny
-> = {
-  (
-    result: DataFetchSuccessAction<TDataFetchContext>,
-    state: any
-  ): ActionsOrThunks | void;
+export type DataFetchSuccessHandler<R> = {
+  (result: DataFetchSuccessAction<R>, state: any): ActionsOrThunks | void;
 };
 
 export type DataFetchFailedHandler<
@@ -168,10 +162,8 @@ export type DataFetchFailedHandler<
   ): ActionsOrThunks | void;
 };
 
-export type DataFetchHandler<
-  TDataFetchContext extends DataFetchContextAny = DataFetchContextAny
-> = {
-  onSuccess?: DataFetchSuccessHandler<TDataFetchContext>;
+export type DataFetchHandler<R = any> = {
+  onSuccess?: DataFetchSuccessHandler<R>;
   onFailed?: DataFetchFailedHandler;
 };
 
@@ -185,107 +177,32 @@ export type DataFetchContext<TKey extends string, TSchema, TArgs> = {
 
 export type DataFetchContextAny = DataFetchContext<any, any, any>;
 
-export type DataFetchPostProcessor<
-  TDataFetchContext extends DataFetchContextAny,
-  TTargetDataFetchContext extends DataFetchContextAny = TDataFetchContext
-> = {
-  (
-    data: TDataFetchContext['_schemaType'],
-    state?: any
-  ): TTargetDataFetchContext['_schemaType'];
+export type DataFetchPostProcessor<I, O = I> = {
+  (data: I, state?: any): O;
 };
-
-export type DataFetchQueryDefinition<
-  TDataFetchContext extends DataFetchContextAny = DataFetchContextAny
-> = Record<
-  TDataFetchContext['_keyType'],
-  {
-    args?: TDataFetchContext['_argsType'];
-    schema: PartialMaybeArray<TDataFetchContext['_schemaType']>;
-    postProcessor?: DataFetchPostProcessor<TDataFetchContext>;
-  }
->;
 
 // DataFetchContext<TKey, TSchema, undefined, any>
 
-export type DataFetchContextFromQuery<TType> = TType extends Record<
-  infer TKey,
-  infer TBody
->
-  ? TKey extends string
-    ? TBody extends { args?: infer TArgs; schema: infer TSchema }
-      ? unknown extends TArgs
-        ? DataFetchContext<TKey, TSchema, undefined>
-        : DataFetchContext<TKey, TSchema, TArgs>
-      : never
-    : never
-  : never;
+export interface DataFetchRequestBuilder<R> extends DataFetchRequestedAction {
+  fromQuery<T, FR = T extends { _output_type?: infer O } ? O : unknown>(
+    query: T
+  ): DataFetchRequestBuilder<FR>;
 
-type DataFetchContextWithResultType<
-  TDataFetchContext extends DataFetchContextAny,
-  TSchema
-> = DataFetchContext<TDataFetchContext['_keyType'], TSchema, undefined>;
+  fromStaticData<FR>(data: FR): DataFetchRequestBuilder<FR>;
 
-type DataFetchRequestBuilderFromStaticDataReturnType<
-  TDataFetchContext extends DataFetchContextAny,
-  TSchema
-> = DataFetchRequestBuilder<
-  DataFetchContextWithResultType<TDataFetchContext, TSchema>
->;
+  fromUrl<R>(url: string): DataFetchRequestBuilder<R>;
 
-export interface DataFetchRequestBuilder<
-  TDataFetchContext extends DataFetchContextAny
-> extends DataFetchRequestedAction {
-  fromQuery<TDataFetchQueryDefinition extends DataFetchQueryDefinition>(
-    graphQueryDefinition: MustOnlyHaveKeys<
-      TDataFetchQueryDefinition,
-      DataFetchQueryDefinition
-    >
-  ): DataFetchRequestBuilder<
-    DataFetchContextFromQuery<TDataFetchQueryDefinition>
-  >;
+  withName(name: string): DataFetchRequestBuilder<R>;
 
-  // TODO - validate if the 'name' of the static data matches the key?
-  fromStaticData<TStaticDataType>(
-    data: TStaticDataType
-  ): DataFetchRequestBuilderFromStaticDataReturnType<
-    TDataFetchContext,
-    TStaticDataType
-  >;
+  withTag(tag: string): DataFetchRequestBuilder<R>;
 
-  fromUrl(url: string): DataFetchRequestBuilder<TDataFetchContext>;
+  withPostProcessor<FR = R>(
+    postProcessor: DataFetchPostProcessor<R, FR>
+  ): DataFetchRequestBuilder<FR>;
 
-  withName<TName extends string>(
-    name: TName
-  ): DataFetchRequestBuilder<
-    DataFetchContext<
-      TName,
-      TDataFetchContext['_schemaType'],
-      TDataFetchContext['_argsType']
-    >
-  >;
+  onSuccess(handler: DataFetchSuccessHandler<R>): DataFetchRequestBuilder<R>;
 
-  withTag(tag: string): DataFetchRequestBuilder<TDataFetchContext>;
-
-  withPostProcessor<
-    TTargetSchemaType = TDataFetchContext['_schemaType'],
-    TTargetDataFetchContext extends DataFetchContextAny = TTargetSchemaType extends TDataFetchContext['_schemaType']
-      ? TDataFetchContext
-      : DataFetchContextWithResultType<TDataFetchContext, TTargetSchemaType>
-  >(
-    postProcessor: DataFetchPostProcessor<
-      TDataFetchContext,
-      TTargetDataFetchContext
-    >
-  ): DataFetchRequestBuilder<TTargetDataFetchContext>;
-
-  onSuccess(
-    handler: DataFetchSuccessHandler<TDataFetchContext>
-  ): DataFetchRequestBuilder<TDataFetchContext>;
-
-  onFailure(
-    handler: DataFetchFailedHandler
-  ): DataFetchRequestBuilder<TDataFetchContext>;
+  onFailure(handler: DataFetchFailedHandler): DataFetchRequestBuilder<R>;
 }
 
 function applyDataFetchPostProcessor(
@@ -383,50 +300,14 @@ export const api = createModule('api', {
         key,
       };
     },
-    graphQuery<TDataFetchQueryDefinition extends DataFetchQueryDefinition>(
-      key: DataFetchContextFromQuery<TDataFetchQueryDefinition>['_keyType'],
-      schema: DataFetchContextFromQuery<TDataFetchQueryDefinition>['_schemaType']
-    ): DataFetchContextFromQuery<TDataFetchQueryDefinition>['_argsType'] extends undefined
-      ? DataFetchRequestBuilder<
-          DataFetchContextFromQuery<TDataFetchQueryDefinition>
-        >
-      : (
-          args: DataFetchContextFromQuery<TDataFetchQueryDefinition>['_argsType']
-        ) => DataFetchRequestBuilder<
-          DataFetchContextFromQuery<TDataFetchQueryDefinition>
-        > {
-      const withoutArgs = this.dataFetch().fromQuery({
-        [key]: {
-          schema,
-        },
-      });
-      const withArgs = (
-        args: DataFetchContextFromQuery<TDataFetchQueryDefinition>['_argsType']
-      ) => {
-        return this.dataFetch().fromQuery({
-          [key]: {
-            args,
-            schema,
-          },
-        });
-      };
-      Object.assign(withArgs, withoutArgs);
-      return withArgs as any;
+    graphQuery<T, R = T extends { _output_type?: infer O } ? O : unknown>(
+      query: T
+    ): DataFetchRequestBuilder<R> {
+      return this.dataFetch().fromQuery(query);
     },
-    dataFetch<
-      TSchema,
-      TArgs,
-      TKey extends string = undefined,
-      TDataFetchContext extends DataFetchContextAny = DataFetchContext<
-        TKey,
-        TSchema,
-        TArgs
-      >
-    >(
-      name?: TKey
-    ): DataFetchRequestBuilder<DataFetchContext<TKey, TSchema, TArgs>> {
+    dataFetch(name?: string): DataFetchRequestBuilder<any> {
       const fetchId: string = generateDataFetchID();
-      const dataFetch: DataFetchRequestBuilder<TDataFetchContext> = {
+      const dataFetch: DataFetchRequestBuilder<any> = {
         type: DATA_FETCH_REQUESTED,
         dataFetchId: fetchId,
         graphQuery: undefined,
@@ -435,83 +316,50 @@ export const api = createModule('api', {
         queryResultName: name || fetchId,
         staticData: undefined,
         url: undefined,
-        fromQuery<
-          TDataFetchQueryDefinition extends DataFetchQueryDefinition<
-            DataFetchContext<TDataFetchContext['_keyType'], any, any>
-          >
-        >(
-          graphQueryDefinition: TDataFetchQueryDefinition
-        ): DataFetchRequestBuilder<
-          DataFetchContextFromQuery<TDataFetchQueryDefinition>
-        > {
-          const queryKey = Object.keys(graphQueryDefinition)[0];
-          const queryBody = graphQueryDefinition[queryKey];
-          dataFetch.graphQuery = graphQueryDefinition;
+        fromQuery(query: any): DataFetchRequestBuilder<any> {
+          let queryKey = Object.keys(query)[0];
+          dataFetch.graphQuery = query;
           dataFetch.postProcessor =
-            queryBody.postProcessor as DataFetchPostProcessor<any>;
+            query.postProcessor as DataFetchPostProcessor<any>;
           dataFetch.queryResultName = queryKey;
-          dataFetch.queryName = this.queyName || dataFetch.queryResultName;
+          dataFetch.queryName = this.queryName || dataFetch.queryResultName;
           return dataFetch as any;
         },
-        fromStaticData<TStaticDataType>(
-          data: TStaticDataType
-        ): DataFetchRequestBuilderFromStaticDataReturnType<
-          TDataFetchContext,
-          TStaticDataType
-        > {
+        fromStaticData(data: any): DataFetchRequestBuilder<any> {
           dataFetch.staticData = data;
           return dataFetch as any;
         },
-        fromUrl(url: string): DataFetchRequestBuilder<TDataFetchContext> {
+        fromUrl(url: string): DataFetchRequestBuilder<any> {
           dataFetch.url = url;
           return dataFetch;
         },
         onFailure(
           handler: DataFetchFailedHandler
-        ): DataFetchRequestBuilder<TDataFetchContext> {
+        ): DataFetchRequestBuilder<any> {
           dataFetchHandlers[dataFetch.dataFetchId] =
             dataFetchHandlers[dataFetch.dataFetchId] || [];
           dataFetchHandlers[dataFetch.dataFetchId].push({ onFailed: handler });
           return dataFetch;
         },
         onSuccess(
-          handler: DataFetchSuccessHandler<TDataFetchContext>
-        ): DataFetchRequestBuilder<TDataFetchContext> {
+          handler: DataFetchSuccessHandler<any>
+        ): DataFetchRequestBuilder<any> {
           dataFetchHandlers[dataFetch.dataFetchId] =
             dataFetchHandlers[dataFetch.dataFetchId] || [];
           dataFetchHandlers[dataFetch.dataFetchId].push({ onSuccess: handler });
           return dataFetch;
         },
-        withName<TName extends string>(
-          name: TName
-        ): DataFetchRequestBuilder<
-          DataFetchContext<
-            TName,
-            TDataFetchContext['_schemaType'],
-            TDataFetchContext['_argsType']
-          >
-        > {
+        withName(name: string): DataFetchRequestBuilder<any> {
           dataFetch.queryName = name;
           return dataFetch as any;
         },
-        withTag(tag: string): DataFetchRequestBuilder<TDataFetchContext> {
+        withTag(tag: string): DataFetchRequestBuilder<any> {
           dataFetch.tag = tag;
           return dataFetch;
         },
-        withPostProcessor<
-          TTargetSchemaType = TDataFetchContext['_schemaType'],
-          TTargetDataFetchContext extends DataFetchContextAny = TTargetSchemaType extends TDataFetchContext['_schemaType']
-            ? TDataFetchContext
-            : DataFetchContextWithResultType<
-                TDataFetchContext,
-                TTargetSchemaType
-              >
-        >(
-          postProcessor: DataFetchPostProcessor<
-            TDataFetchContext,
-            TTargetDataFetchContext
-          >
-        ): DataFetchRequestBuilder<TTargetDataFetchContext> {
+        withPostProcessor(
+          postProcessor: DataFetchPostProcessor<any>
+        ): DataFetchRequestBuilder<any> {
           dataFetch.postProcessor = postProcessor;
           return dataFetch as any;
         },
@@ -774,7 +622,7 @@ export const api = createModule('api', {
                 } else {
                   const data = applyDataFetchPostProcessor(
                     action.postProcessor,
-                    response.data['graph'][action.queryResultName],
+                    response.data,
                     store.getState()
                   );
                   return store.actions.dataFetchSuccess({
@@ -972,49 +820,43 @@ const doWithPrefetchCheck = (
   return fetchAction;
 };
 
-export const createGraphQuery = (query: DataFetchQueryDefinition) => {
-  const printVal = (obj: any, forSchema: boolean): string => {
-    if (obj && typeof obj === 'object') {
-      obj = Array.isArray(obj) ? obj[0] : obj;
-      if (!obj) {
-        console.warn('Encountered undefined object in query', query);
-        return '';
-      }
-      const keys = Object.keys(obj);
-      let b = '{';
-      if (keys.length > 0) {
-        b += ` ${keys
-          .map((key) => {
-            if (forSchema && typeof obj[key] !== 'object') {
-              return key;
-            }
-            return `${key} ${printVal(obj[key], forSchema)}`;
-          })
-          .join(', ')} `;
-      }
-      b += '}';
-      return b;
-    }
-    if (forSchema) {
-      return '';
-    }
-    if (typeof obj === 'string') {
-      return `"${obj}"`;
-    }
+export const createGraphQuery = (obj: any, depth: number = 0) => {
+  let output = '';
+  if (typeof obj === 'string') {
     return obj;
-  };
-  const resultKey = Object.keys(query)[0];
-  const { args, schema } = query[resultKey];
-  let gql = `{ graph { ${resultKey} `;
-  if (args) {
-    gql += `(${Object.keys(args)
-      .filter((argName) => args[argName])
-      .map((argName) => `${argName}: ${printVal(args[argName], false)}`)
-      .join(', ')}) `;
+  } else if (Array.isArray(obj)) {
+    output +=
+      '{ ' +
+      obj.map((item) => createGraphQuery(item, depth + 1)).join(' ') +
+      ' }';
+  } else {
+    if (obj.args && obj.schema) {
+      output += '(';
+      output += Object.keys(obj.args)
+        .map((argKey) => ({ key: argKey, value: obj.args[argKey] }))
+        .filter((argItem) => argItem.value !== null && argItem.value !== undefined)
+        .map((argItem) => {
+          const value = argItem.value;
+          const queryValue = typeof value === 'string' ? `"${value}"` : value;
+          return `${argItem.key}: ${queryValue}`;
+        })
+        .join(', ');
+      output += ') ' + createGraphQuery(obj.schema, depth + 1);
+    } else {
+      if (depth === 0) {
+        output += '{ ';
+      }
+      output += Object.keys(obj)
+        .map(
+          (propKey) => `${propKey} ${createGraphQuery(obj[propKey], depth + 1)}`
+        )
+        .join(' ');
+      if (depth === 0) {
+        output += ' }';
+      }
+    }
   }
-  gql += printVal(schema || {}, true);
-  gql += ' } }';
-  return gql;
+  return output;
 };
 
 type CommandResponseHandlerWithDispatch = {

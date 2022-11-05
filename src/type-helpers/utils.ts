@@ -35,11 +35,3 @@ export type Leaves<T, D extends number = 3> = [D] extends [never]
   : T extends object
   ? { [K in keyof T]-?: Join<K, Leaves<T[K], Prev[D]>> }[keyof T]
   : '';
-
-export type MustOnlyHaveKeys<T, K> = {} extends Omit<T, keyof K>
-  ? Partial<T>
-  : K;
-
-export type PartialMaybeArray<T> = T extends (infer U)[]
-  ? Partial<U>[]
-  : Partial<T>;

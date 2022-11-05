@@ -10,8 +10,6 @@ import {
   createGraphQuery,
   DATA_FETCH_FAILED,
   DATA_FETCH_SUCCESS,
-  DataFetchContextFromQuery,
-  DataFetchQueryDefinition,
 } from './index';
 import { apiModuleTestHelper } from './test-helper';
 import { ajax, AJAX_CALL_COMPLETE, AJAX_CALL_REQUESTED } from '../ajax';
@@ -138,12 +136,16 @@ describe('api', () => {
   describe('createGraphQuery', () => {
     it('creates graph queries with quoted string arguments', () => {
       const queryDef = {
-        graphObjects: {
-          args: {
-            criteria: 'someValue',
+        graph: [
+          {
+            graphObjects: {
+              args: {
+                criteria: 'someValue',
+              },
+              schema: ['name'],
+            },
           },
-          schema: { name: '' },
-        },
+        ],
       };
       const query = createGraphQuery(queryDef);
       expect(query).toBe(
@@ -151,39 +153,33 @@ describe('api', () => {
       );
     });
     it('creates graph queries', () => {
-      const queryDef: DataFetchQueryDefinition = {
-        graphObjects: {
-          args: {
-            criteria: 1,
+      const queryDef = {
+        graph: [
+          {
+            graphObjects: {
+              args: {
+                criteria: 1,
+              },
+              schema: ['name'],
+            },
           },
-          schema: { name: '' },
-        },
+        ],
       };
       const query = createGraphQuery(queryDef);
       expect(query).toBe('{ graph { graphObjects (criteria: 1) { name } } }');
     });
     it('creates graph queries with sub-selection', () => {
-      const queryDef: DataFetchQueryDefinition = {
-        graphObjects: {
-          args: {
-            criteria: 1,
+      const queryDef = {
+        graph: [
+          {
+            graphObjects: {
+              args: {
+                criteria: 1,
+              },
+              schema: [{ something: ['foo'] }],
+            },
           },
-          schema: { something: { foo: '_' } },
-        },
-      };
-      const query = createGraphQuery(queryDef);
-      expect(query).toBe(
-        '{ graph { graphObjects (criteria: 1) { something { foo } } } }'
-      );
-    });
-    it('creates graph queries with sub-selection from array type', () => {
-      const queryDef: DataFetchQueryDefinition = {
-        graphObjects: {
-          args: {
-            criteria: 1,
-          },
-          schema: { something: [{ foo: '_' }] },
-        },
+        ],
       };
       const query = createGraphQuery(queryDef);
       expect(query).toBe(
@@ -191,14 +187,18 @@ describe('api', () => {
       );
     });
     it('creates graph queries with multiple criteria', () => {
-      const queryDef: DataFetchQueryDefinition = {
-        graphObjects: {
-          args: {
-            c1: 1,
-            c2: true,
+      const queryDef = {
+        graph: [
+          {
+            graphObjects: {
+              args: {
+                c1: 1,
+                c2: true,
+              },
+              schema: ['name'],
+            },
           },
-          schema: { name: '' },
-        },
+        ],
       };
       const query = createGraphQuery(queryDef);
       expect(query).toBe(
@@ -206,15 +206,19 @@ describe('api', () => {
       );
     });
     it('excludes null or undefined arguments', () => {
-      const queryDef: DataFetchQueryDefinition = {
-        graphObjects: {
-          args: {
-            c1: null,
-            c2: undefined,
-            c3: 1,
+      const queryDef = {
+        graph: [
+          {
+            graphObjects: {
+              args: {
+                c1: null,
+                c2: undefined,
+                c3: 1,
+              },
+              schema: ['name'],
+            },
           },
-          schema: { name: '' },
-        },
+        ],
       };
       const query = createGraphQuery(queryDef);
       expect(query).toBe('{ graph { graphObjects (c3: 1) { name } } }');
@@ -222,104 +226,43 @@ describe('api', () => {
   });
   describe('graphQuery', () => {
     it('creates a dataFetch builder', () => {
-      type TestQueryNoArgs = DataFetchQueryDefinition<
-        DataFetchContextFromQuery<{
-          test: {
-            schema: { name: string };
-          };
-        }>
-      >;
-      const fetchNoArgs = api.actions.graphQuery<TestQueryNoArgs>('test', {
-        name: '',
-      });
+      type ResultType = { prop: string };
+      type QueryType = {
+        _output_type?: ResultType;
+        graphObjects: ['prop'];
+      };
+      const queryDef: QueryType = {
+        graphObjects: ['prop'],
+      };
+      const fetchNoArgs = api.actions.graphQuery<QueryType>(queryDef);
       expectType<
         TypeEqual<
-          Parameters<
-            Parameters<typeof fetchNoArgs.onSuccess>[0]
-          >[0]['queryName'],
-          'test'
+          Parameters<Parameters<typeof fetchNoArgs.onSuccess>[0]>[0]['data'],
+          ResultType
         >
       >(true);
       expect(fetchNoArgs.type).toBe('@API/DATA_FETCH_REQUESTED');
-      type TestQueryWithArgs = DataFetchQueryDefinition<
-        DataFetchContextFromQuery<{
-          test: {
-            args: { id: number };
-            schema: { name: string };
-          };
-        }>
-      >;
-      const fetchWithArgs = api.actions.graphQuery<TestQueryWithArgs>('test', {
-        name: '',
-      })({
-        id: 123,
-      });
-      expectType<
-        TypeEqual<
-          Parameters<
-            Parameters<typeof fetchWithArgs.onSuccess>[0]
-          >[0]['queryName'],
-          'test'
-        >
-      >(true);
-      expect(fetchWithArgs.type).toBe('@API/DATA_FETCH_REQUESTED');
     });
   });
   describe('dataFetch.fromQuery', () => {
-    it('determines DataFetchContext from query', () => {
-      const query = {
-        graphOfObjects: {
-          schema: { something: 'a' },
-        },
-      };
-      expectType<
-        TypeEqual<
-          DataFetchContextFromQuery<typeof query>,
-          {
-            _keyType: 'graphOfObjects';
-            _argsType: undefined;
-            _schemaType: { something: string };
-          }
-        >
-      >(true);
-      const queryWithArgs = {
-        graphOfObjects: {
-          args: { criteria: 123 },
-          schema: { name: '' },
-        },
-      };
-      expectType<
-        TypeEqual<
-          DataFetchContextFromQuery<typeof queryWithArgs>,
-          {
-            _keyType: 'graphOfObjects';
-            _argsType: { criteria: number };
-            _schemaType: { name: string };
-          }
-        >
-      >(true);
-    });
     it('performs graph queries', async () => {
       ajax.forceResolve({
         data: {
           graph: {
-            graphOfObjects: ['graphObj'],
+            graphOfObjects: [{ c1: 'c1val' }],
           },
         },
       });
       const action = dataFetch().fromQuery({
-        graphOfObjects: {
-          schema: {
-            c1: null,
-          },
+        graph: {
+          graphOfObjects: ['c1'],
         },
       });
       store.dispatch(action);
       const success = await store
         .getState()
         .recording.waitFor(DATA_FETCH_SUCCESS);
-      expect(success[0].queryName).toBe('graphOfObjects');
-      expect(success[0].data[0]).toBe('graphObj');
+      expect(success[0].data.graph.graphOfObjects[0].c1).toBe('c1val');
     });
   });
   describe('dataFetch.fromUrl', () => {
@@ -451,20 +394,43 @@ describe('api', () => {
         },
       });
       ajax.forceResolve({ status: 200, data: {} });
-      const dataFetchRequest = dataFetch().fromQuery({
-        graphObjects: {
-          args: {
-            criteria: 1,
-          },
-          schema: [{ name: '' }],
-        },
-      });
-      dataFetchRequest.withPostProcessor((res) => {
-        expectType<TypeEqual<typeof res[number], { name: string }>>(true);
-        return res;
-      });
+      type QueryType = {
+        _output_type?: {
+          graph: {
+            graphObjects: { name: string }[];
+          };
+        };
+        graph: [
+          {
+            graphObjects: {
+              args: { criteria: number };
+              schema: string[];
+            };
+          }
+        ];
+      };
+      const dataFetchRequest = dataFetch()
+        .fromQuery<QueryType>({
+          graph: [
+            {
+              graphObjects: {
+                args: { criteria: 1 },
+                schema: ['name'],
+              },
+            },
+          ],
+        })
+        .withPostProcessor((res) => {
+          expectType<
+            TypeEqual<
+              typeof res['graph']['graphObjects'][number],
+              { name: string }
+            >
+          >(true);
+          return res;
+        })
+        .withName('graphObjects');
       store.dispatch(dataFetchRequest);
-      console.log(store.getState().recording.actions);
       expect(
         store.getState().recording.find(DATA_FETCH_SUCCESS)[0].queryName
       ).toBe('graphObjects');
@@ -474,12 +440,14 @@ describe('api', () => {
       store.dispatch(invalidatePrefetchCache());
       store.dispatch(
         dataFetch().fromQuery({
-          graphObjects: {
-            args: {
-              criteria: 1,
+          graph: [
+            {
+              graphObjects: {
+                args: { criteria: 1 },
+                schema: ['name'],
+              },
             },
-            schema: { name: '' },
-          },
+          ],
         })
       );
       expect(store.getState().recording.find(AJAX_CALL_REQUESTED).length).toBe(
@@ -502,13 +470,17 @@ describe('api', () => {
           },
         },
       });
-      const df = dataFetch().fromQuery({
-        graphObjects: {
-          args: {
-            criteria: 1,
+      const df = dataFetch('graphObjects').fromQuery({
+        graph: [
+          {
+            graphObjects: {
+              args: {
+                criteria: 1,
+              },
+              schema: ['name'],
+            },
           },
-          schema: { name: '' },
-        },
+        ],
       });
       store.dispatch(df);
       const dataFetchFailedAction = store
