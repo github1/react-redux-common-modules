@@ -186,7 +186,7 @@ export interface DataFetchRequestBuilder<R, N = string> extends DataFetchRequest
 
   withPostProcessor<FR = R>(
     postProcessor: DataFetchPostProcessor<R, FR>
-  ): DataFetchRequestBuilder<FR>;
+  ): DataFetchRequestBuilder<FR, N>;
 
   onSuccess(handler: DataFetchSuccessHandler<R, N>): DataFetchRequestBuilder<R, N>;
 
