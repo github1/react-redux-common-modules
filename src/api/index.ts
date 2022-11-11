@@ -69,8 +69,8 @@ export type InvalidatePrefetchCacheAction = Action<
   key?: string;
 };
 
-export type DataFetchRequestedAction = Action<typeof DATA_FETCH_REQUESTED> & {
-  queryName: string;
+export type DataFetchRequestedAction<N> = Action<typeof DATA_FETCH_REQUESTED> & {
+  queryName: N;
   dataFetchId?: string;
   url?: string;
   queryResultName?: string;
@@ -80,20 +80,18 @@ export type DataFetchRequestedAction = Action<typeof DATA_FETCH_REQUESTED> & {
   postProcessor?: (data: any, state?: any) => any;
 };
 
-export type DataFetchSuccessAction<R = any> = Action<
+export type DataFetchSuccessAction<R, N> = Action<
   typeof DATA_FETCH_SUCCESS
 > & {
   dataFetchId: string;
-  queryName: string;
+  queryName: N;
   queryResultName: string;
   data: R;
 };
 
-export type DataFetchFailedAction<
-  TDataFetchContext extends DataFetchContextAny = DataFetchContextAny
-> = Action<typeof DATA_FETCH_FAILED> & {
+export type DataFetchFailedAction<N> = Action<typeof DATA_FETCH_FAILED> & {
   dataFetchId: string;
-  queryName: TDataFetchContext['_keyType'];
+  queryName: N;
   queryResultName: string;
   error: Error & { status?: any };
 };
@@ -149,33 +147,23 @@ export type AuthenticateOptions = {
   password: string;
 };
 
-export type DataFetchSuccessHandler<R> = {
-  (result: DataFetchSuccessAction<R>, state: any): ActionsOrThunks | void;
+export type DataFetchSuccessHandler<R, N> = {
+  (result: DataFetchSuccessAction<R, N>, state: any): ActionsOrThunks | void;
 };
 
-export type DataFetchFailedHandler<
-  TDataFetchContext extends DataFetchContextAny = DataFetchContextAny
-> = {
+export type DataFetchFailedHandler<N> = {
   (
-    result: DataFetchFailedAction<TDataFetchContext>,
+    result: DataFetchFailedAction<N>,
     state: any
   ): ActionsOrThunks | void;
 };
 
-export type DataFetchHandler<R = any> = {
-  onSuccess?: DataFetchSuccessHandler<R>;
-  onFailed?: DataFetchFailedHandler;
+export type DataFetchHandler<R, N> = {
+  onSuccess?: DataFetchSuccessHandler<R, N>;
+  onFailed?: DataFetchFailedHandler<N>;
 };
 
-const dataFetchHandlers: Record<string, DataFetchHandler[]> = {};
-
-export type DataFetchContext<TKey extends string, TSchema, TArgs> = {
-  _keyType: TKey;
-  _schemaType: TSchema;
-  _argsType: TArgs;
-};
-
-export type DataFetchContextAny = DataFetchContext<any, any, any>;
+const dataFetchHandlers: Record<string, DataFetchHandler<any, any>[]> = {};
 
 export type DataFetchPostProcessor<I, O = I> = {
   (data: I, state?: any): O;
@@ -183,26 +171,26 @@ export type DataFetchPostProcessor<I, O = I> = {
 
 // DataFetchContext<TKey, TSchema, undefined, any>
 
-export interface DataFetchRequestBuilder<R> extends DataFetchRequestedAction {
+export interface DataFetchRequestBuilder<R, N = string> extends DataFetchRequestedAction<N> {
   fromQuery<T, FR = T extends { _output_type?: infer O } ? O : unknown>(
     query: T
-  ): DataFetchRequestBuilder<FR>;
+  ): DataFetchRequestBuilder<FR, N>;
 
-  fromStaticData<FR>(data: FR): DataFetchRequestBuilder<FR>;
+  fromStaticData<FR, N>(data: FR): DataFetchRequestBuilder<FR>;
 
-  fromUrl<R>(url: string): DataFetchRequestBuilder<R>;
+  fromUrl<R, N>(url: string): DataFetchRequestBuilder<R>;
 
-  withName(name: string): DataFetchRequestBuilder<R>;
+  withName<WN>(name: WN): DataFetchRequestBuilder<R, WN>;
 
-  withTag(tag: string): DataFetchRequestBuilder<R>;
+  withTag(tag: string): DataFetchRequestBuilder<R, N>;
 
   withPostProcessor<FR = R>(
     postProcessor: DataFetchPostProcessor<R, FR>
   ): DataFetchRequestBuilder<FR>;
 
-  onSuccess(handler: DataFetchSuccessHandler<R>): DataFetchRequestBuilder<R>;
+  onSuccess(handler: DataFetchSuccessHandler<R, N>): DataFetchRequestBuilder<R, N>;
 
-  onFailure(handler: DataFetchFailedHandler): DataFetchRequestBuilder<R>;
+  onFailure(handler: DataFetchFailedHandler<N>): DataFetchRequestBuilder<R, N>;
 }
 
 function applyDataFetchPostProcessor(
@@ -334,7 +322,7 @@ export const api = createModule('api', {
           return dataFetch;
         },
         onFailure(
-          handler: DataFetchFailedHandler
+          handler: DataFetchFailedHandler<any>
         ): DataFetchRequestBuilder<any> {
           dataFetchHandlers[dataFetch.dataFetchId] =
             dataFetchHandlers[dataFetch.dataFetchId] || [];
@@ -342,15 +330,15 @@ export const api = createModule('api', {
           return dataFetch;
         },
         onSuccess(
-          handler: DataFetchSuccessHandler<any>
+          handler: DataFetchSuccessHandler<any, string>
         ): DataFetchRequestBuilder<any> {
           dataFetchHandlers[dataFetch.dataFetchId] =
             dataFetchHandlers[dataFetch.dataFetchId] || [];
           dataFetchHandlers[dataFetch.dataFetchId].push({ onSuccess: handler });
           return dataFetch;
         },
-        withName(name: string): DataFetchRequestBuilder<any> {
-          dataFetch.queryName = name;
+        withName<WN>(name: WN): DataFetchRequestBuilder<any, WN> {
+          dataFetch.queryName = `${name}`;
           return dataFetch as any;
         },
         withTag(tag: string): DataFetchRequestBuilder<any> {
@@ -371,7 +359,7 @@ export const api = createModule('api', {
       queryName,
       queryResultName,
       data,
-    }: Omit<DataFetchSuccessAction, 'type'>): DataFetchSuccessAction {
+    }: Omit<DataFetchSuccessAction<any, any>, 'type'>): DataFetchSuccessAction<any, any> {
       return {
         type: DATA_FETCH_SUCCESS,
         dataFetchId,
@@ -385,7 +373,7 @@ export const api = createModule('api', {
       queryName,
       queryResultName,
       error,
-    }: Omit<DataFetchFailedAction, 'type'>): DataFetchFailedAction {
+    }: Omit<DataFetchFailedAction<any>, 'type'>): DataFetchFailedAction<any> {
       return {
         type: DATA_FETCH_FAILED,
         dataFetchId,
@@ -650,7 +638,7 @@ export const api = createModule('api', {
     ) {
       next(action);
       (dataFetchHandlers[action.dataFetchId] || []).forEach(
-        (handler: DataFetchHandler) => {
+        (handler: DataFetchHandler<any, any>) => {
           let actions: ActionsOrThunks | void = undefined;
           if (DATA_FETCH_SUCCESS === action.type && handler.onSuccess) {
             actions = handler.onSuccess(action, store.getState());
