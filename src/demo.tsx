@@ -4,9 +4,12 @@ import { Provider } from 'react-redux';
 import {
   alerts,
   api,
-  connectModule,
   datasource,
   Alerts as AlertsContainer,
+  useModuleLifecycle,
+  useModuleActions,
+  useModuleInterceptor,
+  useModuleSelector,
 } from '.';
 import { createModule } from '@github1/redux-modules';
 import './demo.scss';
@@ -133,7 +136,12 @@ const handleInputChange = (evt: ChangeEvent<HTMLInputElement>) => {
 
 store.dispatch(store.actions.demo.loadData());
 
-const RecordList = connectModule(datasourceModule, ({ records, actions }) => {
+const RecordList: React.FC = () => {
+  const records = useModuleSelector(
+    datasourceModule,
+    (state) => state.datasource.records
+  );
+  const actions = useModuleActions(datasourceModule);
   if (!records) {
     return <div></div>;
   }
@@ -154,6 +162,7 @@ const RecordList = connectModule(datasourceModule, ({ records, actions }) => {
             <li
               key={idx}
               onClick={() => {
+                console.log('reverse');
                 actions.datasource.sortDataSource({
                   id: 'records',
                   sortDirection: 'reverse',
@@ -169,53 +178,54 @@ const RecordList = connectModule(datasourceModule, ({ records, actions }) => {
       </ul>
     </div>
   );
-});
+};
 
-const Main = connectModule(
-  demo,
-  {
-    lifecycleHook(phase) {
-      console.log('phase', phase);
-    },
-  },
-  ({ actions }) => {
-    return (
-      <div>
-        <button
-          onClick={() => {
-            actions.alerts.hideAllAlerts();
-          }}
-        >
-          Hide Alerts
-        </button>
-        <AlertsContainer
-          alertRenderer={(alert, index) => (
-            <div key={index}>
-              <button
-                onClick={() => {
-                  alert.dismiss();
-                }}
-              >
-                dismiss
-              </button>
-              <div>{alert.message}</div>
-              {alert.actions.map((action, index) => {
-                return (
-                  <button key={index} onClick={() => action.trigger()}>
-                    k{action.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        />
-        <div className="table-container">
-          <RecordList />
-        </div>
+const Main: React.FC = () => {
+  useModuleLifecycle(demo, (phase, context) => {
+    console.log('phase', phase, context);
+  });
+  useModuleInterceptor(demo, (action) => {
+    if (action.type === '@ALERT/HIDE') {
+      console.log('alert hidden');
+    }
+  });
+  const actions = useModuleActions(demo);
+  return (
+    <div>
+      <button
+        onClick={() => {
+          actions.alerts.hideAllAlerts();
+        }}
+      >
+        Hide Alerts
+      </button>
+      <AlertsContainer
+        alertRenderer={(alert, index) => (
+          <div key={index}>
+            <button
+              onClick={() => {
+                alert.dismiss();
+              }}
+            >
+              dismiss
+            </button>
+            <div>{alert.message}</div>
+            {alert.actions.map((action, index) => {
+              return (
+                <button key={index} onClick={() => action.trigger()}>
+                  k{action.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      />
+      <div className="table-container">
+        <RecordList />
       </div>
-    );
-  }
-);
+    </div>
+  );
+};
 
 ReactDOM.render(
   <Provider store={store}>

@@ -1,3 +1,5 @@
+// noinspection JSUnusedLocalSymbols
+
 import {
   ReduxModuleTypeContainerAny,
   ReduxModuleTypeContainerStoreState,
@@ -67,7 +69,7 @@ type ConnectedModuleInterceptor<
 type ConnectedModuleLifeCyclePhase = 'mount' | 'unmount' | 'update';
 
 type ConnectedModuleLifeCycleHook<
-  TStoreActionCreators extends Record<string, (...args: any) => Action>,
+  TStoreActionCreators,
   TProps,
   TStoreState,
   TAction extends Action,
@@ -98,7 +100,8 @@ type ReduxModuleStoreActionType<TReduxModule> =
     : never;
 
 export type ConnectModuleOptions<
-  TMapStateToProps extends MapStateToProps<any, any> = MapStateToProps<
+  TMapStateToProps extends MapStateToProps<any, any, any> = MapStateToProps<
+    any,
     any,
     any
   >,
@@ -263,11 +266,7 @@ export function connectModule<
     TConnectedModuleLifeCycleHook,
     PropsOnlyActionCreators<TComponentOwnProps>
   >,
-  TComponentOwnProps = TComponent extends ComponentType<
-    infer TComponentOwnProps
-  >
-    ? TComponentOwnProps
-    : {}
+  TComponentOwnProps = ComponentState<TComponent>
 >(
   module: TReduxModule,
   opts: TConnectModuleOptions,
@@ -418,6 +417,7 @@ export function useModuleSelector<
   return useSelector(selector, equalityFn);
 }
 
+// noinspection JSUnusedLocalSymbols
 export function useModuleDispatch<
   TReduxModule = ReduxModuleBase<ReduxModuleTypeContainerAny>,
   TReduxModuleStoreState = ReduxModuleStoreState<TReduxModule>,
@@ -426,4 +426,141 @@ export function useModuleDispatch<
   module: TReduxModule
 ): ThunkDispatch<TReduxModuleStoreState, any, TReduxModuleActionType> {
   return useDispatch();
+}
+
+export function useModuleActions<
+  TReduxModule extends ReduxModuleBase<ReduxModuleTypeContainerAny> = ReduxModuleBase<ReduxModuleTypeContainerAny>,
+  TReduxModuleStoreState = ReduxModuleStoreState<TReduxModule>,
+  TReduxModuleActionType extends Action = ReduxModuleStoreActionType<TReduxModule>
+>(
+  module: TReduxModule
+): ReduxModuleTypeContainerStoreActionCreatorDispatchBound<
+  TReduxModule['_types']
+> {
+  const store = useStore();
+  const actions = (store as any).actions;
+  return Object.keys(actions).reduce((bound, moduleName) => {
+    const actionCreators = actions[moduleName];
+    return {
+      ...bound,
+      [moduleName]: bindActionCreators(actionCreators, store.dispatch),
+    };
+  }, {}) as any;
+}
+
+function useModuleLifecycleInternal<
+  TReduxModule = ReduxModuleBase<ReduxModuleTypeContainerAny>,
+  TReduxModuleStoreState = ReduxModuleStoreState<TReduxModule>,
+  TReduxModuleActionType extends Action = ReduxModuleStoreActionType<TReduxModule>,
+  TStoreActionCreators extends ReduxModuleStoreActionCreator<TReduxModule> = ReduxModuleStoreActionCreator<TReduxModule>
+>(
+  module: TReduxModule,
+  interceptor?: ConnectedModuleInterceptor<
+    TStoreActionCreators,
+    unknown,
+    TReduxModuleStoreState,
+    TReduxModuleActionType
+  >,
+  lifecycleHook?: ConnectedModuleLifeCycleHook<
+    TStoreActionCreators,
+    unknown,
+    TReduxModuleStoreState,
+    TReduxModuleActionType
+  >
+) {
+  const store = useStore();
+  const isFirstRender = React.useRef(true);
+  let useEffectToUse = useEffect;
+  if (typeof window === 'undefined') {
+    // SSR
+    useEffectToUse = (cb) => {
+      try {
+        cb();
+      } catch (err) {
+        console.error('Caught error in useEffect', err);
+      }
+    };
+  }
+  useEffectToUse(() => {
+    let listener: (action: Action) => void;
+    if (interceptor) {
+      listener = (action: TReduxModuleActionType) => {
+        const resultingAction = interceptor(action, {
+          props: {},
+          state: store.getState(),
+          actions: (store as any).actions,
+        });
+        if (resultingAction) {
+          store.dispatch(resultingAction as TReduxModuleActionType);
+        }
+      };
+      store.dispatch({ type: ADD_ACTION_LISTENER, listener });
+    }
+    let phase: ConnectedModuleLifeCyclePhase = 'update';
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      phase = 'mount';
+    }
+    if (lifecycleHook) {
+      const actionReturned = lifecycleHook(phase, {
+        props: {},
+        state: store.getState(),
+        actions: (store as any).actions,
+      });
+      if (actionReturned) {
+        store.dispatch(actionReturned as TReduxModuleActionType);
+      }
+    }
+    return () => {
+      if (listener) {
+        store.dispatch({ type: REMOVE_ACTION_LISTENER, listener });
+      }
+      if (lifecycleHook) {
+        const actionReturned = lifecycleHook('unmount', {
+          props: {},
+          state: store.getState(),
+          actions: (store as any).actions,
+        });
+        if (actionReturned) {
+          store.dispatch(actionReturned as TReduxModuleActionType);
+        }
+      }
+    };
+  }, []);
+}
+
+// noinspection JSUnusedLocalSymbols
+export function useModuleLifecycle<
+  TReduxModule = ReduxModuleBase<ReduxModuleTypeContainerAny>,
+  TReduxModuleStoreState = ReduxModuleStoreState<TReduxModule>,
+  TReduxModuleActionType extends Action = ReduxModuleStoreActionType<TReduxModule>,
+  TStoreActionCreators extends ReduxModuleStoreActionCreator<TReduxModule> = ReduxModuleStoreActionCreator<TReduxModule>
+>(
+  module: TReduxModule,
+  handler: ConnectedModuleLifeCycleHook<
+    TStoreActionCreators,
+    unknown,
+    TReduxModuleStoreState,
+    TReduxModuleActionType
+  >
+) {
+  return useModuleLifecycleInternal(module, undefined, handler);
+}
+
+// noinspection JSUnusedLocalSymbols
+export function useModuleInterceptor<
+  TReduxModule = ReduxModuleBase<ReduxModuleTypeContainerAny>,
+  TReduxModuleStoreState = ReduxModuleStoreState<TReduxModule>,
+  TReduxModuleActionType extends Action = ReduxModuleStoreActionType<TReduxModule>,
+  TStoreActionCreators extends ReduxModuleStoreActionCreator<TReduxModule> = ReduxModuleStoreActionCreator<TReduxModule>
+>(
+  module: TReduxModule,
+  interceptor: ConnectedModuleInterceptor<
+    TStoreActionCreators,
+    unknown,
+    TReduxModuleStoreState,
+    TReduxModuleActionType
+  >
+) {
+  return useModuleLifecycleInternal(module, interceptor, undefined);
 }
