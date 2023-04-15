@@ -534,7 +534,9 @@ export const api = createModule('api', {
           {
             accept: APPLICATION_AMF,
             headers,
-            numOfAttempts: 2,
+            retry: {
+              attempts: 2
+            }
           },
           (err, response) => {
             if (err) {

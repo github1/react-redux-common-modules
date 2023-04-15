@@ -3,6 +3,7 @@ import { Action, Dispatch, MiddlewareAPI } from 'redux';
 import {
   init as AjaxService,
   AjaxServiceRequestOptions,
+  AjaxServiceRequestOptionsBase,
   AjaxServiceResponse,
 } from '@github1/ajax-service';
 import { Optional } from 'utility-types';
@@ -80,7 +81,7 @@ export interface AjaxCallRetriedAction
   extends Action<typeof AJAX_CALL_RETRIED> {
   payload: {
     id: string;
-    opts: any;
+    opts: AjaxServiceRequestOptionsBase;
     attemptNumber: number;
     numOfAttempts: number;
     error: any;
@@ -173,20 +174,14 @@ const ajaxModule = createModule('ajax', {
       }
       opts.method = method.toUpperCase();
       opts.id = `call-${generateCallID()}`;
-      opts.interceptors = opts.interceptors || [];
-      opts.interceptors.push({
-        onRetry: (err, attemptNumber, numOfAttempts, fetchOpts) => {
+      opts.configs = opts.configs || [];
+      opts.configs.push({
+        onRetry: ({ err, attemptNumber, numOfAttempts, req }) => {
           const store = callStoreRefs[opts.id];
           if (store) {
             retriedCalls[opts.id] = attemptNumber;
             store.dispatch(
-              this.retried(
-                opts.id,
-                fetchOpts,
-                attemptNumber,
-                numOfAttempts,
-                err
-              )
+              this.retried(opts.id, req, attemptNumber, numOfAttempts, err)
             );
             store.dispatch(this.reportCallStats());
           }
