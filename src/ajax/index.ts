@@ -175,9 +175,10 @@ const ajaxModule = createModule('ajax', {
       opts.method = method.toUpperCase();
       opts.id = `call-${generateCallID()}`;
       opts.configs = opts.configs || [];
-      opts.configs.push({
-        onRetry: ({ err, attemptNumber, numOfAttempts, req }) => {
-          const store = callStoreRefs[opts.id];
+      opts.configs.unshift({
+        onRequest: (req, { retryState, next }) => {
+          const store = callStoreRefs[req.id];
+          const { attemptNumber, numOfAttempts, err } = retryState;
           if (store) {
             retriedCalls[opts.id] = attemptNumber;
             store.dispatch(
@@ -185,6 +186,7 @@ const ajaxModule = createModule('ajax', {
             );
             store.dispatch(this.reportCallStats());
           }
+          return next(req);
         },
       });
       callbacks[opts.id] = callback;
