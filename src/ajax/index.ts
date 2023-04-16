@@ -7,6 +7,7 @@ import {
   AjaxServiceResponse,
 } from '@github1/ajax-service';
 import { Optional } from 'utility-types';
+import url, { UrlWithStringQuery } from 'url';
 
 export const AJAX_CALL_REQUESTED = '@AJAX/CALL_REQUESTED';
 export const AJAX_CALL_SENT = '@AJAX/CALL_SENT';
@@ -28,6 +29,10 @@ type AjaxModuleStubData<TType> =
 
 export type AjaxSender = {
   send(options: AjaxServiceRequestOptions): Promise<AjaxServiceResponse>;
+};
+
+export type AjaxCallRequestedActionWithParsedUrl = AjaxCallRequestedAction['payload'] & {
+  parsedUrl: UrlWithStringQuery;
 };
 
 export type AjaxCallOpts = {
@@ -107,7 +112,7 @@ export interface AjaxCallCompleteAction
   extends Action<typeof AJAX_CALL_COMPLETE> {
   payload: {
     id: string;
-    request: AjaxCallRequestedAction['payload'];
+    request: AjaxCallRequestedActionWithParsedUrl;
     status: number;
   };
 }
@@ -238,9 +243,15 @@ const ajaxModule = createModule('ajax', {
       request: AjaxCallRequestedAction['payload'],
       status: number
     ): AjaxCallCompleteAction {
+      let parsed = null;
+      try {
+        parsed = url.parse(request.url);
+      } catch (err) {
+        // ignore
+      }
       return {
         type: AJAX_CALL_COMPLETE,
-        payload: { id, request, status },
+        payload: { id, request: { ...request, parsedUrl: parsed }, status },
       };
     },
     success(
