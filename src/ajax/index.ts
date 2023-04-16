@@ -7,7 +7,7 @@ import {
   AjaxServiceResponse,
 } from '@github1/ajax-service';
 import { Optional } from 'utility-types';
-import url, { UrlWithStringQuery } from 'url';
+import { URL } from 'url-shim';
 
 export const AJAX_CALL_REQUESTED = '@AJAX/CALL_REQUESTED';
 export const AJAX_CALL_SENT = '@AJAX/CALL_SENT';
@@ -32,7 +32,7 @@ export type AjaxSender = {
 };
 
 export type AjaxCallRequestedActionWithParsedUrl = AjaxCallRequestedAction['payload'] & {
-  parsedUrl: UrlWithStringQuery;
+  parsedUrl: URL;
 };
 
 export type AjaxCallOpts = {
@@ -243,9 +243,9 @@ const ajaxModule = createModule('ajax', {
       request: AjaxCallRequestedAction['payload'],
       status: number
     ): AjaxCallCompleteAction {
-      let parsed = null;
+      let parsed: URL = null;
       try {
-        parsed = url.parse(request.url);
+        parsed = new URL(request.url);
       } catch (err) {
         // ignore
       }

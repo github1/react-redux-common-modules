@@ -32,9 +32,10 @@
     "@github1/redux-modules": "0.4.50",
     "history": "4.7.2",
     "prop-by-string": "1.0.1",
-    "utility-types": "3.10.0",
     "react-custom-scrollbars": "4.2.1",
-    "react-measure": "2.3.0"
+    "react-measure": "2.3.0",
+    "url-shim": "1.0.1",
+    "utility-types": "3.10.0"
   },
   "peerDependencies": {
     "@types/react-redux": ">=7.0.1",
