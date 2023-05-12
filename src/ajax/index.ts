@@ -7,7 +7,7 @@ import {
   AjaxServiceResponse,
 } from '@github1/ajax-service';
 import { Optional } from 'utility-types';
-import { URL } from 'url-shim';
+const URLShim = typeof URL === 'undefined' ? require('url-shim').URL : URL;
 
 export const AJAX_CALL_REQUESTED = '@AJAX/CALL_REQUESTED';
 export const AJAX_CALL_SENT = '@AJAX/CALL_SENT';
@@ -245,7 +245,7 @@ const ajaxModule = createModule('ajax', {
     ): AjaxCallCompleteAction {
       let parsed: URL = null;
       try {
-        parsed = new URL(request.url);
+        parsed = new URLShim(request.url);
       } catch (err) {
         // ignore
       }
