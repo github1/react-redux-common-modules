@@ -7,7 +7,6 @@ import {
   AjaxServiceResponse,
 } from '@github1/ajax-service';
 import { Optional } from 'utility-types';
-const URLShim = typeof URL === 'undefined' ? require('url-shim').URL : URL;
 
 export const AJAX_CALL_REQUESTED = '@AJAX/CALL_REQUESTED';
 export const AJAX_CALL_SENT = '@AJAX/CALL_SENT';
@@ -29,10 +28,6 @@ type AjaxModuleStubData<TType> =
 
 export type AjaxSender = {
   send(options: AjaxServiceRequestOptions): Promise<AjaxServiceResponse>;
-};
-
-export type AjaxCallRequestedActionWithParsedUrl = AjaxCallRequestedAction['payload'] & {
-  parsedUrl: URL;
 };
 
 export type AjaxCallOpts = {
@@ -112,7 +107,7 @@ export interface AjaxCallCompleteAction
   extends Action<typeof AJAX_CALL_COMPLETE> {
   payload: {
     id: string;
-    request: AjaxCallRequestedActionWithParsedUrl;
+    request: AjaxCallRequestedAction['payload'];
     status: number;
   };
 }
@@ -243,15 +238,9 @@ const ajaxModule = createModule('ajax', {
       request: AjaxCallRequestedAction['payload'],
       status: number
     ): AjaxCallCompleteAction {
-      let parsed: URL = null;
-      try {
-        parsed = new URLShim(request.url);
-      } catch (err) {
-        // ignore
-      }
       return {
         type: AJAX_CALL_COMPLETE,
-        payload: { id, request: { ...request, parsedUrl: parsed }, status },
+        payload: { id, request, status },
       };
     },
     success(
