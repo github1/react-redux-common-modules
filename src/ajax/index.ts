@@ -350,7 +350,7 @@ const ajaxModule = createModule('ajax', {
         })
         .catch(
           (maybeErr: (Error & { status?: any }) | ((a: Action) => Error)) => {
-            let err: Error & { status?: any };
+            let err: Error & { status?: any, response?: any };
             if (typeof maybeErr === 'function') {
               try {
                 err = maybeErr(action);
@@ -364,9 +364,9 @@ const ajaxModule = createModule('ajax', {
               store.actions.complete(
                 action.payload.id,
                 action.payload,
-                {},
-                undefined,
-                err.status
+                err?.response?.headers,
+                err?.response?.data,
+                err?.status
               )
             );
             store.dispatch(store.actions.failed(action.payload.id, err));
