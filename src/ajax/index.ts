@@ -108,6 +108,8 @@ export interface AjaxCallCompleteAction
   payload: {
     id: string;
     request: AjaxCallRequestedAction['payload'];
+    headers: Record<string, string>;
+    data: any;
     status: number;
   };
 }
@@ -236,11 +238,13 @@ const ajaxModule = createModule('ajax', {
     complete(
       id: string,
       request: AjaxCallRequestedAction['payload'],
+      headers: Record<string, string>,
+      data: any,
       status: number
     ): AjaxCallCompleteAction {
       return {
         type: AJAX_CALL_COMPLETE,
-        payload: { id, request, status },
+        payload: { id, request, headers, data, status },
       };
     },
     success(
@@ -337,6 +341,8 @@ const ajaxModule = createModule('ajax', {
             store.actions.complete(
               action.payload.id,
               action.payload,
+              resp.headers,
+              resp.data,
               resp.status
             )
           );
@@ -358,6 +364,8 @@ const ajaxModule = createModule('ajax', {
               store.actions.complete(
                 action.payload.id,
                 action.payload,
+                {},
+                undefined,
                 err.status
               )
             );
