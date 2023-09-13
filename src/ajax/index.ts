@@ -6,6 +6,7 @@ import {
   AjaxServiceRequestOptionsBase,
   AjaxServiceResponse,
   AjaxServiceError,
+  isAjaxServiceError
 } from '@github1/ajax-service';
 export { isAjaxServiceError, AjaxServiceError } from '@github1/ajax-service';
 import { Optional } from 'utility-types';
@@ -350,8 +351,8 @@ const ajaxModule = createModule('ajax', {
           store.dispatch(store.actions.success(action.payload.id, resp));
         })
         .catch(
-          (maybeErr: (Error & { status?: any }) | ((a: Action) => Error)) => {
-            let err: Error & { status?: any; response?: any };
+          (maybeErr: (Error | AjaxServiceError) | ((a: Action) => Error)) => {
+            let err: Error | AjaxServiceError;
             if (typeof maybeErr === 'function') {
               try {
                 err = maybeErr(action);
@@ -361,13 +362,22 @@ const ajaxModule = createModule('ajax', {
             } else {
               err = maybeErr;
             }
+            console.log(isAjaxServiceError);
+            let headers: Record<string, string> = {};
+            let data: unknown = '';
+            let status: number = 0;
+            if (isAjaxServiceError(err)) {
+              headers = err?.response?.headers || {};
+              data = err?.response?.data || '';
+              status = err?.response?.status || 0;
+            }
             store.dispatch(
               store.actions.complete(
                 action.payload.id,
                 action.payload,
-                err?.response?.headers,
-                err?.response?.data,
-                err?.response?.status
+                headers,
+                data,
+                status
               )
             );
             store.dispatch(store.actions.failed(action.payload.id, err));

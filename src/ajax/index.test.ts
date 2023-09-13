@@ -183,6 +183,9 @@ describe('ajax-module', () => {
       });
       store.dispatch(get('http://test.com'));
       store.dispatch(get('http://test2.com'));
+      console.log(store
+        .getState()
+        .recording);
       const failure = await store
         .getState()
         .recording.waitFor('@AJAX/CALL_FAILED');
