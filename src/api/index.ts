@@ -5,6 +5,7 @@ import {
   ajax,
   AjaxCallRequestedAction,
   AjaxCallback,
+  AjaxServiceError,
   APPLICATION_AMF,
   APPLICATION_JSON,
   TEXT_PLAIN,
@@ -259,7 +260,7 @@ export const api = createModule('api', {
     },
     authenticationFailed(
       mode: string,
-      error: Error & { status?: any }
+      error: Error | AjaxServiceError
     ): AuthenticationFailedAction {
       return {
         type: AUTHENTICATE_FAILED,

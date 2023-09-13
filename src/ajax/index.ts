@@ -5,7 +5,9 @@ import {
   AjaxServiceRequestOptions,
   AjaxServiceRequestOptionsBase,
   AjaxServiceResponse,
+  AjaxServiceError,
 } from '@github1/ajax-service';
+export { isAjaxServiceError, AjaxServiceError } from '@github1/ajax-service';
 import { Optional } from 'utility-types';
 
 export const AJAX_CALL_REQUESTED = '@AJAX/CALL_REQUESTED';
@@ -36,7 +38,7 @@ export type AjaxCallOpts = {
 };
 
 export type AjaxCallback = (
-  err?: Error & { status?: any },
+  err?: Error | AjaxServiceError,
   resp?: AjaxServiceResponse
 ) => Action | Array<Action> | void;
 
@@ -72,8 +74,7 @@ export interface AjaxCallSuccessAction
 export interface AjaxCallFailedAction extends Action<typeof AJAX_CALL_FAILED> {
   payload: {
     id: string;
-    status: number;
-    error: any;
+    error: Error;
   };
 }
 
@@ -259,7 +260,7 @@ const ajaxModule = createModule('ajax', {
     failed(id: string, error: Error): AjaxCallFailedAction {
       return {
         type: AJAX_CALL_FAILED,
-        payload: { id, status: 0, error },
+        payload: { id, error },
       };
     },
     retried(
@@ -350,7 +351,7 @@ const ajaxModule = createModule('ajax', {
         })
         .catch(
           (maybeErr: (Error & { status?: any }) | ((a: Action) => Error)) => {
-            let err: Error & { status?: any, response?: any };
+            let err: Error & { status?: any; response?: any };
             if (typeof maybeErr === 'function') {
               try {
                 err = maybeErr(action);
@@ -366,7 +367,7 @@ const ajaxModule = createModule('ajax', {
                 action.payload,
                 err?.response?.headers,
                 err?.response?.data,
-                err?.status
+                err?.response?.status
               )
             );
             store.dispatch(store.actions.failed(action.payload.id, err));

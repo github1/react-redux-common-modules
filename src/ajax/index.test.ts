@@ -1,4 +1,4 @@
-import { ajax } from './index';
+import { ajax, isAjaxServiceError, AjaxServiceError } from './index';
 const { get, post } = ajax.actions;
 
 describe('ajax-module', () => {
@@ -84,7 +84,9 @@ describe('ajax-module', () => {
       ).toBe(true);
     });
     it('fires actions when the call fails', () => {
-      ajax.forceReject({ status: 500 });
+      ajax.forceReject(
+        new AjaxServiceError({ status: 500, headers: {}, data: '' })
+      );
       return new Promise<void>((resolve) => {
         store.dispatch(
           get('http://test.com', (err) => {
@@ -101,6 +103,7 @@ describe('ajax-module', () => {
             expect(callCompleteAction.payload.id).toBe(
               callRequestedAction.payload.id
             );
+            console.log(callCompleteAction.payload);
             expect(callCompleteAction.payload.status).toBe(500);
             expect(callCompleteAction.payload.request.url).toBe(
               'http://test.com'
@@ -108,8 +111,13 @@ describe('ajax-module', () => {
             const callFailedAction = store
               .getState()
               .recording.find('@AJAX/CALL_FAILED')[0];
-            expect(callFailedAction.payload.error.status).toBe(500);
-            expect(err.status).toBe(500);
+            expect(isAjaxServiceError(callFailedAction.payload.error)).toBe(
+              true
+            );
+            expect(
+              (callFailedAction.payload.error as AjaxServiceError).response
+                .status
+            ).toBe(500);
             resolve();
           })
         );
