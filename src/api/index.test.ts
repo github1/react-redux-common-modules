@@ -10,6 +10,7 @@ import {
   createGraphQuery,
   DATA_FETCH_FAILED,
   DATA_FETCH_SUCCESS,
+  AjaxServiceError,
 } from './index';
 import { apiModuleTestHelper } from './test-helper';
 import { ajax, AJAX_CALL_COMPLETE, AJAX_CALL_REQUESTED } from '../ajax';
@@ -68,7 +69,7 @@ describe('api', () => {
     it('can fail to authenticate with 401 or 403 status', async () => {
       for (const status of [401, 403]) {
         ajax.forceReject(() => {
-          throw { ...new Error(''), status };
+          throw new AjaxServiceError({ status, headers: {}, data: '' });
         });
         store.dispatch(
           authenticateWithUsernamePassword({
@@ -82,7 +83,7 @@ describe('api', () => {
           .recording.find(AUTHENTICATE_FAILED)
           .reverse()[0];
         expect(authenticateFailedAction.mode).toBe('basic-auth');
-        expect(authenticateFailedAction.error.status).toBe(status);
+        expect((authenticateFailedAction.error as AjaxServiceError).response.status).toBe(status);
       }
     });
     it('can fail to authenticate with an error', async () => {

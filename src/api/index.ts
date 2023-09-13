@@ -10,6 +10,7 @@ import {
   APPLICATION_JSON,
   TEXT_PLAIN,
 } from '../ajax';
+export { AjaxServiceError, isAjaxServiceError } from '../ajax';
 
 const { get, del, post } = ajax.actions;
 
@@ -53,7 +54,7 @@ export type AuthenticationSuccessAction = Action<
 
 export type AuthenticationFailedAction = Action<typeof AUTHENTICATE_FAILED> & {
   mode: string;
-  error: Error & { status?: any };
+  error: Error | AjaxServiceError;
 };
 
 export type AuthorizationFailedAction = Action<
