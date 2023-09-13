@@ -362,7 +362,6 @@ const ajaxModule = createModule('ajax', {
             } else {
               err = maybeErr;
             }
-            console.log(isAjaxServiceError);
             let headers: Record<string, string> = {};
             let data: unknown = '';
             let status: number = 0;
